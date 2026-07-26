@@ -37,6 +37,7 @@ import {
   X
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { isSupabaseConfigured } from "../lib/supabase/client";
 
 const navItems = [
   { label: "Overview", icon: LayoutDashboard },
@@ -101,6 +102,7 @@ const examQuestions = [
 ];
 
 export default function Home() {
+  const backendConnected = isSupabaseConfigured();
   const [active, setActive] = useState("Overview");
   const [menuOpen, setMenuOpen] = useState(false);
   const [toast, setToast] = useState("");
@@ -431,7 +433,7 @@ export default function Home() {
             <div className="admin-user"><span>AK</span><div><strong>Anees Kutty</strong><small>Super administrator</small></div><button onClick={() => setAdminOpen(false)} aria-label="Return to learner portal"><X size={17} /></button></div>
           </aside>
           <section className="admin-workspace">
-            <header className="admin-topbar"><div><p className="eyebrow">ADCI · KOCHI MAIN BRANCH</p><h1>{adminSection}</h1></div><div><button className="icon-button"><Bell size={20} /><i /></button><button className="admin-avatar">AK</button></div></header>
+            <header className="admin-topbar"><div><p className="eyebrow">ADCI · KOCHI MAIN BRANCH</p><h1>{adminSection}</h1></div><div><span className={`data-mode ${backendConnected ? "connected" : ""}`}><i />{backendConnected ? "Supabase connected" : "Demo data"}</span><button className="icon-button"><Bell size={20} /><i /></button><button className="admin-avatar">AK</button></div></header>
             {adminSection === "Dashboard" ? (
               <div className="admin-content">
                 <div className="admin-welcome"><div><h2>Good morning, Anees.</h2><p>Here’s what needs your attention across the institution.</p></div><button className="primary" onClick={() => setAdminSection("Academics")}><Plus size={17} /> Create content</button></div>

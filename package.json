@@ -9,6 +9,7 @@
     "start": "vinext start"
   },
   "dependencies": {
+    "@supabase/supabase-js": "2.110.8",
     "lucide-react": "^0.468.0",
     "next": "^15.1.3",
     "react": "^19.0.0",
