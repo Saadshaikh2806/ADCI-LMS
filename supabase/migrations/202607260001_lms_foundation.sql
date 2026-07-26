@@ -1,23 +1,23 @@
-create extension if not exists pgcrypto;
+﻿create extension if not exists pgcrypto;
 
-create type public.app_role as enum (
+create type public.adci_app_role as enum (
   'student', 'instructor', 'content_author', 'academic_lead',
   'mentor', 'branch_admin', 'finance', 'super_admin', 'support'
 );
-create type public.content_status as enum ('draft', 'in_review', 'approved', 'published', 'retired');
-create type public.enrolment_status as enum ('pending', 'active', 'frozen', 'completed', 'cancelled');
-create type public.attempt_status as enum ('not_started', 'in_progress', 'submitted', 'scored', 'void');
+create type public.adci_content_status as enum ('draft', 'in_review', 'approved', 'published', 'retired');
+create type public.adci_enrolment_status as enum ('pending', 'active', 'frozen', 'completed', 'cancelled');
+create type public.adci_attempt_status as enum ('not_started', 'in_progress', 'submitted', 'scored', 'void');
 
-create table public.organizations (
+create table public.adci_organizations (
   id uuid primary key default gen_random_uuid(),
   name text not null,
   slug text not null unique,
   created_at timestamptz not null default now()
 );
 
-create table public.branches (
+create table public.adci_branches (
   id uuid primary key default gen_random_uuid(),
-  organization_id uuid not null references public.organizations on delete cascade,
+  organization_id uuid not null references public.adci_organizations on delete cascade,
   name text not null,
   code text not null,
   timezone text not null default 'Asia/Kolkata',
@@ -25,7 +25,7 @@ create table public.branches (
   unique (organization_id, code)
 );
 
-create table public.profiles (
+create table public.adci_profiles (
   id uuid primary key references auth.users on delete cascade,
   full_name text not null default '',
   phone text,
@@ -35,57 +35,57 @@ create table public.profiles (
   updated_at timestamptz not null default now()
 );
 
-create table public.memberships (
+create table public.adci_memberships (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references public.profiles on delete cascade,
-  organization_id uuid not null references public.organizations on delete cascade,
-  branch_id uuid references public.branches on delete cascade,
-  role public.app_role not null,
+  user_id uuid not null references public.adci_profiles on delete cascade,
+  organization_id uuid not null references public.adci_organizations on delete cascade,
+  branch_id uuid references public.adci_branches on delete cascade,
+  role public.adci_app_role not null,
   active boolean not null default true,
   created_at timestamptz not null default now(),
   unique (user_id, organization_id, branch_id, role)
 );
 
-create table public.courses (
+create table public.adci_courses (
   id uuid primary key default gen_random_uuid(),
-  organization_id uuid not null references public.organizations on delete cascade,
+  organization_id uuid not null references public.adci_organizations on delete cascade,
   title text not null,
   slug text not null,
   description text not null default '',
-  status public.content_status not null default 'draft',
-  owner_id uuid references public.profiles,
+  status public.adci_content_status not null default 'draft',
+  owner_id uuid references public.adci_profiles,
   published_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   unique (organization_id, slug)
 );
 
-create table public.modules (
+create table public.adci_modules (
   id uuid primary key default gen_random_uuid(),
-  course_id uuid not null references public.courses on delete cascade,
+  course_id uuid not null references public.adci_courses on delete cascade,
   title text not null,
   position integer not null check (position > 0),
   release_at timestamptz,
   unique (course_id, position)
 );
 
-create table public.lessons (
+create table public.adci_lessons (
   id uuid primary key default gen_random_uuid(),
-  module_id uuid not null references public.modules on delete cascade,
+  module_id uuid not null references public.adci_modules on delete cascade,
   title text not null,
   lesson_type text not null check (lesson_type in ('video','audio','pdf','html','live','quiz')),
   position integer not null check (position > 0),
   duration_seconds integer not null default 0 check (duration_seconds >= 0),
-  status public.content_status not null default 'draft',
-  prerequisite_lesson_id uuid references public.lessons,
+  status public.adci_content_status not null default 'draft',
+  prerequisite_lesson_id uuid references public.adci_lessons,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   unique (module_id, position)
 );
 
-create table public.video_assets (
+create table public.adci_video_assets (
   id uuid primary key default gen_random_uuid(),
-  lesson_id uuid not null unique references public.lessons on delete cascade,
+  lesson_id uuid not null unique references public.adci_lessons on delete cascade,
   storage_provider text not null default 'supabase',
   object_path text not null unique,
   mime_type text not null default 'video/mp4',
@@ -95,21 +95,21 @@ create table public.video_assets (
   created_at timestamptz not null default now()
 );
 
-create table public.enrolments (
+create table public.adci_enrolments (
   id uuid primary key default gen_random_uuid(),
-  learner_id uuid not null references public.profiles on delete cascade,
-  course_id uuid not null references public.courses on delete cascade,
-  branch_id uuid references public.branches,
-  status public.enrolment_status not null default 'pending',
+  learner_id uuid not null references public.adci_profiles on delete cascade,
+  course_id uuid not null references public.adci_courses on delete cascade,
+  branch_id uuid references public.adci_branches,
+  status public.adci_enrolment_status not null default 'pending',
   enrolled_at timestamptz not null default now(),
   access_expires_at timestamptz,
   unique (learner_id, course_id)
 );
 
-create table public.lesson_progress (
+create table public.adci_lesson_progress (
   id uuid primary key default gen_random_uuid(),
-  learner_id uuid not null references public.profiles on delete cascade,
-  lesson_id uuid not null references public.lessons on delete cascade,
+  learner_id uuid not null references public.adci_profiles on delete cascade,
+  lesson_id uuid not null references public.adci_lessons on delete cascade,
   progress_percent numeric(5,2) not null default 0 check (progress_percent between 0 and 100),
   position_seconds integer not null default 0 check (position_seconds >= 0),
   completed_at timestamptz,
@@ -117,22 +117,22 @@ create table public.lesson_progress (
   unique (learner_id, lesson_id)
 );
 
-create table public.assessments (
+create table public.adci_assessments (
   id uuid primary key default gen_random_uuid(),
-  course_id uuid not null references public.courses on delete cascade,
+  course_id uuid not null references public.adci_courses on delete cascade,
   title text not null,
   duration_seconds integer not null check (duration_seconds > 0),
   positive_marks numeric(8,2) not null default 1,
   negative_marks numeric(8,2) not null default 0,
-  status public.content_status not null default 'draft',
+  status public.adci_content_status not null default 'draft',
   available_from timestamptz,
   available_until timestamptz,
   created_at timestamptz not null default now()
 );
 
-create table public.questions (
+create table public.adci_questions (
   id uuid primary key default gen_random_uuid(),
-  organization_id uuid not null references public.organizations on delete cascade,
+  organization_id uuid not null references public.adci_organizations on delete cascade,
   prompt text not null,
   question_type text not null default 'single_choice',
   options jsonb not null default '[]'::jsonb,
@@ -141,24 +141,24 @@ create table public.questions (
   topic text,
   difficulty text,
   version integer not null default 1,
-  created_by uuid references public.profiles,
+  created_by uuid references public.adci_profiles,
   created_at timestamptz not null default now()
 );
 
-create table public.assessment_questions (
-  assessment_id uuid not null references public.assessments on delete cascade,
-  question_id uuid not null references public.questions,
+create table public.adci_assessment_questions (
+  assessment_id uuid not null references public.adci_assessments on delete cascade,
+  question_id uuid not null references public.adci_questions,
   position integer not null,
   marks numeric(8,2),
   primary key (assessment_id, question_id),
   unique (assessment_id, position)
 );
 
-create table public.attempts (
+create table public.adci_attempts (
   id uuid primary key default gen_random_uuid(),
-  assessment_id uuid not null references public.assessments,
-  learner_id uuid not null references public.profiles,
-  status public.attempt_status not null default 'not_started',
+  assessment_id uuid not null references public.adci_assessments,
+  learner_id uuid not null references public.adci_profiles,
+  status public.adci_attempt_status not null default 'not_started',
   server_started_at timestamptz,
   server_deadline_at timestamptz,
   submitted_at timestamptz,
@@ -168,19 +168,19 @@ create table public.attempts (
   unique (submission_key)
 );
 
-create table public.attempt_answers (
-  attempt_id uuid not null references public.attempts on delete cascade,
-  question_id uuid not null references public.questions,
+create table public.adci_attempt_answers (
+  attempt_id uuid not null references public.adci_attempts on delete cascade,
+  question_id uuid not null references public.adci_questions,
   answer jsonb,
   flagged boolean not null default false,
   saved_at timestamptz not null default now(),
   primary key (attempt_id, question_id)
 );
 
-create table public.audit_events (
+create table public.adci_audit_events (
   id bigint generated always as identity primary key,
-  organization_id uuid not null references public.organizations,
-  actor_id uuid references public.profiles,
+  organization_id uuid not null references public.adci_organizations,
+  actor_id uuid references public.adci_profiles,
   action text not null,
   entity_type text not null,
   entity_id uuid,
@@ -190,14 +190,14 @@ create table public.audit_events (
   created_at timestamptz not null default now()
 );
 
-create or replace function public.current_user_has_role(
+create or replace function public.adci_current_user_has_role(
   requested_org uuid,
-  allowed_roles public.app_role[]
+  allowed_roles public.adci_app_role[]
 ) returns boolean
 language sql stable security definer set search_path = ''
 as $$
   select exists (
-    select 1 from public.memberships m
+    select 1 from public.adci_memberships m
     where m.user_id = auth.uid()
       and m.organization_id = requested_org
       and m.active
@@ -205,123 +205,124 @@ as $$
   );
 $$;
 
-create or replace function public.can_access_course(requested_course uuid)
+create or replace function public.adci_can_access_course(requested_course uuid)
 returns boolean
 language sql stable security definer set search_path = ''
 as $$
   select exists (
-    select 1 from public.enrolments e
+    select 1 from public.adci_enrolments e
     where e.course_id = requested_course
       and e.learner_id = auth.uid()
       and e.status = 'active'
       and (e.access_expires_at is null or e.access_expires_at > now())
   ) or exists (
-    select 1 from public.courses c
+    select 1 from public.adci_courses c
     where c.id = requested_course
-      and public.current_user_has_role(
+      and public.adci_current_user_has_role(
         c.organization_id,
-        array['instructor','content_author','academic_lead','branch_admin','super_admin']::public.app_role[]
+        array['instructor','content_author','academic_lead','branch_admin','super_admin']::public.adci_app_role[]
       )
   );
 $$;
 
-create or replace function public.handle_new_user()
+create or replace function public.adci_handle_new_user()
 returns trigger
 language plpgsql security definer set search_path = ''
 as $$
 begin
-  insert into public.profiles (id, full_name)
+  insert into public.adci_profiles (id, full_name)
   values (new.id, coalesce(new.raw_user_meta_data ->> 'full_name', ''));
   return new;
 end;
 $$;
 
-create trigger on_auth_user_created
+create trigger adci_on_auth_user_created
   after insert on auth.users
-  for each row execute procedure public.handle_new_user();
+  for each row execute procedure public.adci_handle_new_user();
 
-alter table public.organizations enable row level security;
-alter table public.branches enable row level security;
-alter table public.profiles enable row level security;
-alter table public.memberships enable row level security;
-alter table public.courses enable row level security;
-alter table public.modules enable row level security;
-alter table public.lessons enable row level security;
-alter table public.video_assets enable row level security;
-alter table public.enrolments enable row level security;
-alter table public.lesson_progress enable row level security;
-alter table public.assessments enable row level security;
-alter table public.questions enable row level security;
-alter table public.assessment_questions enable row level security;
-alter table public.attempts enable row level security;
-alter table public.attempt_answers enable row level security;
-alter table public.audit_events enable row level security;
+alter table public.adci_organizations enable row level security;
+alter table public.adci_branches enable row level security;
+alter table public.adci_profiles enable row level security;
+alter table public.adci_memberships enable row level security;
+alter table public.adci_courses enable row level security;
+alter table public.adci_modules enable row level security;
+alter table public.adci_lessons enable row level security;
+alter table public.adci_video_assets enable row level security;
+alter table public.adci_enrolments enable row level security;
+alter table public.adci_lesson_progress enable row level security;
+alter table public.adci_assessments enable row level security;
+alter table public.adci_questions enable row level security;
+alter table public.adci_assessment_questions enable row level security;
+alter table public.adci_attempts enable row level security;
+alter table public.adci_attempt_answers enable row level security;
+alter table public.adci_audit_events enable row level security;
 
-create policy "members read organizations" on public.organizations for select using (
-  exists (select 1 from public.memberships m where m.organization_id = id and m.user_id = auth.uid() and m.active)
+create policy "members read adci_organizations" on public.adci_organizations for select using (
+  exists (select 1 from public.adci_memberships m where m.organization_id = id and m.user_id = auth.uid() and m.active)
 );
-create policy "members read branches" on public.branches for select using (
-  exists (select 1 from public.memberships m where m.organization_id = organization_id and m.user_id = auth.uid() and m.active)
+create policy "members read adci_branches" on public.adci_branches for select using (
+  exists (select 1 from public.adci_memberships m where m.organization_id = organization_id and m.user_id = auth.uid() and m.active)
 );
-create policy "profiles self read" on public.profiles for select using (id = auth.uid());
-create policy "profiles self update" on public.profiles for update using (id = auth.uid()) with check (id = auth.uid());
-create policy "memberships self read" on public.memberships for select using (user_id = auth.uid());
-create policy "learners read own enrolments" on public.enrolments for select using (learner_id = auth.uid());
-create policy "course access" on public.courses for select using (public.can_access_course(id));
-create policy "module access" on public.modules for select using (public.can_access_course(course_id));
-create policy "lesson access" on public.lessons for select using (
-  exists (select 1 from public.modules m where m.id = module_id and public.can_access_course(m.course_id))
+create policy "adci_profiles self read" on public.adci_profiles for select using (id = auth.uid());
+create policy "adci_profiles self update" on public.adci_profiles for update using (id = auth.uid()) with check (id = auth.uid());
+create policy "adci_memberships self read" on public.adci_memberships for select using (user_id = auth.uid());
+create policy "learners read own adci_enrolments" on public.adci_enrolments for select using (learner_id = auth.uid());
+create policy "course access" on public.adci_courses for select using (public.adci_can_access_course(id));
+create policy "module access" on public.adci_modules for select using (public.adci_can_access_course(course_id));
+create policy "lesson access" on public.adci_lessons for select using (
+  exists (select 1 from public.adci_modules m where m.id = module_id and public.adci_can_access_course(m.course_id))
 );
-create policy "video metadata access" on public.video_assets for select using (
+create policy "video metadata access" on public.adci_video_assets for select using (
   exists (
-    select 1 from public.lessons l
-    join public.modules m on m.id = l.module_id
-    where l.id = lesson_id and public.can_access_course(m.course_id)
+    select 1 from public.adci_lessons l
+    join public.adci_modules m on m.id = l.module_id
+    where l.id = lesson_id and public.adci_can_access_course(m.course_id)
   )
 );
-create policy "learner progress read" on public.lesson_progress for select using (learner_id = auth.uid());
-create policy "learner progress insert" on public.lesson_progress for insert with check (learner_id = auth.uid());
-create policy "learner progress update" on public.lesson_progress for update using (learner_id = auth.uid()) with check (learner_id = auth.uid());
-create policy "learner attempts read" on public.attempts for select using (learner_id = auth.uid());
-create policy "learner answers read" on public.attempt_answers for select using (
-  exists (select 1 from public.attempts a where a.id = attempt_id and a.learner_id = auth.uid())
+create policy "learner progress read" on public.adci_lesson_progress for select using (learner_id = auth.uid());
+create policy "learner progress insert" on public.adci_lesson_progress for insert with check (learner_id = auth.uid());
+create policy "learner progress update" on public.adci_lesson_progress for update using (learner_id = auth.uid()) with check (learner_id = auth.uid());
+create policy "learner adci_attempts read" on public.adci_attempts for select using (learner_id = auth.uid());
+create policy "learner answers read" on public.adci_attempt_answers for select using (
+  exists (select 1 from public.adci_attempts a where a.id = attempt_id and a.learner_id = auth.uid())
 );
-create policy "academic staff create courses" on public.courses for insert with check (
-  public.current_user_has_role(organization_id, array['content_author','academic_lead','branch_admin','super_admin']::public.app_role[])
+create policy "academic staff create adci_courses" on public.adci_courses for insert with check (
+  public.adci_current_user_has_role(organization_id, array['content_author','academic_lead','branch_admin','super_admin']::public.adci_app_role[])
 );
-create policy "academic staff update courses" on public.courses for update using (
-  public.current_user_has_role(organization_id, array['content_author','academic_lead','branch_admin','super_admin']::public.app_role[])
+create policy "academic staff update adci_courses" on public.adci_courses for update using (
+  public.adci_current_user_has_role(organization_id, array['content_author','academic_lead','branch_admin','super_admin']::public.adci_app_role[])
 ) with check (
-  public.current_user_has_role(organization_id, array['content_author','academic_lead','branch_admin','super_admin']::public.app_role[])
+  public.adci_current_user_has_role(organization_id, array['content_author','academic_lead','branch_admin','super_admin']::public.adci_app_role[])
 );
-create policy "academic staff manage questions" on public.questions for all using (
-  public.current_user_has_role(organization_id, array['content_author','academic_lead','branch_admin','super_admin']::public.app_role[])
+create policy "academic staff manage adci_questions" on public.adci_questions for all using (
+  public.adci_current_user_has_role(organization_id, array['content_author','academic_lead','branch_admin','super_admin']::public.adci_app_role[])
 ) with check (
-  public.current_user_has_role(organization_id, array['content_author','academic_lead','branch_admin','super_admin']::public.app_role[])
+  public.adci_current_user_has_role(organization_id, array['content_author','academic_lead','branch_admin','super_admin']::public.adci_app_role[])
 );
-create policy "admins read audit events" on public.audit_events for select using (
-  public.current_user_has_role(organization_id, array['branch_admin','super_admin','support']::public.app_role[])
+create policy "admins read audit events" on public.adci_audit_events for select using (
+  public.adci_current_user_has_role(organization_id, array['branch_admin','super_admin','support']::public.adci_app_role[])
 );
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-values ('course-videos', 'course-videos', false, 5368709120, array['video/mp4','video/webm'])
+values ('adci-course-videos', 'adci-course-videos', false, 5368709120, array['video/mp4','video/webm'])
 on conflict (id) do nothing;
 
 create policy "enrolled learners stream videos"
 on storage.objects for select to authenticated
 using (
-  bucket_id = 'course-videos'
+  bucket_id = 'adci-course-videos'
   and exists (
     select 1
-    from public.video_assets va
-    join public.lessons l on l.id = va.lesson_id
-    join public.modules m on m.id = l.module_id
+    from public.adci_video_assets va
+    join public.adci_lessons l on l.id = va.lesson_id
+    join public.adci_modules m on m.id = l.module_id
     where va.object_path = name
-      and public.can_access_course(m.course_id)
+      and public.adci_can_access_course(m.course_id)
   )
 );
 
-create index enrolments_learner_status_idx on public.enrolments (learner_id, status);
-create index lesson_progress_learner_activity_idx on public.lesson_progress (learner_id, last_activity_at desc);
-create index attempts_learner_assessment_idx on public.attempts (learner_id, assessment_id);
-create index audit_events_org_created_idx on public.audit_events (organization_id, created_at desc);
+create index adci_enrolments_learner_status_idx on public.adci_enrolments (learner_id, status);
+create index adci_lesson_progress_learner_activity_idx on public.adci_lesson_progress (learner_id, last_activity_at desc);
+create index adci_attempts_learner_assessment_idx on public.adci_attempts (learner_id, assessment_id);
+create index adci_audit_events_org_created_idx on public.adci_audit_events (organization_id, created_at desc);
+
