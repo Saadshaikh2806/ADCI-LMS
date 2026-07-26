@@ -1,6 +1,4 @@
 .next
-.vinext
-dist
 node_modules
 tmp
 *.log
