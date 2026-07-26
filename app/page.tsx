@@ -3,6 +3,7 @@
 import {
   ArrowRight,
   AlarmClock,
+  BarChart3,
   Bell,
   BookOpen,
   CalendarDays,
@@ -16,10 +17,12 @@ import {
   Flag,
   Flame,
   GraduationCap,
+  History,
   LayoutDashboard,
   Menu,
   MessageSquareText,
   MoreHorizontal,
+  Plus,
   Play,
   Search,
   ShieldCheck,
@@ -27,6 +30,8 @@ import {
   Sparkles,
   Target,
   Trophy,
+  UserCog,
+  UsersRound,
   Users,
   Video,
   X
@@ -102,6 +107,10 @@ export default function Home() {
   const [completed, setCompleted] = useState(false);
   const [lessonOpen, setLessonOpen] = useState(false);
   const [examOpen, setExamOpen] = useState(false);
+  const [adminOpen, setAdminOpen] = useState(false);
+  const [adminSection, setAdminSection] = useState("Dashboard");
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [courseStatus, setCourseStatus] = useState("In review");
   const [examStarted, setExamStarted] = useState(false);
   const [examSubmitted, setExamSubmitted] = useState(false);
   const [currentQuestion, setCurrentQuestion] = useState(0);
@@ -119,6 +128,7 @@ export default function Home() {
         setAnswers(state.answers ?? {});
         setFlagged(state.flagged ?? []);
         setSecondsLeft(state.secondsLeft ?? 40 * 60);
+        setCourseStatus(state.courseStatus ?? "In review");
       } catch {
         // Ignore damaged browser state and start from the safe default.
       }
@@ -128,9 +138,9 @@ export default function Home() {
 
   useEffect(() => {
     if (hydrated) {
-      window.localStorage.setItem("adci-learning-state", JSON.stringify({ completed, answers, flagged, secondsLeft }));
+      window.localStorage.setItem("adci-learning-state", JSON.stringify({ completed, answers, flagged, secondsLeft, courseStatus }));
     }
-  }, [completed, answers, flagged, secondsLeft, hydrated]);
+  }, [completed, answers, flagged, secondsLeft, courseStatus, hydrated]);
 
   useEffect(() => {
     if (!examStarted || examSubmitted || secondsLeft <= 0) return;
@@ -192,11 +202,12 @@ export default function Home() {
           </div>
           <div className="top-actions">
             <button className="icon-button" aria-label="Notifications" onClick={() => notify("You have 3 new notifications")}><Bell size={20} /><i /></button>
-            <button className="profile">
+            <button className="profile" onClick={() => setProfileOpen(!profileOpen)}>
               <span>AS</span>
               <div><strong>Aanya Sharma</strong><small>UPSC Foundation</small></div>
               <ChevronRight size={16} />
             </button>
+            {profileOpen && <div className="profile-menu"><button className="selected"><GraduationCap size={17} /><span><strong>Learner portal</strong><small>Continue studying</small></span><Check size={15} /></button><button onClick={() => { setAdminOpen(true); setProfileOpen(false); }}><UserCog size={17} /><span><strong>Admin workspace</strong><small>Manage the institution</small></span><ArrowRight size={15} /></button></div>}
           </div>
         </header>
 
@@ -400,6 +411,64 @@ export default function Home() {
               </div>
             </>
           )}
+        </div>
+      )}
+
+      {adminOpen && (
+        <div className="admin-app">
+          <aside className="admin-sidebar">
+            <div className="brand"><div className="brand-mark"><GraduationCap size={22} /></div><div><strong>ADCI</strong><span>Administration</span></div></div>
+            <p className="nav-label">WORKSPACE</p>
+            {[
+              ["Dashboard", LayoutDashboard],
+              ["People", UsersRound],
+              ["Academics", BookOpen],
+              ["Question bank", ClipboardCheck],
+              ["Live schedule", CalendarDays],
+              ["Reports", BarChart3],
+              ["Audit log", History]
+            ].map(([label, Icon]) => <button key={label as string} className={`nav-item ${adminSection === label ? "active" : ""}`} onClick={() => setAdminSection(label as string)}><Icon size={18} /><span>{label as string}</span>{label === "Academics" && <em>3</em>}</button>)}
+            <div className="admin-user"><span>AK</span><div><strong>Anees Kutty</strong><small>Super administrator</small></div><button onClick={() => setAdminOpen(false)} aria-label="Return to learner portal"><X size={17} /></button></div>
+          </aside>
+          <section className="admin-workspace">
+            <header className="admin-topbar"><div><p className="eyebrow">ADCI · KOCHI MAIN BRANCH</p><h1>{adminSection}</h1></div><div><button className="icon-button"><Bell size={20} /><i /></button><button className="admin-avatar">AK</button></div></header>
+            {adminSection === "Dashboard" ? (
+              <div className="admin-content">
+                <div className="admin-welcome"><div><h2>Good morning, Anees.</h2><p>Here’s what needs your attention across the institution.</p></div><button className="primary" onClick={() => setAdminSection("Academics")}><Plus size={17} /> Create content</button></div>
+                <section className="admin-metrics">
+                  <article><span>ACTIVE LEARNERS</span><strong>1,284</strong><p><em>↑ 8.4%</em> from last month</p></article>
+                  <article><span>LIVE ATTENDANCE</span><strong>87%</strong><p><em>↑ 3.1%</em> this week</p></article>
+                  <article><span>COURSE COMPLETION</span><strong>64%</strong><p>Across 18 programmes</p></article>
+                  <article><span>AT-RISK LEARNERS</span><strong>42</strong><p><b>12 need action today</b></p></article>
+                </section>
+                <div className="admin-grid">
+                  <section className="operations-card">
+                    <div className="section-title"><div><h3>Enrolment and engagement</h3><p>Last 7 days · all programmes</p></div><button>View report <ArrowRight size={15} /></button></div>
+                    <div className="chart-bars">{[44,58,49,72,65,83,74].map((height,index)=><div key={index}><i style={{height:`${height}%`}} /><span>{["MON","TUE","WED","THU","FRI","SAT","SUN"][index]}</span></div>)}</div>
+                    <div className="chart-summary"><div><span>New enrolments</span><strong>86</strong></div><div><span>Learning sessions</span><strong>3,492</strong></div><div><span>Avg. study time</span><strong>46 min</strong></div></div>
+                  </section>
+                  <section className="attention-card"><div className="section-title"><div><h3>Needs attention</h3><p>Prioritised by impact</p></div><button><MoreHorizontal size={20} /></button></div>
+                    {[["12","At-risk learners","Inactive for 7+ days","red"],["3","Courses awaiting approval","Academic review queue","amber"],["8","Overdue payments","₹42,500 outstanding","blue"]].map(([count,title,detail,color])=><button key={title} onClick={() => title.includes("Courses") ? setAdminSection("Academics") : notify(`${title} queue opened`)}><span className={color}>{count}</span><div><strong>{title}</strong><small>{detail}</small></div><ChevronRight size={17} /></button>)}
+                  </section>
+                </div>
+                <section className="recent-table"><div className="section-title"><div><h3>Recent activity</h3><p>Latest operational changes</p></div><button onClick={() => setAdminSection("Audit log")}>Full audit log <ArrowRight size={15} /></button></div>
+                  <div className="table-head"><span>ACTIVITY</span><span>ACTOR</span><span>TIME</span><span>STATUS</span></div>
+                  {[["Polity Module 06 submitted for review","Dr. Meera Iyer","8 min ago","In review"],["Batch UPSC-F26 learner import","Anees Kutty","34 min ago","Completed"],["Sectional Test 04 results released","System automation","1h ago","Published"]].map(row=><div className="table-row" key={row[0]}><strong>{row[0]}</strong><span>{row[1]}</span><span>{row[2]}</span><em>{row[3]}</em></div>)}
+                </section>
+              </div>
+            ) : adminSection === "Academics" ? (
+              <div className="admin-content">
+                <div className="admin-welcome"><div><h2>Academic content</h2><p>Govern programmes, modules and publishing approvals.</p></div><button className="primary" onClick={() => notify("New course draft created")}><Plus size={17} /> New course</button></div>
+                <div className="cms-toolbar"><div className="search"><Search size={18} /><input placeholder="Search courses and modules…" /></div><button>All programmes <ChevronRight size={15} /></button><button>All statuses <ChevronRight size={15} /></button></div>
+                <section className="cms-list">
+                  {[["Indian Polity & Governance","UPSC Foundation · 24 lessons",courseStatus,"Dr. Meera Iyer","72%"],["Modern Indian History","UPSC Foundation · 20 lessons","Published","Prof. Raghav Menon","100%"],["Economy & Development","UPSC Foundation · 18 lessons","Draft","Kavya Nair","38%"]].map(([title,meta,status,owner,progress])=><article key={title}><div className="cms-cover"><BookOpen size={22} /></div><div><h3>{title}</h3><p>{meta}</p><span>Owner: {owner}</span></div><div className="cms-progress"><span>CONTENT READY</span><strong>{progress}</strong><i><b style={{width:progress}} /></i></div><em className={`status-${status.toLowerCase().replace(" ","-")}`}>{status}</em>{title.startsWith("Indian") ? <button className="review-button" onClick={() => { setCourseStatus(courseStatus === "Published" ? "In review" : "Published"); notify(courseStatus === "Published" ? "Course returned to review" : "Course approved and published"); }}>{courseStatus === "Published" ? "Unpublish" : "Review & publish"}</button> : <button className="circle-button"><MoreHorizontal size={17} /></button>}</article>)}
+                </section>
+                <div className="workflow-note"><ShieldCheck size={20} /><div><strong>Governed publishing workflow</strong><p>Authors create drafts, academic leads review changes, and every publication or rollback is recorded in the audit log.</p></div></div>
+              </div>
+            ) : (
+              <div className="admin-empty"><div className="overlay-icon">{adminSection === "People" ? <UsersRound /> : adminSection === "Reports" ? <BarChart3 /> : <Settings />}</div><p className="eyebrow">ADMIN MODULE</p><h2>{adminSection}</h2><p>This operational module is connected to the shared administration shell and ready for its dedicated workflow.</p><button className="primary" onClick={() => setAdminSection("Dashboard")}>Return to dashboard</button></div>
+            )}
+          </section>
         </div>
       )}
 
