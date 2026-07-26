@@ -38,6 +38,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { isSupabaseConfigured } from "../lib/supabase/client";
+import AuthGate, { useAuthSession } from "../components/AuthGate";
 
 const navItems = [
   { label: "Overview", icon: LayoutDashboard },
@@ -101,8 +102,11 @@ const examQuestions = [
   }
 ];
 
-export default function Home() {
+function LearningHub() {
   const backendConnected = isSupabaseConfigured();
+  const authSession = useAuthSession();
+  const accountName = authSession?.user.user_metadata?.full_name || authSession?.user.email?.split("@")[0] || "ADCI Learner";
+  const accountInitials = accountName.split(/\s+/).slice(0, 2).map((part: string) => part[0]).join("").toUpperCase();
   const [active, setActive] = useState("Overview");
   const [menuOpen, setMenuOpen] = useState(false);
   const [toast, setToast] = useState("");
@@ -205,8 +209,8 @@ export default function Home() {
           <div className="top-actions">
             <button className="icon-button" aria-label="Notifications" onClick={() => notify("You have 3 new notifications")}><Bell size={20} /><i /></button>
             <button className="profile" onClick={() => setProfileOpen(!profileOpen)}>
-              <span>AS</span>
-              <div><strong>Aanya Sharma</strong><small>UPSC Foundation</small></div>
+              <span>{accountInitials}</span>
+              <div><strong>{accountName}</strong><small>UPSC Foundation</small></div>
               <ChevronRight size={16} />
             </button>
             {profileOpen && <div className="profile-menu"><button className="selected"><GraduationCap size={17} /><span><strong>Learner portal</strong><small>Continue studying</small></span><Check size={15} /></button><button onClick={() => { setAdminOpen(true); setProfileOpen(false); }}><UserCog size={17} /><span><strong>Admin workspace</strong><small>Manage the institution</small></span><ArrowRight size={15} /></button></div>}
@@ -217,7 +221,7 @@ export default function Home() {
           <div className="welcome">
             <div>
               <p className="eyebrow">SUNDAY, 26 JULY</p>
-              <h1>Good morning, Aanya.</h1>
+              <h1>Good morning, {accountName.split(" ")[0]}.</h1>
               <p>You’re building momentum. Let’s make today count.</p>
             </div>
             <div className="streak"><Flame size={24} fill="currentColor" /><div><strong>12 day streak</strong><span>Personal best: 18 days</span></div></div>
@@ -368,7 +372,7 @@ export default function Home() {
                 <span><strong>{finalScore.toFixed(2)}</strong>/ 10</span>
               </div>
               <p className="eyebrow">ASSESSMENT COMPLETE</p>
-              <h1>Strong work, Aanya.</h1>
+              <h1>Strong work, {accountName.split(" ")[0]}.</h1>
               <p>Your attempt was submitted successfully. Review the topic breakdown before your next revision block.</p>
               <div className="result-stats">
                 <div><span>Correct</span><strong>{correctCount}</strong></div>
@@ -430,13 +434,13 @@ export default function Home() {
               ["Reports", BarChart3],
               ["Audit log", History]
             ].map(([label, Icon]) => <button key={label as string} className={`nav-item ${adminSection === label ? "active" : ""}`} onClick={() => setAdminSection(label as string)}><Icon size={18} /><span>{label as string}</span>{label === "Academics" && <em>3</em>}</button>)}
-            <div className="admin-user"><span>AK</span><div><strong>Anees Kutty</strong><small>Super administrator</small></div><button onClick={() => setAdminOpen(false)} aria-label="Return to learner portal"><X size={17} /></button></div>
+            <div className="admin-user"><span>{accountInitials}</span><div><strong>{accountName}</strong><small>Super administrator</small></div><button onClick={() => setAdminOpen(false)} aria-label="Return to learner portal"><X size={17} /></button></div>
           </aside>
           <section className="admin-workspace">
-            <header className="admin-topbar"><div><p className="eyebrow">ADCI · KOCHI MAIN BRANCH</p><h1>{adminSection}</h1></div><div><span className={`data-mode ${backendConnected ? "connected" : ""}`}><i />{backendConnected ? "Supabase connected" : "Demo data"}</span><button className="icon-button"><Bell size={20} /><i /></button><button className="admin-avatar">AK</button></div></header>
+            <header className="admin-topbar"><div><p className="eyebrow">ANEES DEFENCE CAREER INSTITUTE</p><h1>{adminSection}</h1></div><div><span className={`data-mode ${backendConnected ? "connected" : ""}`}><i />{backendConnected ? "Supabase connected" : "Demo data"}</span><button className="icon-button"><Bell size={20} /><i /></button><button className="admin-avatar">{accountInitials}</button></div></header>
             {adminSection === "Dashboard" ? (
               <div className="admin-content">
-                <div className="admin-welcome"><div><h2>Good morning, Anees.</h2><p>Here’s what needs your attention across the institution.</p></div><button className="primary" onClick={() => setAdminSection("Academics")}><Plus size={17} /> Create content</button></div>
+                <div className="admin-welcome"><div><h2>Good morning, {accountName.split(" ")[0]}.</h2><p>Here’s what needs your attention across the institution.</p></div><button className="primary" onClick={() => setAdminSection("Academics")}><Plus size={17} /> Create content</button></div>
                 <section className="admin-metrics">
                   <article><span>ACTIVE LEARNERS</span><strong>1,284</strong><p><em>↑ 8.4%</em> from last month</p></article>
                   <article><span>LIVE ATTENDANCE</span><strong>87%</strong><p><em>↑ 3.1%</em> this week</p></article>
@@ -477,4 +481,8 @@ export default function Home() {
       {toast && <div className="toast"><Check size={17} />{toast}</div>}
     </main>
   );
+}
+
+export default function Home() {
+  return <AuthGate><LearningHub /></AuthGate>;
 }
