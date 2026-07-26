@@ -2,6 +2,7 @@
 
 import {
   ArrowRight,
+  AlarmClock,
   Bell,
   BookOpen,
   CalendarDays,
@@ -12,6 +13,7 @@ import {
   Clock3,
   CirclePlay,
   FileText,
+  Flag,
   Flame,
   GraduationCap,
   LayoutDashboard,
@@ -60,12 +62,52 @@ const polityLessons = [
   { title: "Practice: constitutional limits", detail: "Quiz · 20 questions" }
 ];
 
+const examQuestions = [
+  {
+    question: "Which case established that Parliament cannot alter the basic structure of the Constitution?",
+    options: ["Golaknath v. State of Punjab", "Kesavananda Bharati v. State of Kerala", "Minerva Mills v. Union of India", "S.R. Bommai v. Union of India"],
+    answer: 1,
+    topic: "Constitutional amendments"
+  },
+  {
+    question: "Which of the following is generally recognised as part of the basic structure?",
+    options: ["Unlimited parliamentary sovereignty", "Judicial review", "Suspension of all fundamental rights", "A unitary form of government"],
+    answer: 1,
+    topic: "Core constitutional principles"
+  },
+  {
+    question: "Article 368 of the Constitution primarily deals with:",
+    options: ["Emergency provisions", "Constitutional amendment procedure", "Inter-state trade", "Election of the President"],
+    answer: 1,
+    topic: "Article 368"
+  },
+  {
+    question: "In Minerva Mills, the Supreme Court emphasised harmony between:",
+    options: ["The Union and the States", "Fundamental Rights and Directive Principles", "Parliament and the Election Commission", "The President and the Prime Minister"],
+    answer: 1,
+    topic: "Landmark judgements"
+  },
+  {
+    question: "The basic structure doctrine primarily limits the power of:",
+    options: ["The Election Commission", "Constitutional amendment by Parliament", "State legislatures to pass money bills", "Courts to issue writs"],
+    answer: 1,
+    topic: "Doctrine and limits"
+  }
+];
+
 export default function Home() {
   const [active, setActive] = useState("Overview");
   const [menuOpen, setMenuOpen] = useState(false);
   const [toast, setToast] = useState("");
   const [completed, setCompleted] = useState(false);
   const [lessonOpen, setLessonOpen] = useState(false);
+  const [examOpen, setExamOpen] = useState(false);
+  const [examStarted, setExamStarted] = useState(false);
+  const [examSubmitted, setExamSubmitted] = useState(false);
+  const [currentQuestion, setCurrentQuestion] = useState(0);
+  const [answers, setAnswers] = useState<Record<number, number>>({});
+  const [flagged, setFlagged] = useState<number[]>([]);
+  const [secondsLeft, setSecondsLeft] = useState(40 * 60);
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
@@ -74,6 +116,9 @@ export default function Home() {
       try {
         const state = JSON.parse(saved);
         setCompleted(Boolean(state.completed));
+        setAnswers(state.answers ?? {});
+        setFlagged(state.flagged ?? []);
+        setSecondsLeft(state.secondsLeft ?? 40 * 60);
       } catch {
         // Ignore damaged browser state and start from the safe default.
       }
@@ -83,14 +128,28 @@ export default function Home() {
 
   useEffect(() => {
     if (hydrated) {
-      window.localStorage.setItem("adci-learning-state", JSON.stringify({ completed }));
+      window.localStorage.setItem("adci-learning-state", JSON.stringify({ completed, answers, flagged, secondsLeft }));
     }
-  }, [completed, hydrated]);
+  }, [completed, answers, flagged, secondsLeft, hydrated]);
+
+  useEffect(() => {
+    if (!examStarted || examSubmitted || secondsLeft <= 0) return;
+    const timer = window.setInterval(() => setSecondsLeft((value) => value - 1), 1000);
+    return () => window.clearInterval(timer);
+  }, [examStarted, examSubmitted, secondsLeft]);
+
+  useEffect(() => {
+    if (examStarted && secondsLeft === 0) setExamSubmitted(true);
+  }, [examStarted, secondsLeft]);
 
   function notify(message: string) {
     setToast(message);
     window.setTimeout(() => setToast(""), 2600);
   }
+
+  const correctCount = Object.entries(answers).filter(([index, value]) => examQuestions[Number(index)].answer === value).length;
+  const incorrectCount = Object.entries(answers).filter(([index, value]) => examQuestions[Number(index)].answer !== value).length;
+  const finalScore = Math.max(0, correctCount * 2 - incorrectCount * 0.66);
 
   return (
     <main className="app-shell">
@@ -103,7 +162,7 @@ export default function Home() {
         <nav aria-label="Main navigation">
           <p className="nav-label">LEARN</p>
           {navItems.map(({ label, icon: Icon, badge }) => (
-            <button key={label} className={`nav-item ${active === label ? "active" : ""}`} onClick={() => { setActive(label); setMenuOpen(false); }}>
+            <button key={label} className={`nav-item ${active === label ? "active" : ""}`} onClick={() => { if (label === "Assessments") setExamOpen(true); else setActive(label); setMenuOpen(false); }}>
               <Icon size={19} strokeWidth={1.8} /><span>{label}</span>{badge && <em>{badge}</em>}
             </button>
           ))}
@@ -201,7 +260,7 @@ export default function Home() {
                     <div className="event-time"><strong>{time}</strong><span>{suffix}</span></div>
                     <div className={`event-dot ${live ? "is-live" : ""}`}><Icon size={16} /></div>
                     <div className="event-copy"><div><span>{type}</span>{live && <em>LIVE</em>}</div><h4>{title}</h4><p>{teacher}</p></div>
-                    <button onClick={() => notify(live ? "Joining live classroom…" : `${type} opened`)}>{live ? "Join" : <ChevronRight size={18} />}</button>
+                    <button onClick={() => live ? notify("Joining live classroom…") : type === "Assessment" ? setExamOpen(true) : notify(`${type} opened`)}>{live ? "Join" : <ChevronRight size={18} />}</button>
                   </div>
                 ))}
               </div>
@@ -211,7 +270,7 @@ export default function Home() {
         </div>
 
         <nav className="mobile-nav" aria-label="Mobile navigation">
-          {navItems.slice(0, 4).map(({ label, icon: Icon }) => <button key={label} className={active === label ? "active" : ""} onClick={() => setActive(label)}><Icon size={20} /><span>{label === "Live classes" ? "Live" : label}</span></button>)}
+          {navItems.slice(0, 4).map(({ label, icon: Icon }) => <button key={label} className={active === label ? "active" : ""} onClick={() => label === "Assessments" ? setExamOpen(true) : setActive(label)}><Icon size={20} /><span>{label === "Live classes" ? "Live" : label}</span></button>)}
         </nav>
       </section>
 
@@ -268,6 +327,79 @@ export default function Home() {
               <div className="mentor-note"><MessageSquareText size={19} /><div><strong>Ask your mentor</strong><p>Questions about this topic? Arjun usually replies within 2 hours.</p></div></div>
             </aside>
           </div>
+        </div>
+      )}
+
+      {examOpen && (
+        <div className="exam-room">
+          {!examStarted ? (
+            <section className="exam-intro">
+              <button className="overlay-close" onClick={() => setExamOpen(false)}><X /></button>
+              <div className="exam-badge"><ClipboardCheck size={29} /></div>
+              <p className="eyebrow">SECTIONAL ASSESSMENT</p>
+              <h1>Indian Polity: Basic Structure</h1>
+              <p>Test your understanding of constitutional amendments, judicial review and landmark judgements.</p>
+              <div className="exam-rules">
+                <div><AlarmClock size={20} /><span><strong>40 minutes</strong><small>Server-style countdown</small></span></div>
+                <div><ClipboardCheck size={20} /><span><strong>5 questions</strong><small>One correct answer each</small></span></div>
+                <div><Target size={20} /><span><strong>+2 / -0.66</strong><small>Negative marking applies</small></span></div>
+                <div><ShieldCheck size={20} /><span><strong>Autosaved</strong><small>Resume after refresh</small></span></div>
+              </div>
+              <div className="integrity-note"><ShieldCheck size={19} /><p><strong>Your attempt is protected.</strong> Answers save automatically in this browser. You can flag questions and move freely before submission.</p></div>
+              <button className="primary start-exam" onClick={() => setExamStarted(true)}>Start assessment <ArrowRight size={17} /></button>
+            </section>
+          ) : examSubmitted ? (
+            <section className="result-panel">
+              <button className="overlay-close" onClick={() => { setExamOpen(false); setExamStarted(false); setExamSubmitted(false); }}><X /></button>
+              <div className="result-ring" style={{ "--score": `${finalScore / 10 * 100}%` } as React.CSSProperties}>
+                <span><strong>{finalScore.toFixed(2)}</strong>/ 10</span>
+              </div>
+              <p className="eyebrow">ASSESSMENT COMPLETE</p>
+              <h1>Strong work, Aanya.</h1>
+              <p>Your attempt was submitted successfully. Review the topic breakdown before your next revision block.</p>
+              <div className="result-stats">
+                <div><span>Correct</span><strong>{correctCount}</strong></div>
+                <div><span>Incorrect</span><strong>{incorrectCount}</strong></div>
+                <div><span>Unanswered</span><strong>{examQuestions.length - Object.keys(answers).length}</strong></div>
+                <div><span>Time used</span><strong>{Math.floor((40 * 60 - secondsLeft) / 60)}m</strong></div>
+              </div>
+              <div className="result-actions">
+                <button className="primary" onClick={() => { setExamOpen(false); setExamStarted(false); setExamSubmitted(false); }}>Return to dashboard</button>
+                <button className="save" onClick={() => notify("Detailed solutions will unlock after the review window")}><FileText size={17} /> View solutions</button>
+              </div>
+            </section>
+          ) : (
+            <>
+              <header className="exam-header">
+                <div><ClipboardCheck size={20} /><span><strong>Polity sectional test</strong><small>Autosaved just now</small></span></div>
+                <div className={`exam-timer ${secondsLeft < 300 ? "warning" : ""}`}><AlarmClock size={18} /><span>{String(Math.floor(secondsLeft / 60)).padStart(2, "0")}:{String(secondsLeft % 60).padStart(2, "0")}</span></div>
+                <button onClick={() => setExamSubmitted(true)}>Submit test</button>
+              </header>
+              <div className="exam-layout">
+                <section className="question-panel">
+                  <div className="question-meta"><span>QUESTION {currentQuestion + 1} OF {examQuestions.length}</span><em>+2 marks · -0.66 marks</em></div>
+                  <h2>{examQuestions[currentQuestion].question}</h2>
+                  <div className="options">
+                    {examQuestions[currentQuestion].options.map((option, index) => (
+                      <button key={option} className={answers[currentQuestion] === index ? "selected" : ""} onClick={() => setAnswers((value) => ({ ...value, [currentQuestion]: index }))}>
+                        <span>{String.fromCharCode(65 + index)}</span><strong>{option}</strong>{answers[currentQuestion] === index && <Check size={18} />}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="question-actions">
+                    <button className={flagged.includes(currentQuestion) ? "flagged" : ""} onClick={() => setFlagged((items) => items.includes(currentQuestion) ? items.filter((item) => item !== currentQuestion) : [...items, currentQuestion])}><Flag size={16} /> {flagged.includes(currentQuestion) ? "Flagged" : "Flag for review"}</button>
+                    <div><button disabled={currentQuestion === 0} onClick={() => setCurrentQuestion((value) => value - 1)}>Previous</button><button className="primary" onClick={() => currentQuestion === examQuestions.length - 1 ? setExamSubmitted(true) : setCurrentQuestion((value) => value + 1)}>{currentQuestion === examQuestions.length - 1 ? "Finish" : "Save & next"} <ArrowRight size={15} /></button></div>
+                  </div>
+                </section>
+                <aside className="question-palette">
+                  <p className="eyebrow">QUESTION PALETTE</p>
+                  <div className="palette-grid">{examQuestions.map((_, index) => <button key={index} className={`${currentQuestion === index ? "current" : ""} ${answers[index] !== undefined ? "answered" : ""} ${flagged.includes(index) ? "flagged" : ""}`} onClick={() => setCurrentQuestion(index)}>{index + 1}</button>)}</div>
+                  <div className="palette-legend"><span><i className="answered" />Answered</span><span><i />Not answered</span><span><i className="flagged" />Review</span></div>
+                  <div className="save-status"><ShieldCheck size={17} /><span><strong>Attempt autosaved</strong><small>Your latest answer is recoverable.</small></span></div>
+                </aside>
+              </div>
+            </>
+          )}
         </div>
       )}
 
