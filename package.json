@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vinext dev",
-    "build": "vinext build && node scripts/stage-hosting.mjs",
+    "build": "vinext build",
     "start": "vinext start"
   },
   "dependencies": {
