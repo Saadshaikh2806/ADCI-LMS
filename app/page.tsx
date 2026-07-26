@@ -39,6 +39,8 @@ import {
 import { useEffect, useState } from "react";
 import { isSupabaseConfigured } from "../lib/supabase/client";
 import AuthGate, { useAuthSession } from "../components/AuthGate";
+import AdminCourseManager from "../components/AdminCourseManager";
+import { hasAcademicAdminRole, loadMyAdciMemberships } from "../lib/supabase/admin";
 
 const navItems = [
   { label: "Overview", icon: LayoutDashboard },
@@ -116,7 +118,7 @@ function LearningHub() {
   const [adminOpen, setAdminOpen] = useState(false);
   const [adminSection, setAdminSection] = useState("Dashboard");
   const [profileOpen, setProfileOpen] = useState(false);
-  const [courseStatus, setCourseStatus] = useState("In review");
+  const [canAdminister, setCanAdminister] = useState(false);
   const [examStarted, setExamStarted] = useState(false);
   const [examSubmitted, setExamSubmitted] = useState(false);
   const [currentQuestion, setCurrentQuestion] = useState(0);
@@ -134,7 +136,6 @@ function LearningHub() {
         setAnswers(state.answers ?? {});
         setFlagged(state.flagged ?? []);
         setSecondsLeft(state.secondsLeft ?? 40 * 60);
-        setCourseStatus(state.courseStatus ?? "In review");
       } catch {
         // Ignore damaged browser state and start from the safe default.
       }
@@ -144,9 +145,9 @@ function LearningHub() {
 
   useEffect(() => {
     if (hydrated) {
-      window.localStorage.setItem("adci-learning-state", JSON.stringify({ completed, answers, flagged, secondsLeft, courseStatus }));
+      window.localStorage.setItem("adci-learning-state", JSON.stringify({ completed, answers, flagged, secondsLeft }));
     }
-  }, [completed, answers, flagged, secondsLeft, courseStatus, hydrated]);
+  }, [completed, answers, flagged, secondsLeft, hydrated]);
 
   useEffect(() => {
     if (!examStarted || examSubmitted || secondsLeft <= 0) return;
@@ -157,6 +158,22 @@ function LearningHub() {
   useEffect(() => {
     if (examStarted && secondsLeft === 0) setExamSubmitted(true);
   }, [examStarted, secondsLeft]);
+
+  useEffect(() => {
+    if (!authSession) return;
+    let active = true;
+    async function loadRole() {
+      try {
+        const memberships = await loadMyAdciMemberships();
+        if (active) setCanAdminister(hasAcademicAdminRole(memberships));
+      } catch {
+        if (active) setCanAdminister(false);
+      }
+    }
+    void loadRole();
+    const retry = window.setTimeout(loadRole, 1800);
+    return () => { active = false; window.clearTimeout(retry); };
+  }, [authSession]);
 
   function notify(message: string) {
     setToast(message);
@@ -213,7 +230,7 @@ function LearningHub() {
               <div><strong>{accountName}</strong><small>UPSC Foundation</small></div>
               <ChevronRight size={16} />
             </button>
-            {profileOpen && <div className="profile-menu"><button className="selected"><GraduationCap size={17} /><span><strong>Learner portal</strong><small>Continue studying</small></span><Check size={15} /></button><button onClick={() => { setAdminOpen(true); setProfileOpen(false); }}><UserCog size={17} /><span><strong>Admin workspace</strong><small>Manage the institution</small></span><ArrowRight size={15} /></button></div>}
+            {profileOpen && <div className="profile-menu"><button className="selected"><GraduationCap size={17} /><span><strong>Learner portal</strong><small>Continue studying</small></span><Check size={15} /></button>{canAdminister && <button onClick={() => { setAdminOpen(true); setProfileOpen(false); }}><UserCog size={17} /><span><strong>Admin workspace</strong><small>Manage the institution</small></span><ArrowRight size={15} /></button>}</div>}
           </div>
         </header>
 
@@ -463,14 +480,7 @@ function LearningHub() {
                 </section>
               </div>
             ) : adminSection === "Academics" ? (
-              <div className="admin-content">
-                <div className="admin-welcome"><div><h2>Academic content</h2><p>Govern programmes, modules and publishing approvals.</p></div><button className="primary" onClick={() => notify("New course draft created")}><Plus size={17} /> New course</button></div>
-                <div className="cms-toolbar"><div className="search"><Search size={18} /><input placeholder="Search courses and modules…" /></div><button>All programmes <ChevronRight size={15} /></button><button>All statuses <ChevronRight size={15} /></button></div>
-                <section className="cms-list">
-                  {[["Indian Polity & Governance","UPSC Foundation · 24 lessons",courseStatus,"Dr. Meera Iyer","72%"],["Modern Indian History","UPSC Foundation · 20 lessons","Published","Prof. Raghav Menon","100%"],["Economy & Development","UPSC Foundation · 18 lessons","Draft","Kavya Nair","38%"]].map(([title,meta,status,owner,progress])=><article key={title}><div className="cms-cover"><BookOpen size={22} /></div><div><h3>{title}</h3><p>{meta}</p><span>Owner: {owner}</span></div><div className="cms-progress"><span>CONTENT READY</span><strong>{progress}</strong><i><b style={{width:progress}} /></i></div><em className={`status-${status.toLowerCase().replace(" ","-")}`}>{status}</em>{title.startsWith("Indian") ? <button className="review-button" onClick={() => { setCourseStatus(courseStatus === "Published" ? "In review" : "Published"); notify(courseStatus === "Published" ? "Course returned to review" : "Course approved and published"); }}>{courseStatus === "Published" ? "Unpublish" : "Review & publish"}</button> : <button className="circle-button"><MoreHorizontal size={17} /></button>}</article>)}
-                </section>
-                <div className="workflow-note"><ShieldCheck size={20} /><div><strong>Governed publishing workflow</strong><p>Authors create drafts, academic leads review changes, and every publication or rollback is recorded in the audit log.</p></div></div>
-              </div>
+              <AdminCourseManager notify={notify} />
             ) : (
               <div className="admin-empty"><div className="overlay-icon">{adminSection === "People" ? <UsersRound /> : adminSection === "Reports" ? <BarChart3 /> : <Settings />}</div><p className="eyebrow">ADMIN MODULE</p><h2>{adminSection}</h2><p>This operational module is connected to the shared administration shell and ready for its dedicated workflow.</p><button className="primary" onClick={() => setAdminSection("Dashboard")}>Return to dashboard</button></div>
             )}
