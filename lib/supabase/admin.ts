@@ -17,6 +17,26 @@ export type AdciCourse = {
   updated_at: string;
 };
 
+export type AdciLesson = {
+  id: string;
+  title: string;
+  lesson_type: "video" | "audio" | "pdf" | "html" | "live" | "quiz";
+  position: number;
+  duration_seconds: number;
+  status: string;
+};
+
+export type AdciModule = {
+  id: string;
+  title: string;
+  position: number;
+  adci_lessons: AdciLesson[];
+};
+
+export type AdciCourseEditor = AdciCourse & {
+  adci_modules: AdciModule[];
+};
+
 export type AdciPerson = {
   user_id: string;
   full_name: string;
@@ -77,6 +97,59 @@ export async function listAdciCourses() {
 
   if (error) throw error;
   return (data ?? []) as AdciCourse[];
+}
+
+export async function getAdciCourseEditor(courseId: string) {
+  const supabase = getSupabaseBrowserClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+
+  const { data, error } = await supabase
+    .from("adci_courses")
+    .select("id,title,slug,description,status,updated_at,adci_modules(id,title,position,adci_lessons(id,title,lesson_type,position,duration_seconds,status))")
+    .eq("id", courseId)
+    .order("position", { referencedTable: "adci_modules", ascending: true })
+    .order("position", { referencedTable: "adci_modules.adci_lessons", ascending: true })
+    .single();
+
+  if (error) throw error;
+  return data as AdciCourseEditor;
+}
+
+export async function updateAdciCourse(courseId: string, title: string, description: string, status: string) {
+  const supabase = getSupabaseBrowserClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+  const { data, error } = await supabase.rpc("adci_update_course", {
+    target_course_id: courseId,
+    course_title: title,
+    course_description: description,
+    course_status: status
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function addAdciCourseModule(courseId: string, title: string) {
+  const supabase = getSupabaseBrowserClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+  const { data, error } = await supabase.rpc("adci_add_course_module", {
+    target_course_id: courseId,
+    module_title: title
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function addAdciModuleLesson(moduleId: string, title: string, type: AdciLesson["lesson_type"], durationSeconds: number) {
+  const supabase = getSupabaseBrowserClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+  const { data, error } = await supabase.rpc("adci_add_module_lesson", {
+    target_module_id: moduleId,
+    lesson_title: title,
+    lesson_kind: type,
+    lesson_duration_seconds: durationSeconds
+  });
+  if (error) throw error;
+  return data as AdciLesson;
 }
 
 export type CourseBundleInput = {

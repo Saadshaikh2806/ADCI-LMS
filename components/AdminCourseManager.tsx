@@ -1,11 +1,17 @@
 "use client";
 
-import { ArrowRight, BookOpen, Check, FileVideo, LoaderCircle, Plus, ShieldCheck, UploadCloud, X } from "lucide-react";
+import { ArrowRight, BookOpen, Check, CirclePlay, FileVideo, Layers3, LoaderCircle, Plus, Save, ShieldCheck, UploadCloud, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import {
   createCourseBundle,
+  addAdciCourseModule,
+  addAdciModuleLesson,
+  getAdciCourseEditor,
   listAdciCourses,
   type AdciCourse,
+  type AdciCourseEditor,
+  type AdciLesson,
+  updateAdciCourse,
   uploadProtectedLessonVideo
 } from "../lib/supabase/admin";
 
@@ -22,6 +28,16 @@ export default function AdminCourseManager({ notify }: { notify: (message: strin
   const [lessonTitle, setLessonTitle] = useState("");
   const [durationMinutes, setDurationMinutes] = useState("30");
   const [video, setVideo] = useState<File | null>(null);
+  const [editor, setEditor] = useState<AdciCourseEditor | null>(null);
+  const [editorLoading, setEditorLoading] = useState(false);
+  const [editorTitle, setEditorTitle] = useState("");
+  const [editorDescription, setEditorDescription] = useState("");
+  const [editorStatus, setEditorStatus] = useState("draft");
+  const [newModuleTitle, setNewModuleTitle] = useState("");
+  const [lessonModuleId, setLessonModuleId] = useState("");
+  const [newLessonTitle, setNewLessonTitle] = useState("");
+  const [newLessonType, setNewLessonType] = useState<AdciLesson["lesson_type"]>("video");
+  const [newLessonMinutes, setNewLessonMinutes] = useState("30");
 
   const slug = useMemo(
     () => courseTitle.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""),
@@ -42,6 +58,80 @@ export default function AdminCourseManager({ notify }: { notify: (message: strin
   useEffect(() => {
     void refresh();
   }, []);
+
+  async function openEditor(course: AdciCourse) {
+    setEditorLoading(true);
+    setError("");
+    try {
+      const detail = await getAdciCourseEditor(course.id);
+      setEditor(detail);
+      setEditorTitle(detail.title);
+      setEditorDescription(detail.description);
+      setEditorStatus(detail.status);
+      setLessonModuleId(detail.adci_modules[0]?.id ?? "");
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : "Unable to open course");
+    } finally {
+      setEditorLoading(false);
+    }
+  }
+
+  async function reloadEditor(courseId: string) {
+    const detail = await getAdciCourseEditor(courseId);
+    setEditor(detail);
+    setLessonModuleId((current) => current || detail.adci_modules[0]?.id || "");
+  }
+
+  async function saveCourse(event: React.FormEvent) {
+    event.preventDefault();
+    if (!editor) return;
+    setSaving(true);
+    setError("");
+    try {
+      await updateAdciCourse(editor.id, editorTitle, editorDescription, editorStatus);
+      await reloadEditor(editor.id);
+      await refresh();
+      notify("Course details and publishing status saved");
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : "Unable to save course");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function addModule(event: React.FormEvent) {
+    event.preventDefault();
+    if (!editor || !newModuleTitle.trim()) return;
+    setSaving(true);
+    setError("");
+    try {
+      await addAdciCourseModule(editor.id, newModuleTitle);
+      setNewModuleTitle("");
+      await reloadEditor(editor.id);
+      notify("Module added");
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : "Unable to add module");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function addLesson(event: React.FormEvent) {
+    event.preventDefault();
+    if (!editor || !lessonModuleId || !newLessonTitle.trim()) return;
+    setSaving(true);
+    setError("");
+    try {
+      await addAdciModuleLesson(lessonModuleId, newLessonTitle, newLessonType, Math.max(0, Number(newLessonMinutes) * 60));
+      setNewLessonTitle("");
+      await reloadEditor(editor.id);
+      notify("Lesson added");
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : "Unable to add lesson");
+    } finally {
+      setSaving(false);
+    }
+  }
 
   async function create(event: React.FormEvent) {
     event.preventDefault();
@@ -102,7 +192,7 @@ export default function AdminCourseManager({ notify }: { notify: (message: strin
             <div><h3>{course.title}</h3><p>{course.description || "No description added yet."}</p><span>/{course.slug}</span></div>
             <div className="cms-progress"><span>DATABASE STATUS</span><strong>{course.status === "published" ? "100%" : "25%"}</strong><i><b style={{ width: course.status === "published" ? "100%" : "25%" }} /></i></div>
             <em className={`status-${course.status.replace("_", "-")}`}>{course.status.replace("_", " ")}</em>
-            <button className="review-button" onClick={() => notify(`${course.title} editor is ready for the next content sprint`)}>Manage</button>
+            <button className="review-button" disabled={editorLoading} onClick={() => void openEditor(course)}>{editorLoading ? "Opening…" : "Manage"}</button>
           </article>
         ))}
       </section>
@@ -125,6 +215,42 @@ export default function AdminCourseManager({ notify }: { notify: (message: strin
             {error && <div className="course-error">{error}</div>}
             <div className="course-dialog-actions"><button type="button" onClick={() => setDialogOpen(false)}>Cancel</button><button className="primary" disabled={saving}>{saving ? <LoaderCircle size={17} className="spin" /> : <Check size={17} />}{saving ? "Creating…" : "Create course"}</button></div>
           </form>
+        </div>
+      )}
+
+      {editor && (
+        <div className="course-dialog-backdrop">
+          <div className="course-editor">
+            <div className="course-dialog-head"><div><p className="eyebrow">COURSE WORKSPACE</p><h2>{editor.title}</h2></div><button type="button" onClick={() => setEditor(null)}><X /></button></div>
+            <div className="course-editor-layout">
+              <form className="course-settings" onSubmit={saveCourse}>
+                <h3>Course settings</h3>
+                <label><span>Title</span><input required value={editorTitle} onChange={(event) => setEditorTitle(event.target.value)} /></label>
+                <label><span>Description</span><textarea value={editorDescription} onChange={(event) => setEditorDescription(event.target.value)} /></label>
+                <label><span>Publishing status</span><select value={editorStatus} onChange={(event) => setEditorStatus(event.target.value)}><option value="draft">Draft</option><option value="in_review">In review</option><option value="approved">Approved</option><option value="published">Published</option><option value="retired">Retired</option></select></label>
+                <button className="primary" disabled={saving}><Save size={16} /> Save course</button>
+              </form>
+              <section className="curriculum-builder">
+                <div className="curriculum-heading"><div><h3>Curriculum</h3><p>{editor.adci_modules.length} module{editor.adci_modules.length === 1 ? "" : "s"}</p></div></div>
+                <div className="module-list">
+                  {editor.adci_modules.map((module) => (
+                    <article key={module.id}>
+                      <header><span><Layers3 size={16} /></span><div><strong>{module.position}. {module.title}</strong><small>{module.adci_lessons.length} lesson{module.adci_lessons.length === 1 ? "" : "s"}</small></div></header>
+                      <div className="module-lessons">
+                        {module.adci_lessons.map((lesson) => <div key={lesson.id}><CirclePlay size={15} /><span><strong>{lesson.position}. {lesson.title}</strong><small>{lesson.lesson_type} · {Math.round(lesson.duration_seconds / 60)} min</small></span><em>{lesson.status}</em></div>)}
+                        {module.adci_lessons.length === 0 && <p>No lessons yet.</p>}
+                      </div>
+                    </article>
+                  ))}
+                </div>
+                <div className="curriculum-actions">
+                  <form onSubmit={addModule}><strong>Add module</strong><div><input required value={newModuleTitle} onChange={(event) => setNewModuleTitle(event.target.value)} placeholder="Module title" /><button disabled={saving}><Plus size={15} /> Add</button></div></form>
+                  <form onSubmit={addLesson}><strong>Add lesson</strong><select required value={lessonModuleId} onChange={(event) => setLessonModuleId(event.target.value)}>{editor.adci_modules.map((module) => <option key={module.id} value={module.id}>{module.title}</option>)}</select><input required value={newLessonTitle} onChange={(event) => setNewLessonTitle(event.target.value)} placeholder="Lesson title" /><div><select value={newLessonType} onChange={(event) => setNewLessonType(event.target.value as AdciLesson["lesson_type"])}><option value="video">Video</option><option value="html">Article</option><option value="pdf">PDF</option><option value="live">Live class</option><option value="quiz">Quiz</option><option value="audio">Audio</option></select><input min="0" type="number" value={newLessonMinutes} onChange={(event) => setNewLessonMinutes(event.target.value)} aria-label="Duration in minutes" /><button disabled={saving || !lessonModuleId}><Plus size={15} /> Add</button></div></form>
+                </div>
+              </section>
+            </div>
+            {error && <div className="course-error">{error}</div>}
+          </div>
         </div>
       )}
     </div>
