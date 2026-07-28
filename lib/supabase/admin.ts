@@ -202,6 +202,8 @@ export async function uploadProtectedLessonVideo(
 
   const projectUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   if (!projectUrl) throw new Error("Supabase project URL is missing");
+  const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  if (!publishableKey) throw new Error("Supabase publishable key is missing");
   const projectId = new URL(projectUrl).hostname.split(".")[0];
   const extension = file.name.split(".").pop()?.toLowerCase() || "mp4";
   const objectPath = `${lessonId}/${crypto.randomUUID()}.${extension}`;
@@ -212,6 +214,7 @@ export async function uploadProtectedLessonVideo(
       retryDelays: [0, 3000, 5000, 10000, 20000],
       headers: {
         authorization: `Bearer ${accessToken}`,
+        apikey: publishableKey,
         "x-upsert": "false"
       },
       uploadDataDuringCreation: true,
@@ -257,6 +260,8 @@ export async function uploadProtectedLessonAsset(
 
   const projectUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   if (!projectUrl) throw new Error("Supabase project URL is missing");
+  const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  if (!publishableKey) throw new Error("Supabase publishable key is missing");
   const projectId = new URL(projectUrl).hostname.split(".")[0];
   const extension = file.name.split(".").pop()?.toLowerCase() || assetType;
   const objectPath = `${lessonId}/${crypto.randomUUID()}.${extension}`;
@@ -267,6 +272,7 @@ export async function uploadProtectedLessonAsset(
       retryDelays: [0, 3000, 5000, 10000, 20000],
       headers: {
         authorization: `Bearer ${accessToken}`,
+        apikey: publishableKey,
         "x-upsert": "false"
       },
       uploadDataDuringCreation: true,
