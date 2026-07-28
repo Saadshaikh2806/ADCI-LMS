@@ -1,11 +1,12 @@
 "use client";
 
-import { ArrowRight, BookOpen, Check, CirclePlay, FileVideo, Layers3, LoaderCircle, Plus, Save, ShieldCheck, UploadCloud, X } from "lucide-react";
+import { ArrowRight, BookOpen, Check, CirclePlay, FileVideo, Layers3, LoaderCircle, Plus, Save, ShieldCheck, Trash2, UploadCloud, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import {
   createCourseBundle,
   addAdciCourseModule,
   addAdciModuleLesson,
+  deleteAdciAcademicEntity,
   getAdciCourseEditor,
   listAdciCourses,
   type AdciCourse,
@@ -142,6 +143,31 @@ export default function AdminCourseManager({ notify }: { notify: (message: strin
     }
   }
 
+  async function removeEntity(
+    kind: "course" | "module" | "lesson",
+    id: string,
+    label: string,
+    lessons: AdciLesson[]
+  ) {
+    if (!editor || !window.confirm(`Delete ${label}? This cannot be undone.`)) return;
+    setSaving(true);
+    setError("");
+    try {
+      await deleteAdciAcademicEntity(kind, id, lessons);
+      if (kind === "course") {
+        setEditor(null);
+        await refresh();
+      } else {
+        await reloadEditor(editor.id);
+      }
+      notify(`${kind[0].toUpperCase()}${kind.slice(1)} deleted`);
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : `Unable to delete ${kind}`);
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function create(event: React.FormEvent) {
     event.preventDefault();
     setSaving(true);
@@ -238,15 +264,17 @@ export default function AdminCourseManager({ notify }: { notify: (message: strin
                 <label><span>Description</span><textarea value={editorDescription} onChange={(event) => setEditorDescription(event.target.value)} /></label>
                 <label><span>Publishing status</span><select value={editorStatus} onChange={(event) => setEditorStatus(event.target.value)}><option value="draft">Draft</option><option value="in_review">In review</option><option value="approved">Approved</option><option value="published">Published</option><option value="retired">Retired</option></select></label>
                 <button className="primary" disabled={saving}><Save size={16} /> Save course</button>
+                <button type="button" className="danger-action" disabled={saving || editor.status !== "draft"} onClick={() => void removeEntity("course", editor.id, `"${editor.title}" and all of its curriculum`, editor.adci_modules.flatMap((module) => module.adci_lessons))}><Trash2 size={15} /> Delete draft course</button>
+                {editor.status !== "draft" && <small className="delete-guidance">Published or reviewed courses must be retired instead of deleted.</small>}
               </form>
               <section className="curriculum-builder">
                 <div className="curriculum-heading"><div><h3>Curriculum</h3><p>{editor.adci_modules.length} module{editor.adci_modules.length === 1 ? "" : "s"}</p></div></div>
                 <div className="module-list">
                   {editor.adci_modules.map((module) => (
                     <article key={module.id}>
-                      <header><span><Layers3 size={16} /></span><div><strong>{module.position}. {module.title}</strong><small>{module.adci_lessons.length} lesson{module.adci_lessons.length === 1 ? "" : "s"}</small></div></header>
+                      <header><span><Layers3 size={16} /></span><div><strong>{module.position}. {module.title}</strong><small>{module.adci_lessons.length} lesson{module.adci_lessons.length === 1 ? "" : "s"}</small></div><button className="icon-danger" disabled={saving} onClick={() => void removeEntity("module", module.id, `module "${module.title}" and its lessons`, module.adci_lessons)} aria-label={`Delete ${module.title}`}><Trash2 size={15} /></button></header>
                       <div className="module-lessons">
-                        {module.adci_lessons.map((lesson) => <div key={lesson.id}><CirclePlay size={15} /><span><strong>{lesson.position}. {lesson.title}</strong><small>{lesson.lesson_type} · {Math.round(lesson.duration_seconds / 60)} min{lesson.adci_lesson_assets?.[0] ? ` · ${lesson.adci_lesson_assets[0].original_name}` : ""}</small></span><em className={lesson.adci_lesson_assets?.length ? "asset-ready" : ""}>{lesson.adci_lesson_assets?.length ? "file ready" : lesson.status}</em></div>)}
+                        {module.adci_lessons.map((lesson) => <div key={lesson.id}><CirclePlay size={15} /><span><strong>{lesson.position}. {lesson.title}</strong><small>{lesson.lesson_type} · {Math.round(lesson.duration_seconds / 60)} min{lesson.adci_lesson_assets?.[0] ? ` · ${lesson.adci_lesson_assets[0].original_name}` : ""}</small></span><em className={lesson.adci_lesson_assets?.length ? "asset-ready" : ""}>{lesson.adci_lesson_assets?.length ? "file ready" : lesson.status}</em><button className="icon-danger" disabled={saving} onClick={() => void removeEntity("lesson", lesson.id, `lesson "${lesson.title}"`, [lesson])} aria-label={`Delete ${lesson.title}`}><Trash2 size={14} /></button></div>)}
                         {module.adci_lessons.length === 0 && <p>No lessons yet.</p>}
                       </div>
                     </article>

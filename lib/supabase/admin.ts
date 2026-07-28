@@ -29,7 +29,9 @@ export type AdciLesson = {
     asset_type: string;
     original_name: string;
     size_bytes: number;
+    object_path: string;
   }>;
+  adci_video_assets: Array<{ object_path: string }>;
 };
 
 export type AdciModule = {
@@ -111,7 +113,7 @@ export async function getAdciCourseEditor(courseId: string) {
 
   const { data, error } = await supabase
     .from("adci_courses")
-    .select("id,title,slug,description,status,updated_at,adci_modules(id,title,position,adci_lessons(id,title,lesson_type,position,duration_seconds,status,adci_lesson_assets(id,asset_type,original_name,size_bytes)))")
+    .select("id,title,slug,description,status,updated_at,adci_modules(id,title,position,adci_lessons(id,title,lesson_type,position,duration_seconds,status,adci_lesson_assets(id,asset_type,original_name,size_bytes,object_path),adci_video_assets(object_path)))")
     .eq("id", courseId)
     .order("position", { referencedTable: "adci_modules", ascending: true })
     .order("position", { referencedTable: "adci_modules.adci_lessons", ascending: true })
@@ -294,4 +296,35 @@ export async function uploadProtectedLessonAsset(
 
   if (error) throw error;
   return objectPath;
+}
+
+export async function deleteAdciAcademicEntity(
+  kind: "course" | "module" | "lesson",
+  id: string,
+  lessons: AdciLesson[]
+) {
+  const supabase = getSupabaseBrowserClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+
+  const lessonAssets = lessons.flatMap((lesson) =>
+    (lesson.adci_lesson_assets ?? []).map((asset) => asset.object_path)
+  );
+  const legacyVideos = lessons.flatMap((lesson) =>
+    (lesson.adci_video_assets ?? []).map((asset) => asset.object_path)
+  );
+
+  if (lessonAssets.length) {
+    const { error } = await supabase.storage.from("adci-lesson-assets").remove(lessonAssets);
+    if (error) throw error;
+  }
+  if (legacyVideos.length) {
+    const { error } = await supabase.storage.from("adci-course-videos").remove(legacyVideos);
+    if (error) throw error;
+  }
+
+  const { error } = await supabase.rpc("adci_delete_academic_entity", {
+    entity_kind: kind,
+    target_id: id
+  });
+  if (error) throw error;
 }
