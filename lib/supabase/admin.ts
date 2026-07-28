@@ -24,6 +24,12 @@ export type AdciLesson = {
   position: number;
   duration_seconds: number;
   status: string;
+  adci_lesson_assets: Array<{
+    id: string;
+    asset_type: string;
+    original_name: string;
+    size_bytes: number;
+  }>;
 };
 
 export type AdciModule = {
@@ -105,7 +111,7 @@ export async function getAdciCourseEditor(courseId: string) {
 
   const { data, error } = await supabase
     .from("adci_courses")
-    .select("id,title,slug,description,status,updated_at,adci_modules(id,title,position,adci_lessons(id,title,lesson_type,position,duration_seconds,status))")
+    .select("id,title,slug,description,status,updated_at,adci_modules(id,title,position,adci_lessons(id,title,lesson_type,position,duration_seconds,status,adci_lesson_assets(id,asset_type,original_name,size_bytes)))")
     .eq("id", courseId)
     .order("position", { referencedTable: "adci_modules", ascending: true })
     .order("position", { referencedTable: "adci_modules.adci_lessons", ascending: true })
@@ -228,6 +234,62 @@ export async function uploadProtectedLessonVideo(
     mime_type: file.type || "video/mp4",
     size_bytes: file.size,
     processing_status: "ready"
+  });
+
+  if (error) throw error;
+  return objectPath;
+}
+
+export async function uploadProtectedLessonAsset(
+  lessonId: string,
+  assetType: "video" | "audio" | "pdf",
+  file: File,
+  onProgress: (percentage: number) => void
+) {
+  const supabase = getSupabaseBrowserClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+
+  const { data: sessionData } = await supabase.auth.getSession();
+  const accessToken = sessionData.session?.access_token;
+  if (!accessToken) throw new Error("Authentication required");
+
+  const projectUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!projectUrl) throw new Error("Supabase project URL is missing");
+  const projectId = new URL(projectUrl).hostname.split(".")[0];
+  const extension = file.name.split(".").pop()?.toLowerCase() || assetType;
+  const objectPath = `${lessonId}/${crypto.randomUUID()}.${extension}`;
+
+  await new Promise<void>((resolve, reject) => {
+    const upload = new tus.Upload(file, {
+      endpoint: `https://${projectId}.storage.supabase.co/storage/v1/upload/resumable`,
+      retryDelays: [0, 3000, 5000, 10000, 20000],
+      headers: {
+        authorization: `Bearer ${accessToken}`,
+        "x-upsert": "false"
+      },
+      uploadDataDuringCreation: true,
+      removeFingerprintOnSuccess: true,
+      chunkSize: 6 * 1024 * 1024,
+      metadata: {
+        bucketName: "adci-lesson-assets",
+        objectName: objectPath,
+        contentType: file.type || "application/octet-stream",
+        cacheControl: "3600"
+      },
+      onError: reject,
+      onProgress: (uploaded, total) => onProgress(Math.round((uploaded / total) * 100)),
+      onSuccess: () => resolve()
+    });
+    upload.start();
+  });
+
+  const { error } = await supabase.from("adci_lesson_assets").insert({
+    lesson_id: lessonId,
+    asset_type: assetType,
+    object_path: objectPath,
+    original_name: file.name,
+    mime_type: file.type || "application/octet-stream",
+    size_bytes: file.size
   });
 
   if (error) throw error;

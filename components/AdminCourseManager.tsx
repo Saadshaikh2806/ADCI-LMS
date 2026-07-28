@@ -12,6 +12,7 @@ import {
   type AdciCourseEditor,
   type AdciLesson,
   updateAdciCourse,
+  uploadProtectedLessonAsset,
   uploadProtectedLessonVideo
 } from "../lib/supabase/admin";
 
@@ -38,6 +39,8 @@ export default function AdminCourseManager({ notify }: { notify: (message: strin
   const [newLessonTitle, setNewLessonTitle] = useState("");
   const [newLessonType, setNewLessonType] = useState<AdciLesson["lesson_type"]>("video");
   const [newLessonMinutes, setNewLessonMinutes] = useState("30");
+  const [newLessonFile, setNewLessonFile] = useState<File | null>(null);
+  const [lessonUploadProgress, setLessonUploadProgress] = useState(0);
 
   const slug = useMemo(
     () => courseTitle.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""),
@@ -121,11 +124,17 @@ export default function AdminCourseManager({ notify }: { notify: (message: strin
     if (!editor || !lessonModuleId || !newLessonTitle.trim()) return;
     setSaving(true);
     setError("");
+    setLessonUploadProgress(0);
     try {
-      await addAdciModuleLesson(lessonModuleId, newLessonTitle, newLessonType, Math.max(0, Number(newLessonMinutes) * 60));
+      const lesson = await addAdciModuleLesson(lessonModuleId, newLessonTitle, newLessonType, Math.max(0, Number(newLessonMinutes) * 60));
+      if (newLessonFile && (newLessonType === "video" || newLessonType === "audio" || newLessonType === "pdf")) {
+        await uploadProtectedLessonAsset(lesson.id, newLessonType, newLessonFile, setLessonUploadProgress);
+      }
       setNewLessonTitle("");
+      setNewLessonFile(null);
+      setLessonUploadProgress(0);
       await reloadEditor(editor.id);
-      notify("Lesson added");
+      notify(newLessonFile ? "Lesson and protected file uploaded" : "Lesson added");
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : "Unable to add lesson");
     } finally {
@@ -237,7 +246,7 @@ export default function AdminCourseManager({ notify }: { notify: (message: strin
                     <article key={module.id}>
                       <header><span><Layers3 size={16} /></span><div><strong>{module.position}. {module.title}</strong><small>{module.adci_lessons.length} lesson{module.adci_lessons.length === 1 ? "" : "s"}</small></div></header>
                       <div className="module-lessons">
-                        {module.adci_lessons.map((lesson) => <div key={lesson.id}><CirclePlay size={15} /><span><strong>{lesson.position}. {lesson.title}</strong><small>{lesson.lesson_type} · {Math.round(lesson.duration_seconds / 60)} min</small></span><em>{lesson.status}</em></div>)}
+                        {module.adci_lessons.map((lesson) => <div key={lesson.id}><CirclePlay size={15} /><span><strong>{lesson.position}. {lesson.title}</strong><small>{lesson.lesson_type} · {Math.round(lesson.duration_seconds / 60)} min{lesson.adci_lesson_assets?.[0] ? ` · ${lesson.adci_lesson_assets[0].original_name}` : ""}</small></span><em className={lesson.adci_lesson_assets?.length ? "asset-ready" : ""}>{lesson.adci_lesson_assets?.length ? "file ready" : lesson.status}</em></div>)}
                         {module.adci_lessons.length === 0 && <p>No lessons yet.</p>}
                       </div>
                     </article>
@@ -245,7 +254,7 @@ export default function AdminCourseManager({ notify }: { notify: (message: strin
                 </div>
                 <div className="curriculum-actions">
                   <form onSubmit={addModule}><strong>Add module</strong><div><input required value={newModuleTitle} onChange={(event) => setNewModuleTitle(event.target.value)} placeholder="Module title" /><button disabled={saving}><Plus size={15} /> Add</button></div></form>
-                  <form onSubmit={addLesson}><strong>Add lesson</strong><select required value={lessonModuleId} onChange={(event) => setLessonModuleId(event.target.value)}>{editor.adci_modules.map((module) => <option key={module.id} value={module.id}>{module.title}</option>)}</select><input required value={newLessonTitle} onChange={(event) => setNewLessonTitle(event.target.value)} placeholder="Lesson title" /><div><select value={newLessonType} onChange={(event) => setNewLessonType(event.target.value as AdciLesson["lesson_type"])}><option value="video">Video</option><option value="html">Article</option><option value="pdf">PDF</option><option value="live">Live class</option><option value="quiz">Quiz</option><option value="audio">Audio</option></select><input min="0" type="number" value={newLessonMinutes} onChange={(event) => setNewLessonMinutes(event.target.value)} aria-label="Duration in minutes" /><button disabled={saving || !lessonModuleId}><Plus size={15} /> Add</button></div></form>
+                  <form onSubmit={addLesson}><strong>Add lesson</strong><select required value={lessonModuleId} onChange={(event) => setLessonModuleId(event.target.value)}>{editor.adci_modules.map((module) => <option key={module.id} value={module.id}>{module.title}</option>)}</select><input required value={newLessonTitle} onChange={(event) => setNewLessonTitle(event.target.value)} placeholder="Lesson title" /><div><select value={newLessonType} onChange={(event) => { setNewLessonType(event.target.value as AdciLesson["lesson_type"]); setNewLessonFile(null); }}><option value="video">Video</option><option value="html">Article</option><option value="pdf">PDF</option><option value="live">Live class</option><option value="quiz">Quiz</option><option value="audio">Audio</option></select><input min="0" type="number" value={newLessonMinutes} onChange={(event) => setNewLessonMinutes(event.target.value)} aria-label="Duration in minutes" /><button disabled={saving || !lessonModuleId}><Plus size={15} /> Add</button></div>{(newLessonType === "video" || newLessonType === "audio" || newLessonType === "pdf") && <label className="lesson-asset-picker"><input required type="file" accept={newLessonType === "video" ? "video/mp4,video/webm" : newLessonType === "audio" ? "audio/mpeg,audio/mp4,audio/wav,audio/ogg" : "application/pdf"} onChange={(event) => setNewLessonFile(event.target.files?.[0] ?? null)} /><span><UploadCloud size={16} />{newLessonFile ? newLessonFile.name : `Choose ${newLessonType.toUpperCase()} file`}</span></label>}{saving && lessonUploadProgress > 0 && <div className="lesson-upload-meter"><i><b style={{ width: `${lessonUploadProgress}%` }} /></i><small>{lessonUploadProgress}% uploaded</small></div>}</form>
                 </div>
               </section>
             </div>
