@@ -17,6 +17,38 @@ export type AdciCourse = {
   updated_at: string;
 };
 
+export type AdciPerson = {
+  user_id: string;
+  full_name: string;
+  email: string;
+  role: string | null;
+  active: boolean;
+  created_at: string;
+};
+
+export async function listAdciPeople() {
+  const supabase = getSupabaseBrowserClient();
+  if (!supabase) return [];
+
+  const { data, error } = await supabase.rpc("adci_admin_list_people");
+  if (error) throw error;
+  return (data ?? []) as AdciPerson[];
+}
+
+export async function setAdciUserRole(userId: string, role: string, active: boolean) {
+  const supabase = getSupabaseBrowserClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+
+  const { data, error } = await supabase.rpc("adci_admin_set_user_role", {
+    target_user_id: userId,
+    new_role: role,
+    membership_active: active
+  });
+
+  if (error) throw error;
+  return data;
+}
+
 export async function loadMyAdciMemberships() {
   const supabase = getSupabaseBrowserClient();
   if (!supabase) return [];

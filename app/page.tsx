@@ -40,6 +40,7 @@ import { useEffect, useState } from "react";
 import { isSupabaseConfigured } from "../lib/supabase/client";
 import AuthGate, { useAuthSession } from "../components/AuthGate";
 import AdminCourseManager from "../components/AdminCourseManager";
+import AdminPeopleManager from "../components/AdminPeopleManager";
 import { hasAcademicAdminRole, loadMyAdciMemberships } from "../lib/supabase/admin";
 
 const navItems = [
@@ -481,6 +482,8 @@ function LearningHub() {
               </div>
             ) : adminSection === "Academics" ? (
               <AdminCourseManager notify={notify} />
+            ) : adminSection === "People" ? (
+              <AdminPeopleManager notify={notify} />
             ) : (
               <div className="admin-empty"><div className="overlay-icon">{adminSection === "People" ? <UsersRound /> : adminSection === "Reports" ? <BarChart3 /> : <Settings />}</div><p className="eyebrow">ADMIN MODULE</p><h2>{adminSection}</h2><p>This operational module is connected to the shared administration shell and ready for its dedicated workflow.</p><button className="primary" onClick={() => setAdminSection("Dashboard")}>Return to dashboard</button></div>
             )}
