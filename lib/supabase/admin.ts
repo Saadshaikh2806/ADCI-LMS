@@ -421,3 +421,48 @@ export async function deleteAdciQuizQuestion(assessmentId: string, questionId: s
   });
   if (error) throw error;
 }
+
+export async function getAdciArticle(lessonId: string) {
+  const supabase = getSupabaseBrowserClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+  const { data, error } = await supabase.from("adci_article_contents").select("body,updated_at").eq("lesson_id", lessonId).maybeSingle();
+  if (error) throw error;
+  return data as { body: string; updated_at: string } | null;
+}
+
+export async function saveAdciArticle(lessonId: string, body: string) {
+  const supabase = getSupabaseBrowserClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+  const { error } = await supabase.rpc("adci_save_article", { target_lesson_id: lessonId, article_body: body });
+  if (error) throw error;
+}
+
+export type AdciLiveClass = {
+  provider: "zoom" | "google_meet" | "youtube_live";
+  meeting_url: string;
+  instructor_name: string;
+  starts_at: string;
+  ends_at: string;
+};
+
+export async function getAdciLiveClass(lessonId: string) {
+  const supabase = getSupabaseBrowserClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+  const { data, error } = await supabase.from("adci_live_classes").select("provider,meeting_url,instructor_name,starts_at,ends_at").eq("lesson_id", lessonId).maybeSingle();
+  if (error) throw error;
+  return data as AdciLiveClass | null;
+}
+
+export async function saveAdciLiveClass(lessonId: string, liveClass: AdciLiveClass) {
+  const supabase = getSupabaseBrowserClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+  const { error } = await supabase.rpc("adci_save_live_class", {
+    target_lesson_id: lessonId,
+    class_provider: liveClass.provider,
+    class_url: liveClass.meeting_url,
+    class_instructor: liveClass.instructor_name,
+    class_starts_at: liveClass.starts_at,
+    class_ends_at: liveClass.ends_at
+  });
+  if (error) throw error;
+}
