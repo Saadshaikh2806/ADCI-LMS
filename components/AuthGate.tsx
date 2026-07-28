@@ -29,24 +29,48 @@ export default function AuthGate({ children }: { children: ReactNode }) {
       setLoading(false);
       return;
     }
+    const authClient = supabase;
+    let active = true;
 
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      setLoading(false);
-      if (data.session) void supabase.rpc("adci_claim_initial_admin");
-    });
-
-    const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-      setSession(nextSession);
-      setLoading(false);
-      if (nextSession) {
-        supabase.rpc("adci_claim_initial_admin").then(() => {
-          // The first authenticated owner is bootstrapped once; later calls safely no-op.
-        });
+    async function validateSession(candidate: Session | null) {
+      if (!candidate) {
+        if (active) {
+          setSession(null);
+          setLoading(false);
+        }
+        return;
       }
+
+      const { data, error } = await authClient.auth.getUser(candidate.access_token);
+      const verifiedUser = data.user;
+
+      if (error || !verifiedUser || !verifiedUser.email_confirmed_at) {
+        await authClient.auth.signOut({ scope: "local" });
+        if (active) {
+          setSession(null);
+          setLoading(false);
+        }
+        return;
+      }
+
+      if (active) {
+        setSession(candidate);
+        setLoading(false);
+      }
+      void authClient.rpc("adci_claim_initial_admin");
+    }
+
+    authClient.auth.getSession().then(({ data }) => void validateSession(data.session));
+
+    const { data } = authClient.auth.onAuthStateChange((_event, nextSession) => {
+      // Defer network validation so it does not block Supabase's auth callback.
+      setTimeout(() => void validateSession(nextSession), 0);
     });
 
-    return () => data.subscription.unsubscribe();
+    return () => {
+      active = false;
+      data.subscription.unsubscribe();
+    };
   }, []);
 
   async function submit(event: React.FormEvent) {
