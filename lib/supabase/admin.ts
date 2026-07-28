@@ -334,3 +334,90 @@ export async function deleteAdciAcademicEntity(
   });
   if (error) throw error;
 }
+
+export type AdciQuizEditor = {
+  id: string;
+  lesson_id: string;
+  title: string;
+  duration_seconds: number;
+  positive_marks: number;
+  negative_marks: number;
+  pass_percent: number;
+  status: string;
+  adci_assessment_questions: Array<{
+    position: number;
+    adci_questions: {
+      id: string;
+      prompt: string;
+      options: string[];
+      correct_answer: { index: number };
+      explanation: string | null;
+    };
+  }>;
+};
+
+export async function getAdciQuizEditor(lessonId: string) {
+  const supabase = getSupabaseBrowserClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+  const { data, error } = await supabase
+    .from("adci_assessments")
+    .select("id,lesson_id,title,duration_seconds,positive_marks,negative_marks,pass_percent,status,adci_assessment_questions(position,adci_questions(id,prompt,options,correct_answer,explanation))")
+    .eq("lesson_id", lessonId)
+    .order("position", { referencedTable: "adci_assessment_questions", ascending: true })
+    .maybeSingle();
+  if (error) throw error;
+  return data as AdciQuizEditor | null;
+}
+
+export async function saveAdciQuiz(input: {
+  lessonId: string;
+  title: string;
+  durationSeconds: number;
+  positiveMarks: number;
+  negativeMarks: number;
+  passPercent: number;
+  status: string;
+}) {
+  const supabase = getSupabaseBrowserClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+  const { data, error } = await supabase.rpc("adci_save_quiz", {
+    target_lesson_id: input.lessonId,
+    quiz_title: input.title,
+    quiz_duration_seconds: input.durationSeconds,
+    quiz_positive_marks: input.positiveMarks,
+    quiz_negative_marks: input.negativeMarks,
+    quiz_pass_percent: input.passPercent,
+    quiz_status: input.status
+  });
+  if (error) throw error;
+  return data as { id: string };
+}
+
+export async function addAdciQuizQuestion(
+  assessmentId: string,
+  prompt: string,
+  options: string[],
+  correctOption: number,
+  explanation: string
+) {
+  const supabase = getSupabaseBrowserClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+  const { error } = await supabase.rpc("adci_add_quiz_question", {
+    target_assessment_id: assessmentId,
+    question_prompt: prompt,
+    question_options: options,
+    correct_option: correctOption,
+    question_explanation: explanation
+  });
+  if (error) throw error;
+}
+
+export async function deleteAdciQuizQuestion(assessmentId: string, questionId: string) {
+  const supabase = getSupabaseBrowserClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+  const { error } = await supabase.rpc("adci_delete_quiz_question", {
+    target_assessment_id: assessmentId,
+    target_question_id: questionId
+  });
+  if (error) throw error;
+}

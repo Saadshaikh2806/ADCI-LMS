@@ -41,6 +41,7 @@ import { isSupabaseConfigured } from "../lib/supabase/client";
 import AuthGate, { useAuthSession } from "../components/AuthGate";
 import AdminCourseManager from "../components/AdminCourseManager";
 import AdminPeopleManager from "../components/AdminPeopleManager";
+import StudentQuizRunner from "../components/StudentQuizRunner";
 import { hasAcademicAdminRole, loadMyAdciMemberships } from "../lib/supabase/admin";
 
 const navItems = [
@@ -365,7 +366,8 @@ function LearningHub() {
         </div>
       )}
 
-      {examOpen && (
+      {examOpen && <StudentQuizRunner close={() => setExamOpen(false)} />}
+      {false && examOpen && (
         <div className="exam-room">
           {!examStarted ? (
             <section className="exam-intro">
