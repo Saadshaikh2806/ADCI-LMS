@@ -53,11 +53,14 @@ export default function AuthGate({ children }: { children: ReactNode }) {
         return;
       }
 
+      // Finish the one-time bootstrap before rendering so the dashboard's
+      // membership query cannot race ahead of the initial admin claim.
+      await authClient.rpc("adci_claim_initial_admin");
+
       if (active) {
         setSession(candidate);
         setLoading(false);
       }
-      void authClient.rpc("adci_claim_initial_admin");
     }
 
     authClient.auth.getSession().then(({ data }) => void validateSession(data.session));
