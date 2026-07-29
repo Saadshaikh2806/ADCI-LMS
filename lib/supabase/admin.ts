@@ -520,6 +520,65 @@ export async function saveAdciLiveClass(lessonId: string, liveClass: AdciLiveCla
   if (error) throw error;
 }
 
+export type AdciScheduledLiveClass = AdciLiveClass & {
+  lesson_id: string;
+  lesson_title: string;
+  module_title: string;
+  course_id: string;
+  course_title: string;
+  course_status: string;
+  status: "live" | "scheduled" | "ended";
+  attendance_count: number;
+  total_joins: number;
+};
+
+export type AdciUnscheduledLiveLesson = {
+  lesson_id: string;
+  lesson_title: string;
+  module_title: string;
+  course_id: string;
+  course_title: string;
+  course_status: string;
+};
+
+export type AdciLiveSchedule = {
+  summary: { scheduled: number; live_now: number; attendance: number; unscheduled: number };
+  classes: AdciScheduledLiveClass[];
+  unscheduled_lessons: AdciUnscheduledLiveLesson[];
+};
+
+export type AdciLiveAttendee = {
+  learner_id: string;
+  full_name: string;
+  email: string;
+  joined_at: string;
+  last_joined_at: string;
+  join_count: number;
+};
+
+export async function getAdciAdminLiveSchedule(days: number) {
+  const supabase = getSupabaseBrowserClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+  const { data, error } = await supabase.rpc("adci_admin_get_live_schedule", { target_days: days });
+  if (error) throw error;
+  return data as AdciLiveSchedule;
+}
+
+export async function getAdciLiveAttendance(lessonId: string) {
+  const supabase = getSupabaseBrowserClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+  const { data, error } = await supabase.rpc("adci_admin_get_live_attendance", { target_lesson_id: lessonId });
+  if (error) throw error;
+  return (data ?? []) as AdciLiveAttendee[];
+}
+
+export async function deleteAdciLiveSchedule(lessonId: string) {
+  const supabase = getSupabaseBrowserClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+  const { error } = await supabase.rpc("adci_admin_delete_live_schedule", { target_lesson_id: lessonId });
+  if (error) throw error;
+}
+
 export type AdciCourseEnrolment = {
   course_id: string;
   title: string;

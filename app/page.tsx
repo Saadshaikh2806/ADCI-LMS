@@ -43,6 +43,7 @@ import AuthGate, { useAuthSession } from "../components/AuthGate";
 import AdminCourseManager from "../components/AdminCourseManager";
 import AdminPeopleManager from "../components/AdminPeopleManager";
 import AdminReports from "../components/AdminReports";
+import AdminLiveSchedule from "../components/AdminLiveSchedule";
 import StudentQuizRunner from "../components/StudentQuizRunner";
 import LiveClassSchedule from "../components/LiveClassSchedule";
 import StudentCourses from "../components/StudentCourses";
@@ -532,6 +533,8 @@ function LearningHub() {
               <AdminPeopleManager notify={notify} />
             ) : adminSection === "Reports" ? (
               <AdminReports notify={notify} />
+            ) : adminSection === "Live schedule" ? (
+              <AdminLiveSchedule notify={notify} />
             ) : (
               <div className="admin-empty"><div className="overlay-icon">{adminSection === "People" ? <UsersRound /> : adminSection === "Reports" ? <BarChart3 /> : <Settings />}</div><p className="eyebrow">ADMIN MODULE</p><h2>{adminSection}</h2><p>This operational module is connected to the shared administration shell and ready for its dedicated workflow.</p><button className="primary" onClick={() => setAdminSection("Dashboard")}>Return to dashboard</button></div>
             )}
