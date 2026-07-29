@@ -22,6 +22,7 @@ import {
   LoaderCircle,
   Menu,
   MessageSquareText,
+  Megaphone,
   MoreHorizontal,
   Plus,
   Play,
@@ -47,13 +48,15 @@ import AdminLiveSchedule from "../components/AdminLiveSchedule";
 import AdminQuestionBank from "../components/AdminQuestionBank";
 import AdminAuditLog from "../components/AdminAuditLog";
 import AdminDashboard from "../components/AdminDashboard";
+import AdminAnnouncements from "../components/AdminAnnouncements";
+import NotificationCenter from "../components/NotificationCenter";
 import StudentQuizRunner from "../components/StudentQuizRunner";
 import LiveClassSchedule from "../components/LiveClassSchedule";
 import StudentCourses from "../components/StudentCourses";
 import StudentCoursePlayer from "../components/StudentCoursePlayer";
 import StudyPlan from "../components/StudyPlan";
 import { hasAcademicAdminRole, loadMyAdciMemberships } from "../lib/supabase/admin";
-import { getLearnerDashboard, type LearnerDashboard } from "../lib/supabase/learning";
+import { getLearnerDashboard, getMyNotifications, type LearnerDashboard } from "../lib/supabase/learning";
 
 const navItems = [
   { label: "Overview", icon: LayoutDashboard },
@@ -144,6 +147,8 @@ function LearningHub() {
   const [dashboardLoading, setDashboardLoading] = useState(true);
   const [dashboardError, setDashboardError] = useState("");
   const [openLearning, setOpenLearning] = useState<{ courseId: string; lessonId?: string } | null>(null);
+  const [notificationOpen, setNotificationOpen] = useState(false);
+  const [notificationCount, setNotificationCount] = useState(0);
 
   async function refreshLearnerDashboard() {
     setDashboardLoading(true);
@@ -159,6 +164,13 @@ function LearningHub() {
 
   useEffect(() => {
     if (authSession) void refreshLearnerDashboard();
+  }, [authSession]);
+
+  useEffect(() => {
+    if (!authSession) return;
+    getMyNotifications()
+      .then((notifications) => setNotificationCount(notifications.unread_count))
+      .catch(() => setNotificationCount(0));
   }, [authSession]);
 
   useEffect(() => {
@@ -270,7 +282,7 @@ function LearningHub() {
             <kbd>⌘ K</kbd>
           </div>
           <div className="top-actions">
-            <button className="icon-button" aria-label="Notifications" onClick={() => notify("You have 3 new notifications")}><Bell size={20} /><i /></button>
+            <button className="icon-button" aria-label={`${notificationCount} unread notifications`} onClick={() => setNotificationOpen(true)}><Bell size={20} />{notificationCount > 0 && <><i /><span className="notification-count">{notificationCount > 99 ? "99+" : notificationCount}</span></>}</button>
             <button className="profile" onClick={() => setProfileOpen(!profileOpen)}>
               <span>{accountInitials}</span>
               <div><strong>{accountName}</strong><small>UPSC Foundation</small></div>
@@ -499,13 +511,14 @@ function LearningHub() {
               ["Academics", BookOpen],
               ["Question bank", ClipboardCheck],
               ["Live schedule", CalendarDays],
+              ["Announcements", Megaphone],
               ["Reports", BarChart3],
               ["Audit log", History]
             ].map(([label, Icon]) => <button key={label as string} className={`nav-item ${adminSection === label ? "active" : ""}`} onClick={() => setAdminSection(label as string)}><Icon size={18} /><span>{label as string}</span>{label === "Academics" && <em>3</em>}</button>)}
             <div className="admin-user"><span>{accountInitials}</span><div><strong>{accountName}</strong><small>Super administrator</small></div><button onClick={() => setAdminOpen(false)} aria-label="Return to learner portal"><X size={17} /></button></div>
           </aside>
           <section className="admin-workspace">
-            <header className="admin-topbar"><div><p className="eyebrow">ANEES DEFENCE CAREER INSTITUTE</p><h1>{adminSection}</h1></div><div><span className={`data-mode ${backendConnected ? "connected" : ""}`}><i />{backendConnected ? "Supabase connected" : "Demo data"}</span><button className="icon-button"><Bell size={20} /><i /></button><button className="admin-avatar">{accountInitials}</button></div></header>
+            <header className="admin-topbar"><div><p className="eyebrow">ANEES DEFENCE CAREER INSTITUTE</p><h1>{adminSection}</h1></div><div><span className={`data-mode ${backendConnected ? "connected" : ""}`}><i />{backendConnected ? "Supabase connected" : "Demo data"}</span><button className="icon-button" aria-label={`${notificationCount} unread notifications`} onClick={() => setNotificationOpen(true)}><Bell size={20} />{notificationCount > 0 && <><i /><span className="notification-count">{notificationCount > 99 ? "99+" : notificationCount}</span></>}</button><button className="admin-avatar">{accountInitials}</button></div></header>
             {adminSection === "Dashboard" ? (
               <AdminDashboard accountName={accountName} navigate={setAdminSection} />
             ) : adminSection === "Academics" ? (
@@ -518,6 +531,8 @@ function LearningHub() {
               <AdminLiveSchedule notify={notify} />
             ) : adminSection === "Question bank" ? (
               <AdminQuestionBank notify={notify} />
+            ) : adminSection === "Announcements" ? (
+              <AdminAnnouncements notify={notify} />
             ) : adminSection === "Audit log" ? (
               <AdminAuditLog notify={notify} />
             ) : (
@@ -527,6 +542,7 @@ function LearningHub() {
         </div>
       )}
 
+      {notificationOpen && <NotificationCenter close={() => setNotificationOpen(false)} onUnreadChange={setNotificationCount} />}
       {toast && <div className="toast"><Check size={17} />{toast}</div>}
     </main>
   );

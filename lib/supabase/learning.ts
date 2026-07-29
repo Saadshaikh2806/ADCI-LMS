@@ -132,6 +132,46 @@ export async function getLearnerDashboard() {
   return data as LearnerDashboard;
 }
 
+export type AdciNotification = {
+  id: string;
+  title: string;
+  body: string;
+  audience: "all" | "learners" | "staff";
+  priority: "info" | "important" | "urgent";
+  published_at: string;
+  expires_at: string | null;
+  read: boolean;
+};
+
+export type AdciNotificationFeed = {
+  unread_count: number;
+  items: AdciNotification[];
+};
+
+export async function getMyNotifications() {
+  const supabase = getSupabaseBrowserClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+  const { data, error } = await supabase.rpc("adci_get_my_notifications");
+  if (error) throw error;
+  return data as AdciNotificationFeed;
+}
+
+export async function markAnnouncementRead(announcementId: string) {
+  const supabase = getSupabaseBrowserClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+  const { error } = await supabase.rpc("adci_mark_announcement_read", {
+    target_announcement_id: announcementId
+  });
+  if (error) throw error;
+}
+
+export async function markAllAnnouncementsRead() {
+  const supabase = getSupabaseBrowserClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+  const { error } = await supabase.rpc("adci_mark_all_announcements_read");
+  if (error) throw error;
+}
+
 export async function getProtectedLessonUrl(asset: LearningAsset) {
   const supabase = getSupabaseBrowserClient();
   if (!supabase) throw new Error("Supabase is not configured");

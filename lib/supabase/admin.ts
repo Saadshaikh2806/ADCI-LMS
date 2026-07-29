@@ -209,6 +209,68 @@ export async function getAdciAdminDashboard() {
   return data as AdciAdminDashboard;
 }
 
+export type AdciAnnouncement = {
+  id: string;
+  title: string;
+  body: string;
+  audience: "all" | "learners" | "staff";
+  priority: "info" | "important" | "urgent";
+  status: "draft" | "published" | "retired";
+  published_at: string | null;
+  expires_at: string | null;
+  created_at: string;
+  read_count: number;
+  recipient_count: number;
+};
+
+export type AdciAnnouncementAdminData = {
+  summary: { total: number; published: number; drafts: number; urgent: number };
+  announcements: AdciAnnouncement[];
+};
+
+export async function getAdciAnnouncements() {
+  const supabase = getSupabaseBrowserClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+  const { data, error } = await supabase.rpc("adci_admin_get_announcements");
+  if (error) throw error;
+  return data as AdciAnnouncementAdminData;
+}
+
+export async function saveAdciAnnouncement(input: {
+  id?: string;
+  title: string;
+  body: string;
+  audience: AdciAnnouncement["audience"];
+  priority: AdciAnnouncement["priority"];
+  status: AdciAnnouncement["status"];
+  publishedAt: string | null;
+  expiresAt: string | null;
+}) {
+  const supabase = getSupabaseBrowserClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+  const { data, error } = await supabase.rpc("adci_admin_save_announcement", {
+    target_announcement_id: input.id ?? null,
+    announcement_title: input.title,
+    announcement_body: input.body,
+    announcement_audience: input.audience,
+    announcement_priority: input.priority,
+    announcement_status: input.status,
+    announcement_published_at: input.publishedAt,
+    announcement_expires_at: input.expiresAt
+  });
+  if (error) throw error;
+  return data as string;
+}
+
+export async function deleteAdciAnnouncement(announcementId: string) {
+  const supabase = getSupabaseBrowserClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+  const { error } = await supabase.rpc("adci_admin_delete_announcement", {
+    target_announcement_id: announcementId
+  });
+  if (error) throw error;
+}
+
 export async function listAdciPeople() {
   const supabase = getSupabaseBrowserClient();
   if (!supabase) return [];
