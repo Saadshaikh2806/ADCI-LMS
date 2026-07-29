@@ -19,6 +19,7 @@ import {
   GraduationCap,
   History,
   LayoutDashboard,
+  LoaderCircle,
   Menu,
   MessageSquareText,
   MoreHorizontal,
@@ -44,12 +45,14 @@ import AdminPeopleManager from "../components/AdminPeopleManager";
 import StudentQuizRunner from "../components/StudentQuizRunner";
 import LiveClassSchedule from "../components/LiveClassSchedule";
 import StudentCourses from "../components/StudentCourses";
+import StudentCoursePlayer from "../components/StudentCoursePlayer";
 import { hasAcademicAdminRole, loadMyAdciMemberships } from "../lib/supabase/admin";
+import { getLearnerDashboard, type LearnerDashboard } from "../lib/supabase/learning";
 
 const navItems = [
   { label: "Overview", icon: LayoutDashboard },
   { label: "My courses", icon: BookOpen },
-  { label: "Live classes", icon: Video, badge: "2" },
+  { label: "Live classes", icon: Video },
   { label: "Assessments", icon: ClipboardCheck },
   { label: "Study plan", icon: CalendarDays },
   { label: "Community", icon: Users }
@@ -130,6 +133,26 @@ function LearningHub() {
   const [flagged, setFlagged] = useState<number[]>([]);
   const [secondsLeft, setSecondsLeft] = useState(40 * 60);
   const [hydrated, setHydrated] = useState(false);
+  const [dashboard, setDashboard] = useState<LearnerDashboard | null>(null);
+  const [dashboardLoading, setDashboardLoading] = useState(true);
+  const [dashboardError, setDashboardError] = useState("");
+  const [openLearning, setOpenLearning] = useState<{ courseId: string; lessonId?: string } | null>(null);
+
+  async function refreshLearnerDashboard() {
+    setDashboardLoading(true);
+    setDashboardError("");
+    try {
+      setDashboard(await getLearnerDashboard());
+    } catch (loadError) {
+      setDashboardError(loadError instanceof Error ? loadError.message : "Unable to load learning activity");
+    } finally {
+      setDashboardLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    if (authSession) void refreshLearnerDashboard();
+  }, [authSession]);
 
   useEffect(() => {
     const saved = window.localStorage.getItem("adci-learning-state");
@@ -187,6 +210,15 @@ function LearningHub() {
   const correctCount = Object.entries(answers).filter(([index, value]) => examQuestions[Number(index)].answer === value).length;
   const incorrectCount = Object.entries(answers).filter(([index, value]) => examQuestions[Number(index)].answer !== value).length;
   const finalScore = Math.max(0, correctCount * 2 - incorrectCount * 0.66);
+  const continueLesson = dashboard?.continue_lesson;
+  const weeklyGoalPercent = Math.min(100, Math.round((dashboard?.weekly_learning_seconds ?? 0) / (8 * 60 * 60) * 100));
+  const weeklyHours = (dashboard?.weekly_learning_seconds ?? 0) / 3600;
+  const totalHours = (dashboard?.learning_seconds ?? 0) / 3600;
+  const currentDate = new Date().toLocaleDateString("en-IN", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long"
+  }).toUpperCase();
 
   return (
     <main className="app-shell">
@@ -198,11 +230,14 @@ function LearningHub() {
 
         <nav aria-label="Main navigation">
           <p className="nav-label">LEARN</p>
-          {navItems.map(({ label, icon: Icon, badge }) => (
-            <button key={label} className={`nav-item ${active === label ? "active" : ""}`} onClick={() => { if (label === "Assessments") setExamOpen(true); else setActive(label); setMenuOpen(false); }}>
+          {navItems.map(({ label, icon: Icon }) => {
+            const badge = label === "Live classes" && (dashboard?.upcoming_live_count ?? 0) > 0
+              ? String(dashboard?.upcoming_live_count)
+              : "";
+            return <button key={label} className={`nav-item ${active === label ? "active" : ""}`} onClick={() => { if (label === "Assessments") setExamOpen(true); else setActive(label); setMenuOpen(false); }}>
               <Icon size={19} strokeWidth={1.8} /><span>{label}</span>{badge && <em>{badge}</em>}
-            </button>
-          ))}
+            </button>;
+          })}
         </nav>
 
         <div className="sidebar-bottom">
@@ -241,24 +276,22 @@ function LearningHub() {
         <div className="content">
           <div className="welcome">
             <div>
-              <p className="eyebrow">SUNDAY, 26 JULY</p>
+              <p className="eyebrow">{currentDate}</p>
               <h1>Good morning, {accountName.split(" ")[0]}.</h1>
-              <p>You’re building momentum. Let’s make today count.</p>
+              <p>{dashboardError ? "Your dashboard needs the latest Supabase migration." : "Your live learning activity is ready."}</p>
             </div>
-            <div className="streak"><Flame size={24} fill="currentColor" /><div><strong>12 day streak</strong><span>Personal best: 18 days</span></div></div>
+            <div className="streak"><Flame size={24} fill="currentColor" /><div><strong>{dashboard?.streak_days ?? 0} day streak</strong><span>Based on completed learning activity</span></div></div>
           </div>
 
           <section className="hero-card">
             <div className="hero-copy">
-              <div className="status-row"><span className="pill"><Play size={12} fill="currentColor" /> CONTINUE LEARNING</span><span>12 min left</span></div>
-              <p className="hero-kicker">INDIAN POLITY · MODULE 06</p>
-              <h2>Understanding the Basic Structure Doctrine</h2>
-              <p>Explore how landmark judgements shaped the constitutional balance between Parliament and the judiciary.</p>
+              <div className="status-row"><span className="pill"><Play size={12} fill="currentColor" /> {continueLesson ? "CONTINUE LEARNING" : "MY LEARNING"}</span><span>{continueLesson ? `${Math.max(1, Math.ceil((continueLesson.duration_seconds - continueLesson.position_seconds) / 60))} min left` : `${dashboard?.courses.length ?? 0} courses`}</span></div>
+              <p className="hero-kicker">{continueLesson ? `${continueLesson.course_title} · ${continueLesson.module_title}` : "ANEES DEFENCE CAREER INSTITUTE"}</p>
+              <h2>{continueLesson?.lesson_title ?? (dashboardLoading ? "Loading your next lesson…" : "Your learning journey starts here")}</h2>
+              <p>{continueLesson ? `Resume your ${continueLesson.lesson_type} lesson from ${continueLesson.progress_percent}% progress.` : "Open My courses to begin a published course assigned by your administrator."}</p>
               <div className="hero-actions">
-                <button className="primary" onClick={() => setLessonOpen(true)}><Play size={16} fill="currentColor" /> Resume lesson</button>
-                <button className={`save ${completed ? "saved" : ""}`} onClick={() => { setCompleted(!completed); notify(completed ? "Removed from completed" : "Marked as complete"); }}>
-                  <Check size={17} /> {completed ? "Completed" : "Mark complete"}
-                </button>
+                <button className="primary" disabled={!continueLesson} onClick={() => continueLesson && setOpenLearning({ courseId: continueLesson.course_id, lessonId: continueLesson.lesson_id })}>{dashboardLoading ? <LoaderCircle size={16} className="spin" /> : <Play size={16} fill="currentColor" />} {dashboardLoading ? "Loading…" : continueLesson ? "Resume lesson" : "No lesson available"}</button>
+                <button className="save" onClick={() => setActive("My courses")}><BookOpen size={17} /> View my courses</button>
               </div>
             </div>
             <div className="lesson-art" aria-hidden="true">
@@ -269,24 +302,28 @@ function LearningHub() {
           </section>
 
           <section className="metrics" aria-label="Learning progress">
-            <article><div className="metric-icon amber"><Target size={20} /></div><div><span>Weekly goal</span><strong>6h 20m <small>/ 8h</small></strong></div><div className="mini-progress"><i style={{ width: "79%" }} /></div><em>79%</em></article>
-            <article><div className="metric-icon green"><Trophy size={20} /></div><div><span>Practice accuracy</span><strong>78%</strong></div><div className="trend">↑ 6% this week</div></article>
-            <article><div className="metric-icon blue"><ClipboardCheck size={20} /></div><div><span>Tests completed</span><strong>14</strong></div><div className="trend">2 due this week</div></article>
-            <article><div className="metric-icon purple"><Clock3 size={20} /></div><div><span>Learning time</span><strong>42h</strong></div><div className="trend">Top 12% of cohort</div></article>
+            <article><div className="metric-icon amber"><Target size={20} /></div><div><span>Weekly goal</span><strong>{weeklyHours < 1 ? `${Math.round(weeklyHours * 60)}m` : `${weeklyHours.toFixed(1)}h`} <small>/ 8h</small></strong></div><div className="mini-progress"><i style={{ width: `${weeklyGoalPercent}%` }} /></div><em>{weeklyGoalPercent}%</em></article>
+            <article><div className="metric-icon green"><Trophy size={20} /></div><div><span>Practice accuracy</span><strong>{dashboard?.accuracy_percent ?? 0}%</strong></div><div className="trend">{dashboard?.correct_answers ?? 0} of {dashboard?.answered_questions ?? 0} answers correct</div></article>
+            <article><div className="metric-icon blue"><ClipboardCheck size={20} /></div><div><span>Tests completed</span><strong>{dashboard?.tests_completed ?? 0}</strong></div><div className="trend">{dashboard?.assessments_due ?? 0} available to attempt</div></article>
+            <article><div className="metric-icon purple"><Clock3 size={20} /></div><div><span>Learning time</span><strong>{totalHours < 1 ? `${Math.round(totalHours * 60)}m` : `${totalHours.toFixed(1)}h`}</strong></div><div className="trend">Saved across all lessons</div></article>
           </section>
 
           <div className="main-grid">
             <section>
               <div className="section-title"><div><h3>Continue your courses</h3><p>Pick up where you left off.</p></div><button onClick={() => setActive("My courses")}>View all <ArrowRight size={15} /></button></div>
               <div className="course-list">
-                {courses.map((course) => (
-                  <article className="course-card" key={course.title}>
-                    <div className={`course-cover ${course.accent}`}><span>{course.code}</span><BookOpen size={25} /></div>
-                    <div className="course-info"><h4>{course.title}</h4><p>{course.meta}</p><div className="progress-line"><i style={{ width: `${course.progress}%` }} /></div></div>
-                    <strong className="percent">{course.progress}%</strong>
-                    <button className="circle-button" aria-label={`Open ${course.title}`} onClick={() => course.code === "POLITY" ? setLessonOpen(true) : notify(`${course.title} workspace is next in the build queue`)}><ChevronRight size={19} /></button>
-                  </article>
-                ))}
+                {dashboardLoading ? <div className="dashboard-data-state"><LoaderCircle className="spin" /> Loading enrolled courses…</div>
+                : dashboardError ? <div className="dashboard-data-state error"><ShieldCheck /> <span>{dashboardError}</span><button onClick={() => void refreshLearnerDashboard()}>Retry</button></div>
+                : (dashboard?.courses.length ?? 0) === 0 ? <div className="dashboard-data-state"><BookOpen /> No published courses are assigned yet.</div>
+                : dashboard?.courses.slice(0, 3).map((course, index) => {
+                  const progress = course.lesson_count ? Math.round(course.completed_count / course.lesson_count * 100) : 0;
+                  return <article className="course-card" key={course.id}>
+                    <div className={`course-cover ${["saffron", "blue", "green"][index % 3]}`}><span>{course.slug.slice(0, 8).toUpperCase()}</span><BookOpen size={25} /></div>
+                    <div className="course-info"><h4>{course.title}</h4><p>{course.completed_count} of {course.lesson_count} lessons</p><div className="progress-line"><i style={{ width: `${progress}%` }} /></div></div>
+                    <strong className="percent">{progress}%</strong>
+                    <button className="circle-button" aria-label={`Open ${course.title}`} onClick={() => setOpenLearning({ courseId: course.id, lessonId: course.next_lesson?.id })}><ChevronRight size={19} /></button>
+                  </article>;
+                })}
               </div>
             </section>
 
@@ -313,7 +350,16 @@ function LearningHub() {
           <button className="primary" onClick={() => setActive("Overview")}><ArrowRight size={17} /> Back to dashboard</button>
         </div>
       )}
-      {active === "My courses" && !lessonOpen && <StudentCourses close={() => setActive("Overview")} notify={notify} />}
+      {active === "My courses" && !lessonOpen && <StudentCourses close={() => { setActive("Overview"); void refreshLearnerDashboard(); }} notify={notify} />}
+      {openLearning && <StudentCoursePlayer
+        courseId={openLearning.courseId}
+        initialLessonId={openLearning.lessonId}
+        notify={notify}
+        close={() => {
+          setOpenLearning(null);
+          void refreshLearnerDashboard();
+        }}
+      />}
 
       {lessonOpen && (
         <div className="learning-room">
@@ -360,7 +406,7 @@ function LearningHub() {
         </div>
       )}
 
-      {examOpen && <StudentQuizRunner close={() => setExamOpen(false)} />}
+      {examOpen && <StudentQuizRunner close={() => { setExamOpen(false); void refreshLearnerDashboard(); }} />}
       {false && examOpen && (
         <div className="exam-room">
           {!examStarted ? (

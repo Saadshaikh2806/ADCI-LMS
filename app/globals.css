@@ -445,6 +445,11 @@ h1 { margin-bottom: 6px; font: 700 clamp(32.5px, 3vw, 44.2px)/1.15 var(--font-di
 .curriculum-outline > section > header svg { grid-column:2; grid-row:1/3; align-self:center; color:#89918e; }
 .complete-large:disabled { cursor:default; }
 .complete-large svg { width:18px; height:18px; }
+.hero-actions .primary:disabled { opacity:.62; cursor:not-allowed; }
+.dashboard-data-state { min-height:100px; padding:22px; display:flex; align-items:center; justify-content:center; gap:9px; border:1px dashed #d9d4c9; border-radius:12px; color:var(--muted); background:#fbfaf6; font-size:13px; }
+.dashboard-data-state > svg { color:#a66b1e; }
+.dashboard-data-state.error { color:#915344; border-color:#dfb9ad; background:#fff7f4; }
+.dashboard-data-state.error button { height:31px; padding:0 10px; border:1px solid #c9998c; border-radius:7px; color:#7e4538; background:white; font-size:11.7px; font-weight:800; cursor:pointer; }
 
 @media (max-width: 760px) {
   .lesson-content-frame,.lesson-content-state,.audio-player-card { min-height:300px; }

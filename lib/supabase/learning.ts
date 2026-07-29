@@ -46,6 +46,51 @@ export type LearningCourse = {
   }>;
 };
 
+export type DashboardLesson = {
+  id: string;
+  title: string;
+  lesson_type: LearningLesson["lesson_type"];
+  module_title: string;
+  duration_seconds: number;
+  progress_percent: number;
+  position_seconds: number;
+};
+
+export type DashboardCourse = {
+  id: string;
+  title: string;
+  slug: string;
+  description: string;
+  lesson_count: number;
+  completed_count: number;
+  next_lesson: DashboardLesson | null;
+};
+
+export type LearnerDashboard = {
+  courses: DashboardCourse[];
+  continue_lesson: {
+    course_id: string;
+    course_title: string;
+    course_slug: string;
+    lesson_id: string;
+    lesson_title: string;
+    lesson_type: LearningLesson["lesson_type"];
+    module_title: string;
+    duration_seconds: number;
+    progress_percent: number;
+    position_seconds: number;
+  } | null;
+  upcoming_live_count: number;
+  tests_completed: number;
+  assessments_due: number;
+  correct_answers: number;
+  answered_questions: number;
+  accuracy_percent: number;
+  learning_seconds: number;
+  weekly_learning_seconds: number;
+  streak_days: number;
+};
+
 export type LessonProgressInput = {
   lessonId: string;
   progressPercent: number;
@@ -76,6 +121,15 @@ export async function getLearningCourse(courseId: string) {
   });
   if (error) throw error;
   return data as LearningCourse;
+}
+
+export async function getLearnerDashboard() {
+  const supabase = getSupabaseBrowserClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+
+  const { data, error } = await supabase.rpc("adci_get_learner_dashboard");
+  if (error) throw error;
+  return data as LearnerDashboard;
 }
 
 export async function getProtectedLessonUrl(asset: LearningAsset) {

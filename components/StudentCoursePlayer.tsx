@@ -50,11 +50,13 @@ function durationLabel(seconds: number) {
 export default function StudentCoursePlayer({
   courseId,
   close,
-  notify
+  notify,
+  initialLessonId
 }: {
   courseId: string;
   close: () => void;
   notify: (message: string) => void;
+  initialLessonId?: string;
 }) {
   const [course, setCourse] = useState<LearningCourse | null>(null);
   const [selectedLessonId, setSelectedLessonId] = useState("");
@@ -74,7 +76,11 @@ export default function StudentCoursePlayer({
         if (!active) return;
         setCourse(loadedCourse);
         const loadedLessons = loadedCourse.modules.flatMap((module) => module.lessons);
-        setSelectedLessonId((loadedLessons.find((lesson) => !lesson.completed) ?? loadedLessons[0])?.id ?? "");
+        setSelectedLessonId(
+          loadedLessons.find((lesson) => lesson.id === initialLessonId)?.id
+          ?? (loadedLessons.find((lesson) => !lesson.completed) ?? loadedLessons[0])?.id
+          ?? ""
+        );
       })
       .catch((loadError) => {
         if (active) setError(loadError instanceof Error ? loadError.message : "Unable to open course");
@@ -83,7 +89,7 @@ export default function StudentCoursePlayer({
         if (active) setLoading(false);
       });
     return () => { active = false; };
-  }, [courseId]);
+  }, [courseId, initialLessonId]);
 
   const lessons = useMemo(
     () => course?.modules.flatMap((module) => module.lessons) ?? [],
