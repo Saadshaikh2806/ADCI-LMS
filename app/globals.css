@@ -464,3 +464,111 @@ h1 { margin-bottom: 6px; font: 700 clamp(32.5px, 3vw, 44.2px)/1.15 var(--font-di
   .live-lesson-time { min-width:0; width:100%; }
   .lesson-heading .complete-large { margin:17px 0 0; }
 }
+
+/* Learner study plan */
+.study-plan-room { position:fixed; inset:76px 0 0 244px; z-index:18; overflow:auto; color:var(--ink); background:#f5f3ed; }
+.study-plan-header { min-height:130px; padding:27px 38px; position:relative; display:grid; grid-template-columns:1fr auto; align-items:center; gap:25px; border-bottom:1px solid #ddd9d0; background:#fffefa; }
+.study-plan-header h1 { margin:4px 0; font:700 39px var(--font-display); }
+.study-plan-header > div:first-child > span { color:var(--muted); font-size:13px; }
+.study-plan-summary { margin-right:55px; display:flex; overflow:hidden; border:1px solid #ded9cf; border-radius:11px; background:#fbfaf6; }
+.study-plan-summary > div { min-width:105px; padding:13px 18px; text-align:center; }
+.study-plan-summary > div + div { border-left:1px solid #ded9cf; }
+.study-plan-summary strong,.study-plan-summary span { display:block; }
+.study-plan-summary strong { font:700 23.4px var(--font-display); }
+.study-plan-summary span { margin-top:3px; color:var(--muted); font-size:10.4px; }
+.study-plan-layout { min-height:calc(100vh - 206px); display:grid; grid-template-columns:minmax(540px,1.15fr) minmax(410px,.85fr); }
+.study-calendar { padding:30px 34px 36px; position:relative; border-right:1px solid #ddd9d0; }
+.calendar-toolbar { margin-bottom:22px; display:flex; align-items:center; justify-content:space-between; }
+.calendar-toolbar > div { display:flex; align-items:center; gap:10px; }
+.calendar-toolbar h2 { font:700 27.3px var(--font-display); }
+.calendar-toolbar button { height:34px; padding:0 10px; display:grid; place-items:center; border:1px solid #dcd7cd; border-radius:7px; color:#59615f; background:#fffefa; font-size:10.4px; font-weight:800; cursor:pointer; }
+.calendar-toolbar > div:last-child button { width:36px; padding:0; }
+.calendar-weekdays,.calendar-grid { display:grid; grid-template-columns:repeat(7,1fr); }
+.calendar-weekdays span { padding:0 8px 10px; color:#8a918e; font-size:9.1px; font-weight:900; letter-spacing:.09em; text-align:center; }
+.calendar-grid { overflow:hidden; border:1px solid #ddd9d0; border-radius:12px; background:#fffefa; }
+.calendar-grid > button { min-height:91px; padding:9px; position:relative; border:0; border-right:1px solid #e7e3db; border-bottom:1px solid #e7e3db; color:#414b49; background:#fffefa; text-align:left; cursor:pointer; }
+.calendar-grid > button:nth-child(7n) { border-right:0; }
+.calendar-grid > button:nth-last-child(-n+7) { border-bottom:0; }
+.calendar-grid > button:hover { background:#fbf5e9; }
+.calendar-grid > button.outside { color:#b9bdbb; background:#faf9f5; }
+.calendar-grid > button.selected { z-index:1; outline:2px solid #e0a149; outline-offset:-2px; background:#fff7e9; }
+.calendar-grid > button > span { width:27px; height:27px; display:grid; place-items:center; border-radius:50%; font-size:11.7px; font-weight:800; }
+.calendar-grid > button.today > span { color:#252f30; background:#ecaa4c; }
+.calendar-grid > button > div { margin-top:14px; display:flex; gap:4px; }
+.calendar-grid > button i,.calendar-legend i { width:7px; height:7px; display:block; border-radius:50%; }
+.calendar-grid i.personal,.calendar-legend i.personal { background:#4f8f77; }
+.calendar-grid i.live,.calendar-legend i.live { background:#d98245; }
+.calendar-grid i.assessment,.calendar-legend i.assessment { background:#6c78ad; }
+.calendar-grid > button small { position:absolute; right:7px; bottom:7px; color:#8a918e; font-size:9.1px; }
+.calendar-loading { position:absolute; inset:105px 34px 65px; z-index:2; display:flex; align-items:center; justify-content:center; gap:8px; color:#66706d; background:rgba(250,249,245,.66); backdrop-filter:blur(2px); font-size:11.7px; }
+.calendar-legend { margin-top:15px; display:flex; align-items:center; gap:18px; color:#747d7a; font-size:10.4px; }
+.calendar-legend span { display:flex; align-items:center; gap:6px; }
+.study-plan-error { margin-bottom:15px; display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.study-plan-error button { height:29px; padding:0 8px; display:flex; align-items:center; gap:5px; border:1px solid #c89889; border-radius:6px; color:#8f4e3c; background:white; font-size:9.1px; font-weight:800; cursor:pointer; }
+.study-plan-error button svg { width:13px; }
+.day-agenda { padding:30px; background:#fffefa; }
+.agenda-heading { margin-bottom:20px; display:flex; align-items:center; justify-content:space-between; gap:16px; }
+.agenda-heading span { color:#a66a1c; font-size:9.1px; font-weight:900; letter-spacing:.11em; }
+.agenda-heading h2 { margin-top:3px; font:700 27.3px var(--font-display); }
+.agenda-heading > button { height:37px; padding:0 12px; display:flex; align-items:center; gap:6px; border:1px solid #dda148; border-radius:8px; color:#49351e; background:#efae4e; font-size:10.4px; font-weight:800; cursor:pointer; }
+.agenda-heading > button svg { width:15px; }
+.study-task-form { margin-bottom:18px; padding:15px; border:1px solid #dfd9ce; border-radius:11px; background:#faf8f3; }
+.study-task-form label { display:block; }
+.study-task-form label > span { margin-bottom:5px; display:block; color:#69726f; font-size:9.1px; font-weight:800; }
+.study-task-form input,.study-task-form textarea { width:100%; border:1px solid #dcd7cd; border-radius:7px; outline:0; color:#4e5856; background:#fffefa; font-size:11.7px; }
+.study-task-form input { height:36px; padding:0 9px; }
+.study-task-form textarea { height:66px; margin-bottom:9px; padding:9px; resize:vertical; }
+.study-task-form > label:first-child { margin-bottom:9px; }
+.study-task-form > div { display:grid; grid-template-columns:1fr 1fr; gap:9px; }
+.study-task-actions { margin-top:12px; display:flex!important; justify-content:flex-end; }
+.study-task-actions button { height:35px; padding:0 10px; display:flex; align-items:center; justify-content:center; gap:5px; border:1px solid #d8d3c9; border-radius:7px; color:#626b68; background:#fffefa; font-size:9.1px; font-weight:800; cursor:pointer; }
+.study-task-actions .primary { color:#49351e; border-color:#dda148; background:#efae4e; }
+.study-task-actions svg { width:14px; }
+.agenda-events { display:grid; gap:9px; }
+.agenda-events article { min-height:86px; padding:11px; display:grid; grid-template-columns:60px 34px minmax(0,1fr) auto; align-items:center; gap:9px; border:1px solid #e0dcd3; border-left:4px solid #4f8f77; border-radius:10px; background:#fbfaf6; }
+.agenda-events article.live { border-left-color:#d98245; }
+.agenda-events article.assessment { border-left-color:#6c78ad; }
+.agenda-events article.completed { opacity:.67; }
+.agenda-events article.completed h3 { text-decoration:line-through; }
+.agenda-time strong,.agenda-time span { display:block; }
+.agenda-time strong { font-size:11.7px; }
+.agenda-time span { margin-top:4px; color:var(--muted); font-size:9.1px; }
+.agenda-event-icon { width:32px; height:32px; display:grid; place-items:center; border-radius:8px; color:#3f7d67; background:#e2eee9; }
+.agenda-events article.live .agenda-event-icon { color:#b3632c; background:#f5e5d9; }
+.agenda-events article.assessment .agenda-event-icon { color:#596795; background:#e7e9f1; }
+.agenda-event-icon svg { width:16px; }
+.agenda-copy > span { color:#8c693b; font-size:7.8px; font-weight:900; letter-spacing:.09em; }
+.agenda-copy h3 { margin:4px 0; font-size:11.7px; }
+.agenda-copy p { color:var(--muted); font-size:9.1px; line-height:1.35; }
+.agenda-actions { display:flex; gap:5px; }
+.agenda-actions > button { width:31px; height:31px; display:grid; place-items:center; border:1px solid #c8d8d1; border-radius:7px; color:#3d7964; background:#edf5f1; cursor:pointer; }
+.agenda-actions > button.delete { color:#a25a46; border-color:#e1c6bd; background:#fff4f0; }
+.agenda-actions > button svg { width:14px; }
+.agenda-actions > button.event-action { width:auto; padding:0 8px; display:flex; gap:5px; color:#755122; border-color:#ddc69f; background:#fff6e6; font-size:9.1px; font-weight:800; }
+.agenda-actions > button:disabled { opacity:.5; cursor:not-allowed; }
+.agenda-empty { min-height:260px; display:flex; flex-direction:column; align-items:center; justify-content:center; color:var(--muted); text-align:center; }
+.agenda-empty > svg { width:42px; height:42px; margin-bottom:12px; color:#bb7d2d; }
+.agenda-empty h3 { color:var(--ink); font:700 19.5px var(--font-display); }
+.agenda-empty p { margin-top:5px; font-size:10.4px; }
+
+@media (max-width: 1100px) {
+  .study-plan-layout { grid-template-columns:1fr; }
+  .study-calendar { border-right:0; border-bottom:1px solid #ddd9d0; }
+}
+
+@media (max-width: 760px) {
+  .study-plan-room { inset:64px 0 64px; }
+  .study-plan-header { min-height:115px; padding:20px 55px 20px 18px; grid-template-columns:1fr; }
+  .study-plan-header h1 { font-size:31.2px; }
+  .study-plan-summary { display:none; }
+  .study-calendar { padding:22px 12px 28px; }
+  .calendar-grid > button { min-height:65px; padding:5px; }
+  .calendar-grid > button > div { margin-top:6px; }
+  .calendar-grid > button > span { width:23px; height:23px; font-size:10.4px; }
+  .calendar-grid > button small { display:none; }
+  .calendar-loading { inset:88px 12px 55px; }
+  .calendar-legend { gap:10px; flex-wrap:wrap; }
+  .day-agenda { padding:23px 13px 35px; }
+  .agenda-events article { grid-template-columns:51px 30px minmax(0,1fr); }
+  .agenda-actions { grid-column:3; }
+}

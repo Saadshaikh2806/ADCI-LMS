@@ -46,6 +46,7 @@ import StudentQuizRunner from "../components/StudentQuizRunner";
 import LiveClassSchedule from "../components/LiveClassSchedule";
 import StudentCourses from "../components/StudentCourses";
 import StudentCoursePlayer from "../components/StudentCoursePlayer";
+import StudyPlan from "../components/StudyPlan";
 import { hasAcademicAdminRole, loadMyAdciMemberships } from "../lib/supabase/admin";
 import { getLearnerDashboard, type LearnerDashboard } from "../lib/supabase/learning";
 
@@ -122,6 +123,7 @@ function LearningHub() {
   const [completed, setCompleted] = useState(false);
   const [lessonOpen, setLessonOpen] = useState(false);
   const [examOpen, setExamOpen] = useState(false);
+  const [activeAssessmentId, setActiveAssessmentId] = useState("");
   const [adminOpen, setAdminOpen] = useState(false);
   const [adminSection, setAdminSection] = useState("Dashboard");
   const [profileOpen, setProfileOpen] = useState(false);
@@ -234,7 +236,7 @@ function LearningHub() {
             const badge = label === "Live classes" && (dashboard?.upcoming_live_count ?? 0) > 0
               ? String(dashboard?.upcoming_live_count)
               : "";
-            return <button key={label} className={`nav-item ${active === label ? "active" : ""}`} onClick={() => { if (label === "Assessments") setExamOpen(true); else setActive(label); setMenuOpen(false); }}>
+            return <button key={label} className={`nav-item ${active === label ? "active" : ""}`} onClick={() => { if (label === "Assessments") { setActiveAssessmentId(""); setExamOpen(true); } else setActive(label); setMenuOpen(false); }}>
               <Icon size={19} strokeWidth={1.8} /><span>{label}</span>{badge && <em>{badge}</em>}
             </button>;
           })}
@@ -336,11 +338,11 @@ function LearningHub() {
         </div>
 
         <nav className="mobile-nav" aria-label="Mobile navigation">
-          {navItems.slice(0, 4).map(({ label, icon: Icon }) => <button key={label} className={active === label ? "active" : ""} onClick={() => label === "Assessments" ? setExamOpen(true) : setActive(label)}><Icon size={20} /><span>{label === "Live classes" ? "Live" : label}</span></button>)}
+          {navItems.slice(0, 4).map(({ label, icon: Icon }) => <button key={label} className={active === label ? "active" : ""} onClick={() => label === "Assessments" ? (setActiveAssessmentId(""), setExamOpen(true)) : setActive(label)}><Icon size={20} /><span>{label === "Live classes" ? "Live" : label}</span></button>)}
         </nav>
       </section>
 
-      {active !== "Overview" && active !== "My courses" && !lessonOpen && (
+      {active !== "Overview" && active !== "My courses" && active !== "Study plan" && !lessonOpen && (
         <div className="route-overlay">
           <button className="overlay-close" onClick={() => setActive("Overview")}><X /></button>
           <div className="overlay-icon">{(() => { const item = navItems.find((n) => n.label === active); const Icon = item?.icon ?? BookOpen; return <Icon size={30} />; })()}</div>
@@ -351,6 +353,7 @@ function LearningHub() {
         </div>
       )}
       {active === "My courses" && !lessonOpen && <StudentCourses close={() => { setActive("Overview"); void refreshLearnerDashboard(); }} notify={notify} />}
+      {active === "Study plan" && !lessonOpen && <StudyPlan close={() => setActive("Overview")} notify={notify} openAssessments={(assessmentId) => { setActiveAssessmentId(assessmentId); setExamOpen(true); }} />}
       {openLearning && <StudentCoursePlayer
         courseId={openLearning.courseId}
         initialLessonId={openLearning.lessonId}
@@ -406,7 +409,7 @@ function LearningHub() {
         </div>
       )}
 
-      {examOpen && <StudentQuizRunner close={() => { setExamOpen(false); void refreshLearnerDashboard(); }} />}
+      {examOpen && <StudentQuizRunner assessmentId={activeAssessmentId || undefined} close={() => { setExamOpen(false); setActiveAssessmentId(""); void refreshLearnerDashboard(); }} />}
       {false && examOpen && (
         <div className="exam-room">
           {!examStarted ? (
