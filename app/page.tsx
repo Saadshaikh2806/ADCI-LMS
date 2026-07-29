@@ -43,6 +43,7 @@ import AdminCourseManager from "../components/AdminCourseManager";
 import AdminPeopleManager from "../components/AdminPeopleManager";
 import StudentQuizRunner from "../components/StudentQuizRunner";
 import LiveClassSchedule from "../components/LiveClassSchedule";
+import StudentCourses from "../components/StudentCourses";
 import { hasAcademicAdminRole, loadMyAdciMemberships } from "../lib/supabase/admin";
 
 const navItems = [
@@ -302,7 +303,7 @@ function LearningHub() {
         </nav>
       </section>
 
-      {active !== "Overview" && !lessonOpen && (
+      {active !== "Overview" && active !== "My courses" && !lessonOpen && (
         <div className="route-overlay">
           <button className="overlay-close" onClick={() => setActive("Overview")}><X /></button>
           <div className="overlay-icon">{(() => { const item = navItems.find((n) => n.label === active); const Icon = item?.icon ?? BookOpen; return <Icon size={30} />; })()}</div>
@@ -312,6 +313,7 @@ function LearningHub() {
           <button className="primary" onClick={() => setActive("Overview")}><ArrowRight size={17} /> Back to dashboard</button>
         </div>
       )}
+      {active === "My courses" && !lessonOpen && <StudentCourses close={() => setActive("Overview")} notify={notify} />}
 
       {lessonOpen && (
         <div className="learning-room">

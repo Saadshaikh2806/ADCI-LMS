@@ -1,12 +1,13 @@
 "use client";
 
-import { Check, LoaderCircle, RefreshCw, Search, ShieldCheck, UserRound, UsersRound } from "lucide-react";
+import { BookOpen, Check, LoaderCircle, RefreshCw, Search, ShieldCheck, UserRound, UsersRound } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import {
   listAdciPeople,
   setAdciUserRole,
   type AdciPerson
 } from "../lib/supabase/admin";
+import AdminEnrolmentManager from "./AdminEnrolmentManager";
 
 const roles = [
   ["student", "Student"],
@@ -26,6 +27,7 @@ export default function AdminPeopleManager({ notify }: { notify: (message: strin
   const [savingId, setSavingId] = useState("");
   const [query, setQuery] = useState("");
   const [error, setError] = useState("");
+  const [enrolmentPerson, setEnrolmentPerson] = useState<AdciPerson | null>(null);
 
   async function refresh() {
     setLoading(true);
@@ -86,7 +88,7 @@ export default function AdminPeopleManager({ notify }: { notify: (message: strin
       {error && <div className="course-error people-error">{error}</div>}
 
       <section className="people-table">
-        <div className="people-head"><span>PERSON</span><span>ROLE</span><span>ACCESS</span><span>JOINED</span></div>
+        <div className="people-head"><span>PERSON</span><span>ROLE</span><span>ACCESS</span><span>JOINED</span><span>COURSES</span></div>
         {loading ? (
           <div className="cms-loading"><LoaderCircle className="spin" /><span>Loading ADCI people…</span></div>
         ) : filteredPeople.length === 0 ? (
@@ -109,12 +111,14 @@ export default function AdminPeopleManager({ notify }: { notify: (message: strin
                 {busy ? "Saving" : person.active ? "Active" : "Inactive"}
               </button>
               <time>{new Date(person.created_at).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</time>
+              <button className="manage-enrolment" onClick={() => setEnrolmentPerson(person)}><BookOpen size={14} /> Manage</button>
             </article>
           );
         })}
       </section>
 
       <div className="workflow-note"><ShieldCheck size={20} /><div><strong>Super-admin protected</strong><p>Role changes are validated inside PostgreSQL, recorded in the audit log, and cannot remove the final active super administrator.</p></div></div>
+      {enrolmentPerson && <AdminEnrolmentManager person={enrolmentPerson} close={() => setEnrolmentPerson(null)} notify={notify} />}
     </div>
   );
 }

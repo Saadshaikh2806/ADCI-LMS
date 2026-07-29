@@ -466,3 +466,37 @@ export async function saveAdciLiveClass(lessonId: string, liveClass: AdciLiveCla
   });
   if (error) throw error;
 }
+
+export type AdciCourseEnrolment = {
+  course_id: string;
+  title: string;
+  status: string;
+  enrolment_status: "pending" | "active" | "frozen" | "completed" | "cancelled" | null;
+  access_expires_at: string | null;
+  enrolled_at: string | null;
+};
+
+export async function getAdciUserEnrolments(userId: string) {
+  const supabase = getSupabaseBrowserClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+  const { data, error } = await supabase.rpc("adci_admin_get_user_enrolments", { target_user_id: userId });
+  if (error) throw error;
+  return (data ?? []) as AdciCourseEnrolment[];
+}
+
+export async function setAdciCourseEnrolment(
+  userId: string,
+  courseId: string,
+  status: NonNullable<AdciCourseEnrolment["enrolment_status"]>,
+  expiresAt: string | null
+) {
+  const supabase = getSupabaseBrowserClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+  const { error } = await supabase.rpc("adci_admin_set_course_enrolment", {
+    target_user_id: userId,
+    target_course_id: courseId,
+    target_status: status,
+    target_access_expires_at: expiresAt
+  });
+  if (error) throw error;
+}
