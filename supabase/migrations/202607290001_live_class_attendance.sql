@@ -10,10 +10,12 @@ create table if not exists public.adci_live_attendance (
 
 alter table public.adci_live_attendance enable row level security;
 
+drop policy if exists "learners read own live attendance" on public.adci_live_attendance;
 create policy "learners read own live attendance"
 on public.adci_live_attendance for select
 using (learner_id = auth.uid());
 
+drop policy if exists "academic staff read live attendance" on public.adci_live_attendance;
 create policy "academic staff read live attendance"
 on public.adci_live_attendance for select
 using (
@@ -60,7 +62,11 @@ returns text language plpgsql security definer set search_path = ''
 as $$
 declare class_record public.adci_live_classes; target_course_id uuid;
 begin
-  select lc, m.course_id into class_record, target_course_id
+  select lc.* into class_record
+  from public.adci_live_classes lc
+  where lc.lesson_id = target_lesson_id;
+
+  select m.course_id into target_course_id
   from public.adci_live_classes lc
   join public.adci_lessons l on l.id = lc.lesson_id
   join public.adci_modules m on m.id = l.module_id
