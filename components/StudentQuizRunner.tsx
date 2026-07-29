@@ -15,7 +15,15 @@ type Quiz = {
 };
 type Result = { score: number; max_score: number; correct: number; incorrect: number; unanswered: number; passed: boolean };
 
-export default function StudentQuizRunner({ close }: { close: () => void }) {
+export default function StudentQuizRunner({
+  close,
+  assessmentId,
+  onCompleted
+}: {
+  close: () => void;
+  assessmentId?: string;
+  onCompleted?: () => void;
+}) {
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [loading, setLoading] = useState(true);
   const [attemptId, setAttemptId] = useState("");
@@ -31,10 +39,13 @@ export default function StudentQuizRunner({ close }: { close: () => void }) {
     if (!supabase) return;
     supabase.rpc("adci_get_available_quizzes").then(({ data, error: loadError }) => {
       if (loadError) setError(loadError.message);
-      else setQuiz((data as Quiz[])?.[0] ?? null);
+      else {
+        const quizzes = (data as Quiz[]) ?? [];
+        setQuiz((assessmentId ? quizzes.find((item) => item.id === assessmentId) : quizzes[0]) ?? null);
+      }
       setLoading(false);
     });
-  }, []);
+  }, [assessmentId]);
 
   useEffect(() => {
     if (!attemptId || seconds <= 0 || result) return;
@@ -70,7 +81,10 @@ export default function StudentQuizRunner({ close }: { close: () => void }) {
     if (!supabase || !attemptId) return;
     const { data, error: submitError } = await supabase.rpc("adci_submit_quiz_attempt", { target_attempt_id: attemptId });
     if (submitError) setError(submitError.message);
-    else setResult(data as Result);
+    else {
+      setResult(data as Result);
+      onCompleted?.();
+    }
   }
 
   if (loading) return <div className="exam-room"><div className="auth-loading"><LoaderCircle className="spin" /> Loading assessments…</div></div>;
