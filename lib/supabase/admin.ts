@@ -107,6 +107,57 @@ export async function getAdciLearningReport(days: number) {
   return data as AdciLearningReport;
 }
 
+export type AdciAuditEvent = {
+  id: number;
+  actor_id: string | null;
+  actor_name: string;
+  actor_email: string | null;
+  action: string;
+  entity_type: string;
+  entity_id: string | null;
+  entity_label: string;
+  old_values: Record<string, unknown> | null;
+  new_values: Record<string, unknown> | null;
+  reason: string | null;
+  created_at: string;
+};
+
+export type AdciAuditLog = {
+  total: number;
+  limit: number;
+  offset: number;
+  summary: { today: number; actors: number; access_changes: number; content_changes: number };
+  actions: string[];
+  entity_types: string[];
+  events: AdciAuditEvent[];
+};
+
+export type AdciAuditFilters = {
+  limit?: number;
+  offset?: number;
+  action?: string;
+  entityType?: string;
+  from?: string;
+  to?: string;
+  search?: string;
+};
+
+export async function getAdciAuditLog(filters: AdciAuditFilters = {}) {
+  const supabase = getSupabaseBrowserClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+  const { data, error } = await supabase.rpc("adci_admin_get_audit_log", {
+    target_limit: filters.limit ?? 25,
+    target_offset: filters.offset ?? 0,
+    target_action: filters.action || null,
+    target_entity_type: filters.entityType || null,
+    target_from: filters.from || null,
+    target_to: filters.to || null,
+    target_search: filters.search || null
+  });
+  if (error) throw error;
+  return data as AdciAuditLog;
+}
+
 export async function listAdciPeople() {
   const supabase = getSupabaseBrowserClient();
   if (!supabase) return [];
