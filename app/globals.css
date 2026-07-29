@@ -572,3 +572,89 @@ h1 { margin-bottom: 6px; font: 700 clamp(32.5px, 3vw, 44.2px)/1.15 var(--font-di
   .agenda-events article { grid-template-columns:51px 30px minmax(0,1fr); }
   .agenda-actions { grid-column:3; }
 }
+
+/* Administration learning reports */
+.admin-report-state { min-height:calc(100vh - 76px); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:11px; color:var(--muted); background:#f4f2ec; text-align:center; }
+.admin-report-state > svg { width:42px; height:42px; color:#ae7124; }
+.admin-report-state h2 { color:var(--ink); font:700 31.2px var(--font-display); }
+.admin-report-state p { max-width:520px; font-size:13px; }
+.admin-report-state button { height:37px; padding:0 12px; display:flex; align-items:center; gap:6px; border:1px solid #dda148; border-radius:8px; background:#efae4e; font-size:10.4px; font-weight:800; cursor:pointer; }
+.reports-workspace { max-width:1600px; margin:0 auto; }
+.reports-heading { align-items:center; }
+.reports-heading > div:last-child { display:flex; align-items:center; gap:8px; }
+.reports-heading select,.reports-heading button { height:39px; padding:0 11px; border:1px solid #d9d4ca; border-radius:8px; color:#56605d; background:#fffefa; font-size:10.4px; font-weight:800; }
+.reports-heading button { display:flex; align-items:center; gap:6px; cursor:pointer; }
+.reports-heading button svg { width:15px; }
+.reports-heading button.primary { color:#49351e; border-color:#dda148; background:#efae4e; }
+.report-metrics { margin:21px 0; display:grid; grid-template-columns:repeat(6,1fr); gap:10px; }
+.report-metrics article { min-height:142px; padding:15px; position:relative; overflow:hidden; border:1px solid var(--line); border-radius:12px; background:#fffefa; }
+.report-metrics article > span { margin-top:16px; display:block; color:#858d8a; font-size:8px; font-weight:900; letter-spacing:.09em; }
+.report-metrics article > strong { margin:4px 0; display:block; font:700 28.6px var(--font-display); }
+.report-metrics article > p { color:var(--muted); font-size:9.1px; }
+.report-metric-icon { width:34px; height:34px; display:grid; place-items:center; border-radius:9px; }
+.report-metric-icon svg { width:17px; }
+.report-metric-icon.learners { color:#2d7091; background:#e1edf2; }
+.report-metric-icon.risk { color:#a6543d; background:#f7e3dc; }
+.report-metric-icon.completion { color:#a1681d; background:#f5e8d1; }
+.report-metric-icon.accuracy { color:#39755f; background:#e1eee8; }
+.report-metric-icon.time { color:#71538e; background:#ece5f1; }
+.report-metric-icon.courses { color:#4f648d; background:#e5e9f1; }
+.course-performance-card,.learner-performance-card { margin-bottom:18px; padding:20px; overflow:hidden; border:1px solid var(--line); border-radius:13px; background:#fffefa; }
+.course-performance-card .section-title,.learner-performance-card .section-title { margin-bottom:16px; }
+.course-performance-card .section-title > span { color:#8a918e; font-size:10.4px; font-weight:800; }
+.course-report-table,.learner-report-table { overflow:auto; }
+.course-report-head,.course-report-table article { min-width:850px; display:grid; grid-template-columns:minmax(240px,1.5fr) 85px 85px 155px 85px 80px; align-items:center; gap:12px; }
+.course-report-head { padding:0 11px 9px; color:#939996; font-size:8px; font-weight:900; letter-spacing:.07em; }
+.course-report-table article { min-height:65px; padding:9px 11px; border-top:1px solid #ece8df; }
+.course-report-table article > div:first-child { display:flex; align-items:center; gap:10px; }
+.course-report-table article > div:first-child > svg { width:34px; height:34px; padding:8px; border-radius:8px; color:#9d671f; background:#f3e4cc; }
+.course-report-table article strong,.course-report-table article small { display:block; }
+.course-report-table article > strong { font-size:11.7px; }
+.course-report-table article > div:first-child strong { font-size:11.7px; }
+.course-report-table article small { margin-top:3px; color:var(--muted); font-size:8px; }
+.report-progress { display:flex; align-items:center; gap:8px; }
+.report-progress > span { width:80px; height:5px; overflow:hidden; display:block; border-radius:5px; background:#ece8df; }
+.report-progress i { height:100%; display:block; border-radius:5px; background:#df9f47; }
+.report-progress strong { min-width:34px; font-size:9.1px!important; }
+.learner-report-title { align-items:center; }
+.learner-report-tools { display:flex; align-items:center; gap:7px; }
+.learner-report-tools label { width:235px; height:36px; padding:0 9px; display:flex; align-items:center; gap:6px; border:1px solid #ddd8ce; border-radius:8px; background:#faf9f5; }
+.learner-report-tools label svg { width:14px; color:#8a9491; }
+.learner-report-tools input { min-width:0; flex:1; border:0; outline:0; background:transparent; font-size:10.4px; }
+.learner-report-tools button { height:36px; padding:0 9px; display:flex; align-items:center; gap:5px; border:1px solid #ddcdb5; border-radius:8px; color:#84612f; background:#fff9ed; font-size:9.1px; font-weight:800; cursor:pointer; }
+.learner-report-tools button.active { color:#914b38; border-color:#dfb5a9; background:#fff3ef; }
+.learner-report-tools button svg { width:13px; }
+.learner-report-head,.learner-report-table article { min-width:1050px; display:grid; grid-template-columns:minmax(260px,1.5fr) 105px 150px 75px 55px 85px 115px; align-items:center; gap:12px; }
+.learner-report-head { padding:0 11px 9px; color:#939996; font-size:8px; font-weight:900; letter-spacing:.07em; }
+.learner-report-table article { min-height:68px; padding:9px 11px; border-top:1px solid #ece8df; }
+.report-person { display:flex; align-items:center; gap:9px; }
+.report-person > span { width:34px; height:34px; display:grid; place-items:center; border-radius:50%; color:white; background:#bb7440; font-size:9.1px; font-weight:900; }
+.report-person strong,.report-person small { display:block; }
+.report-person strong { font-size:11.7px; }
+.report-person small { margin-top:3px; color:var(--muted); font-size:8px; }
+.learner-report-table article > strong { font-size:10.4px; }
+.learner-report-table article > em { width:max-content; padding:5px 7px; border-radius:6px; font:normal 800 8px var(--font-body); }
+.engagement-active { color:#39755f; background:#e4f0ea; }
+.engagement-at_risk { color:#a14e39; background:#f8e3dd; }
+.engagement-not_started { color:#806a4b; background:#f1ece3; }
+.engagement-nearly_complete { color:#516895; background:#e8ebf3; }
+.last-active { display:flex; align-items:center; justify-content:space-between; color:#69726f; font-size:9.1px; }
+.last-active svg { width:13px; color:#ad7429; }
+.report-empty { min-height:100px; display:flex; align-items:center; justify-content:center; gap:8px; color:var(--muted); font-size:11.7px; }
+.report-empty svg { width:18px; color:#a36b24; }
+
+@media (max-width: 1280px) {
+  .report-metrics { grid-template-columns:repeat(3,1fr); }
+}
+
+@media (max-width: 760px) {
+  .reports-heading > div:last-child { width:100%; display:grid; grid-template-columns:1fr 1fr; }
+  .reports-heading select { grid-column:1/-1; }
+  .report-metrics { grid-template-columns:1fr 1fr; gap:8px; }
+  .report-metrics article { min-height:125px; }
+  .course-performance-card,.learner-performance-card { padding:15px 11px; }
+  .learner-report-title { align-items:flex-start; }
+  .learner-report-tools { width:100%; flex-direction:column; align-items:stretch; }
+  .learner-report-tools label { width:100%; }
+  .learner-report-tools button { justify-content:center; }
+}

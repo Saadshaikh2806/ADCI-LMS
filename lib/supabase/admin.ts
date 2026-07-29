@@ -54,6 +54,59 @@ export type AdciPerson = {
   created_at: string;
 };
 
+export type AdciLearningReport = {
+  range_days: number;
+  generated_at: string;
+  summary: {
+    active_learners: number;
+    at_risk_learners: number;
+    average_completion: number;
+    average_accuracy: number;
+    learning_hours: number;
+    tests_completed: number;
+    published_courses: number;
+  };
+  courses: Array<{
+    course_id: string;
+    title: string;
+    slug: string;
+    status: string;
+    lesson_count: number;
+    enrolled_learners: number;
+    engaged_learners: number;
+    average_progress: number;
+    attempts_completed: number;
+    accuracy_percent: number;
+  }>;
+  learners: Array<{
+    learner_id: string;
+    full_name: string;
+    email: string;
+    courses_enrolled: number;
+    total_lessons: number;
+    lessons_completed: number;
+    progress_percent: number;
+    learning_seconds: number;
+    tests_completed: number;
+    answered_questions: number;
+    correct_answers: number;
+    accuracy_percent: number;
+    last_activity: string | null;
+    engagement_status: "active" | "at_risk" | "not_started" | "nearly_complete";
+  }>;
+};
+
+export async function getAdciLearningReport(days: number) {
+  const supabase = getSupabaseBrowserClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+
+  const { data, error } = await supabase.rpc("adci_get_admin_learning_report", {
+    target_days: days
+  });
+  if (error) throw error;
+  return data as AdciLearningReport;
+}
+
 export async function listAdciPeople() {
   const supabase = getSupabaseBrowserClient();
   if (!supabase) return [];
