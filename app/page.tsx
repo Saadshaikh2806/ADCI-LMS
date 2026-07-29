@@ -46,6 +46,7 @@ import AdminReports from "../components/AdminReports";
 import AdminLiveSchedule from "../components/AdminLiveSchedule";
 import AdminQuestionBank from "../components/AdminQuestionBank";
 import AdminAuditLog from "../components/AdminAuditLog";
+import AdminDashboard from "../components/AdminDashboard";
 import StudentQuizRunner from "../components/StudentQuizRunner";
 import LiveClassSchedule from "../components/LiveClassSchedule";
 import StudentCourses from "../components/StudentCourses";
@@ -506,29 +507,7 @@ function LearningHub() {
           <section className="admin-workspace">
             <header className="admin-topbar"><div><p className="eyebrow">ANEES DEFENCE CAREER INSTITUTE</p><h1>{adminSection}</h1></div><div><span className={`data-mode ${backendConnected ? "connected" : ""}`}><i />{backendConnected ? "Supabase connected" : "Demo data"}</span><button className="icon-button"><Bell size={20} /><i /></button><button className="admin-avatar">{accountInitials}</button></div></header>
             {adminSection === "Dashboard" ? (
-              <div className="admin-content">
-                <div className="admin-welcome"><div><h2>Good morning, {accountName.split(" ")[0]}.</h2><p>Here’s what needs your attention across the institution.</p></div><button className="primary" onClick={() => setAdminSection("Academics")}><Plus size={17} /> Create content</button></div>
-                <section className="admin-metrics">
-                  <article><span>ACTIVE LEARNERS</span><strong>1,284</strong><p><em>↑ 8.4%</em> from last month</p></article>
-                  <article><span>LIVE ATTENDANCE</span><strong>87%</strong><p><em>↑ 3.1%</em> this week</p></article>
-                  <article><span>COURSE COMPLETION</span><strong>64%</strong><p>Across 18 programmes</p></article>
-                  <article><span>AT-RISK LEARNERS</span><strong>42</strong><p><b>12 need action today</b></p></article>
-                </section>
-                <div className="admin-grid">
-                  <section className="operations-card">
-                    <div className="section-title"><div><h3>Enrolment and engagement</h3><p>Last 7 days · all programmes</p></div><button>View report <ArrowRight size={15} /></button></div>
-                    <div className="chart-bars">{[44,58,49,72,65,83,74].map((height,index)=><div key={index}><i style={{height:`${height}%`}} /><span>{["MON","TUE","WED","THU","FRI","SAT","SUN"][index]}</span></div>)}</div>
-                    <div className="chart-summary"><div><span>New enrolments</span><strong>86</strong></div><div><span>Learning sessions</span><strong>3,492</strong></div><div><span>Avg. study time</span><strong>46 min</strong></div></div>
-                  </section>
-                  <section className="attention-card"><div className="section-title"><div><h3>Needs attention</h3><p>Prioritised by impact</p></div><button><MoreHorizontal size={20} /></button></div>
-                    {[["12","At-risk learners","Inactive for 7+ days","red"],["3","Courses awaiting approval","Academic review queue","amber"],["8","Overdue payments","₹42,500 outstanding","blue"]].map(([count,title,detail,color])=><button key={title} onClick={() => title.includes("Courses") ? setAdminSection("Academics") : notify(`${title} queue opened`)}><span className={color}>{count}</span><div><strong>{title}</strong><small>{detail}</small></div><ChevronRight size={17} /></button>)}
-                  </section>
-                </div>
-                <section className="recent-table"><div className="section-title"><div><h3>Recent activity</h3><p>Latest operational changes</p></div><button onClick={() => setAdminSection("Audit log")}>Full audit log <ArrowRight size={15} /></button></div>
-                  <div className="table-head"><span>ACTIVITY</span><span>ACTOR</span><span>TIME</span><span>STATUS</span></div>
-                  {[["Polity Module 06 submitted for review","Dr. Meera Iyer","8 min ago","In review"],["Batch UPSC-F26 learner import","Anees Kutty","34 min ago","Completed"],["Sectional Test 04 results released","System automation","1h ago","Published"]].map(row=><div className="table-row" key={row[0]}><strong>{row[0]}</strong><span>{row[1]}</span><span>{row[2]}</span><em>{row[3]}</em></div>)}
-                </section>
-              </div>
+              <AdminDashboard accountName={accountName} navigate={setAdminSection} />
             ) : adminSection === "Academics" ? (
               <AdminCourseManager notify={notify} />
             ) : adminSection === "People" ? (

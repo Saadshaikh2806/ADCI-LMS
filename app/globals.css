@@ -903,3 +903,78 @@ h1 { margin-bottom: 6px; font: 700 clamp(32.5px, 3vw, 44.2px)/1.15 var(--font-di
   .audit-event-details { min-width:760px; padding:14px; }
   .audit-pagination { align-items:flex-start; flex-direction:column; }
 }
+
+/* Real administration operations overview */
+.real-admin-dashboard { max-width:1550px; margin:0 auto; }
+.real-dashboard-actions { display:flex; gap:8px; }
+.real-dashboard-actions button { height:39px; padding:0 11px; display:flex; align-items:center; gap:6px; border:1px solid #d9d4ca; border-radius:8px; color:#59625f; background:#fffefa; font-size:10.4px; font-weight:800; cursor:pointer; }
+.real-dashboard-actions button svg { width:15px; }
+.real-dashboard-actions button.primary { color:#49351e; border-color:#dda148; background:#efae4e; }
+.live-admin-dashboard-metrics article:first-child { border-top:3px solid #4f7f91; }
+.live-admin-dashboard-metrics article:nth-child(2) { border-top:3px solid #4d8a74; }
+.live-admin-dashboard-metrics article:nth-child(3) { border-top:3px solid #d39a48; }
+.live-admin-dashboard-metrics article:nth-child(4) { border-top:3px solid #bd6a50; }
+.real-dashboard-grid { align-items:stretch; }
+.real-engagement-card { display:flex; flex-direction:column; }
+.real-engagement-card .section-title button,.course-health-card .section-title button { display:flex; align-items:center; gap:5px; border:0; color:#916125; background:none; font-size:9.1px; font-weight:800; cursor:pointer; }
+.real-engagement-card .section-title button svg,.course-health-card .section-title button svg { width:13px; }
+.real-chart-legend { margin-top:16px; display:flex; justify-content:flex-end; gap:14px; color:#737c79; font-size:8px; }
+.real-chart-legend span { display:flex; align-items:center; gap:5px; }
+.real-chart-legend i { width:8px; height:8px; display:block; border-radius:2px; background:#dd9b41; }
+.real-chart-legend span + span i { background:#6d8992; }
+.real-chart-bars { height:178px; margin:8px 5px 13px; display:flex; align-items:flex-end; gap:12px; border-bottom:1px solid #dedad0; background:repeating-linear-gradient(to bottom,#f0ede6 0,#f0ede6 1px,transparent 1px,transparent 44px); }
+.real-chart-bars > div { height:100%; flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; }
+.real-chart-bars > div > span { height:calc(100% - 21px); display:flex; align-items:flex-end; justify-content:center; gap:4px; }
+.real-chart-bars i,.real-chart-bars b { width:15px; min-height:2px; display:block; border-radius:4px 4px 0 0; transition:.25s ease; }
+.real-chart-bars i { background:linear-gradient(#edb35d,#d68c2e); }
+.real-chart-bars b { background:linear-gradient(#829da5,#5d7d87); }
+.real-chart-bars small { margin-top:7px; color:#8b918e; font-size:8px; font-weight:800; }
+.real-attention-card .section-title > svg { color:#bb7651; }
+.attention-card span.purple { color:#71538e; background:#ece5f1; }
+.real-dashboard-secondary { margin-top:18px; display:grid; grid-template-columns:minmax(0,1.25fr) minmax(350px,.75fr); gap:18px; }
+.course-health-card,.upcoming-admin-live { padding:20px; overflow:hidden; border:1px solid var(--line); border-radius:13px; background:#fffefa; }
+.course-health-list { display:grid; }
+.course-health-list article { min-height:64px; padding:8px 2px; display:grid; grid-template-columns:36px minmax(170px,1fr) 75px 145px; align-items:center; gap:10px; border-top:1px solid #ece8df; }
+.course-health-icon { width:34px; height:34px; display:grid; place-items:center; border-radius:8px; color:#9d671f; background:#f3e4cc; }
+.course-health-icon svg { width:16px; }
+.course-health-list strong,.course-health-list small { display:block; }
+.course-health-list article > div:nth-child(2) > strong { font-size:10.4px; }
+.course-health-list small { margin-top:4px; color:var(--muted); font-size:8px; }
+.course-health-list article > em { width:max-content; padding:4px 6px; border-radius:5px; color:#6a7470; background:#ecece8; font:normal 800 7.8px var(--font-body); }
+.course-health-progress { display:flex; align-items:center; gap:7px; }
+.course-health-progress > span { width:92px; height:5px; overflow:hidden; border-radius:5px; background:#ece8df; }
+.course-health-progress i { height:100%; display:block; background:#df9f47; }
+.course-health-progress > strong { font-size:8px; }
+.upcoming-admin-live .section-title > button { width:30px; height:30px; display:grid; place-items:center; border:1px solid #ddd8ce; border-radius:7px; color:#946324; background:#faf7f0; cursor:pointer; }
+.upcoming-admin-live .section-title > button svg { width:14px; }
+.upcoming-admin-live > div:last-child { display:grid; }
+.upcoming-admin-live article { min-height:67px; padding:8px 1px; display:grid; grid-template-columns:42px minmax(140px,1fr) 88px; align-items:center; gap:9px; border-top:1px solid #ece8df; }
+.upcoming-live-time { width:40px; height:47px; display:flex; flex-direction:column; align-items:center; justify-content:center; border-radius:8px; color:#9b641f; background:#f4e5cd; }
+.upcoming-live-time strong { font:700 16.9px var(--font-display); }
+.upcoming-live-time span { font-size:7.8px; font-weight:900; text-transform:uppercase; }
+.upcoming-live-copy > span { display:flex; align-items:center; gap:4px; color:#a05e33; font-size:7.8px; font-weight:800; }
+.upcoming-live-copy > span svg { width:10px; }
+.upcoming-live-copy > strong,.upcoming-live-copy > small,.upcoming-admin-live article > div:last-child strong,.upcoming-admin-live article > div:last-child small { display:block; }
+.upcoming-live-copy > strong { margin:4px 0; font-size:10.4px; }
+.upcoming-live-copy > small { color:var(--muted); font-size:7.8px; }
+.upcoming-admin-live article > div:last-child { color:#55726d; }
+.upcoming-admin-live article > div:last-child > svg { width:13px; }
+.upcoming-admin-live article > div:last-child strong { margin:2px 0; font-size:8px; }
+.upcoming-admin-live article > div:last-child small { color:var(--muted); font-size:7.8px; }
+.real-recent-activity { margin-top:18px; }
+
+@media (max-width: 1180px) {
+  .real-dashboard-secondary { grid-template-columns:1fr; }
+}
+
+@media (max-width: 760px) {
+  .real-dashboard-actions { width:100%; }
+  .real-dashboard-actions button { flex:1; justify-content:center; }
+  .real-dashboard-actions button.primary { width:auto; font-size:10.4px; }
+  .real-chart-bars { gap:5px; }
+  .real-chart-bars i,.real-chart-bars b { width:10px; }
+  .course-health-card,.upcoming-admin-live { padding:15px 11px; }
+  .course-health-list { overflow:auto; }
+  .course-health-list article { min-width:670px; }
+  .upcoming-admin-live article { grid-template-columns:42px minmax(130px,1fr) 78px; }
+}

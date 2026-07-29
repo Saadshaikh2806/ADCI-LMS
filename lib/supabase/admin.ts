@@ -158,6 +158,57 @@ export async function getAdciAuditLog(filters: AdciAuditFilters = {}) {
   return data as AdciAuditLog;
 }
 
+export type AdciAdminDashboard = {
+  summary: {
+    active_learners: number;
+    live_attendance_today: number;
+    course_completion: number;
+    at_risk_learners: number;
+    published_courses: number;
+  };
+  engagement: Array<{ date: string; label: string; enrolments: number; activity: number }>;
+  engagement_summary: { new_enrolments: number; learning_sessions: number; average_study_minutes: number };
+  attention: {
+    at_risk_learners: number;
+    courses_in_review: number;
+    unscheduled_live_lessons: number;
+    empty_quizzes: number;
+  };
+  course_health: Array<{
+    course_id: string;
+    title: string;
+    status: string;
+    lesson_count: number;
+    enrolled_learners: number;
+    completion_percent: number;
+    engaged_learners: number;
+  }>;
+  upcoming_classes: Array<{
+    lesson_id: string;
+    title: string;
+    course_title: string;
+    instructor_name: string;
+    provider: string;
+    starts_at: string;
+    attendance_count: number;
+  }>;
+  recent_activity: Array<{
+    id: number;
+    action: string;
+    entity_type: string;
+    actor_name: string;
+    created_at: string;
+  }>;
+};
+
+export async function getAdciAdminDashboard() {
+  const supabase = getSupabaseBrowserClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+  const { data, error } = await supabase.rpc("adci_get_admin_dashboard");
+  if (error) throw error;
+  return data as AdciAdminDashboard;
+}
+
 export async function listAdciPeople() {
   const supabase = getSupabaseBrowserClient();
   if (!supabase) return [];
