@@ -148,6 +148,7 @@ h1 { margin-bottom: 6px; font: 700 clamp(32.5px, 3vw, 44.2px)/1.15 var(--font-di
 .event-copy p { color: var(--muted); font-size: 11.7px; }
 .event > button { margin-top: 10px; padding: 5px 9px; border: 1px solid #dfd8cb; border-radius: 6px; color: #815c30; background: white; font-size: 11.7px; font-weight: 800; cursor:pointer; }
 .calendar-button { width:100%; height:38px; display:flex; align-items:center; justify-content:center; gap:8px; border:1px solid var(--line); border-radius:8px; background:#faf8f3; color:#635847; font-size:13px; font-weight:700; cursor:pointer; }
+.event>button:disabled{opacity:.55;cursor:not-allowed}.live-schedule-state{min-height:170px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;color:var(--muted);text-align:center;font-size:11.7px}.live-schedule-state.error{color:#9b4f3c}.live-schedule-state button{display:flex;align-items:center;gap:5px;border:0;color:#8c5c20;background:none;font-size:10.4px;font-weight:800;cursor:pointer}
 .mobile-nav { display:none; }
 .scrim { display:none; }
 

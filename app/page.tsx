@@ -42,6 +42,7 @@ import AuthGate, { useAuthSession } from "../components/AuthGate";
 import AdminCourseManager from "../components/AdminCourseManager";
 import AdminPeopleManager from "../components/AdminPeopleManager";
 import StudentQuizRunner from "../components/StudentQuizRunner";
+import LiveClassSchedule from "../components/LiveClassSchedule";
 import { hasAcademicAdminRole, loadMyAdciMemberships } from "../lib/supabase/admin";
 
 const navItems = [
@@ -289,17 +290,8 @@ function LearningHub() {
             </section>
 
             <aside className="today-card">
-              <div className="section-title"><div><h3>Today’s schedule</h3><p>3 activities · 2h 10m</p></div><button className="more"><MoreHorizontal size={20} /></button></div>
-              <div className="timeline">
-                {schedule.map(({ time, suffix, title, teacher, type, icon: Icon, live }) => (
-                  <div className="event" key={title}>
-                    <div className="event-time"><strong>{time}</strong><span>{suffix}</span></div>
-                    <div className={`event-dot ${live ? "is-live" : ""}`}><Icon size={16} /></div>
-                    <div className="event-copy"><div><span>{type}</span>{live && <em>LIVE</em>}</div><h4>{title}</h4><p>{teacher}</p></div>
-                    <button onClick={() => live ? notify("Joining live classroom…") : type === "Assessment" ? setExamOpen(true) : notify(`${type} opened`)}>{live ? "Join" : <ChevronRight size={18} />}</button>
-                  </div>
-                ))}
-              </div>
+              <div className="section-title"><div><h3>Live classes</h3><p>Your protected course schedule</p></div><button className="more"><MoreHorizontal size={20} /></button></div>
+              <LiveClassSchedule notify={notify} />
               <button className="calendar-button" onClick={() => setActive("Study plan")}><CalendarDays size={17} /> Open full calendar</button>
             </aside>
           </div>
