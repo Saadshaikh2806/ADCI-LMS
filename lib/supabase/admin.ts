@@ -1,7 +1,16 @@
 import * as tus from "tus-js-client";
 import { getSupabaseBrowserClient } from "./client";
 
-const adminRoles = new Set(["content_author", "academic_lead", "branch_admin", "super_admin"]);
+const adminRoles = new Set([
+  "instructor",
+  "content_author",
+  "academic_lead",
+  "mentor",
+  "branch_admin",
+  "finance",
+  "super_admin",
+  "support"
+]);
 
 export type AdciMembership = {
   role: string;

@@ -15,6 +15,7 @@ import {
   ClipboardList,
   Clock3,
   CirclePlay,
+  CreditCard,
   FileText,
   Flag,
   Flame,
@@ -30,6 +31,7 @@ import {
   Play,
   Search,
   ShieldCheck,
+  ShoppingBag,
   Settings,
   Sparkles,
   Target,
@@ -54,6 +56,7 @@ import AdminAnnouncements from "../components/AdminAnnouncements";
 import AdminAssignments from "../components/AdminAssignments";
 import AdminCertificates from "../components/AdminCertificates";
 import AdminCommunity from "../components/AdminCommunity";
+import AdminCommerce from "../components/AdminCommerce";
 import NotificationCenter from "../components/NotificationCenter";
 import StudentQuizRunner from "../components/StudentQuizRunner";
 import LiveClassSchedule from "../components/LiveClassSchedule";
@@ -63,6 +66,7 @@ import StudyPlan from "../components/StudyPlan";
 import StudentAssignments from "../components/StudentAssignments";
 import StudentCertificates from "../components/StudentCertificates";
 import CommunityHub from "../components/CommunityHub";
+import StudentCommerce from "../components/StudentCommerce";
 import { hasAcademicAdminRole, loadMyAdciMemberships } from "../lib/supabase/admin";
 import { getLearnerDashboard, getMyNotifications, type LearnerDashboard } from "../lib/supabase/learning";
 
@@ -73,6 +77,7 @@ const navItems = [
   { label: "Assessments", icon: ClipboardCheck },
   { label: "Assignments", icon: ClipboardList },
   { label: "Certificates", icon: Award },
+  { label: "Programmes", icon: ShoppingBag },
   { label: "Study plan", icon: CalendarDays },
   { label: "Community", icon: Users }
 ];
@@ -146,6 +151,7 @@ function LearningHub() {
   const [adminSection, setAdminSection] = useState("Dashboard");
   const [profileOpen, setProfileOpen] = useState(false);
   const [canAdminister, setCanAdminister] = useState(false);
+  const [adminEntrySection, setAdminEntrySection] = useState("Dashboard");
   const [examStarted, setExamStarted] = useState(false);
   const [examSubmitted, setExamSubmitted] = useState(false);
   const [currentQuestion, setCurrentQuestion] = useState(0);
@@ -221,7 +227,18 @@ function LearningHub() {
     async function loadRole() {
       try {
         const memberships = await loadMyAdciMemberships();
-        if (active) setCanAdminister(hasAcademicAdminRole(memberships));
+        if (active) {
+          setCanAdminister(hasAcademicAdminRole(memberships));
+          const roles = new Set(memberships.map((membership) => membership.role));
+          setAdminEntrySection(
+            roles.has("super_admin") || roles.has("branch_admin") || roles.has("academic_lead") || roles.has("content_author")
+              ? "Dashboard"
+              : roles.has("finance") ? "Commerce"
+              : roles.has("support") ? "Community"
+              : roles.has("instructor") ? "Assignments"
+              : "Community"
+          );
+        }
       } catch {
         if (active) setCanAdminister(false);
       }
@@ -298,7 +315,7 @@ function LearningHub() {
               <div><strong>{accountName}</strong><small>UPSC Foundation</small></div>
               <ChevronRight size={16} />
             </button>
-            {profileOpen && <div className="profile-menu"><button className="selected"><GraduationCap size={17} /><span><strong>Learner portal</strong><small>Continue studying</small></span><Check size={15} /></button>{canAdminister && <button onClick={() => { setAdminOpen(true); setProfileOpen(false); }}><UserCog size={17} /><span><strong>Admin workspace</strong><small>Manage the institution</small></span><ArrowRight size={15} /></button>}</div>}
+            {profileOpen && <div className="profile-menu"><button className="selected"><GraduationCap size={17} /><span><strong>Learner portal</strong><small>Continue studying</small></span><Check size={15} /></button>{canAdminister && <button onClick={() => { setAdminSection(adminEntrySection); setAdminOpen(true); setProfileOpen(false); }}><UserCog size={17} /><span><strong>Admin workspace</strong><small>Manage the institution</small></span><ArrowRight size={15} /></button>}</div>}
           </div>
         </header>
 
@@ -369,7 +386,7 @@ function LearningHub() {
         </nav>
       </section>
 
-      {active !== "Overview" && active !== "My courses" && active !== "Study plan" && active !== "Assignments" && active !== "Certificates" && active !== "Community" && !lessonOpen && (
+      {active !== "Overview" && active !== "My courses" && active !== "Study plan" && active !== "Assignments" && active !== "Certificates" && active !== "Programmes" && active !== "Community" && !lessonOpen && (
         <div className="route-overlay">
           <button className="overlay-close" onClick={() => setActive("Overview")}><X /></button>
           <div className="overlay-icon">{(() => { const item = navItems.find((n) => n.label === active); const Icon = item?.icon ?? BookOpen; return <Icon size={30} />; })()}</div>
@@ -383,6 +400,7 @@ function LearningHub() {
       {active === "Study plan" && !lessonOpen && <StudyPlan close={() => setActive("Overview")} notify={notify} openAssessments={(assessmentId) => { setActiveAssessmentId(assessmentId); setExamOpen(true); }} />}
       {active === "Assignments" && !lessonOpen && <StudentAssignments close={() => setActive("Overview")} notify={notify} />}
       {active === "Certificates" && !lessonOpen && <StudentCertificates close={() => setActive("Overview")} />}
+      {active === "Programmes" && !lessonOpen && <StudentCommerce close={() => { setActive("Overview"); void refreshLearnerDashboard(); }} notify={notify} />}
       {active === "Community" && !lessonOpen && <CommunityHub close={() => setActive("Overview")} notify={notify} />}
       {openLearning && <StudentCoursePlayer
         courseId={openLearning.courseId}
@@ -525,6 +543,7 @@ function LearningHub() {
               ["Question bank", ClipboardCheck],
               ["Assignments", ClipboardList],
               ["Certificates", Award],
+              ["Commerce", CreditCard],
               ["Community", MessageSquareText],
               ["Live schedule", CalendarDays],
               ["Announcements", Megaphone],
@@ -551,6 +570,8 @@ function LearningHub() {
               <AdminAssignments notify={notify} />
             ) : adminSection === "Certificates" ? (
               <AdminCertificates notify={notify} />
+            ) : adminSection === "Commerce" ? (
+              <AdminCommerce notify={notify} />
             ) : adminSection === "Community" ? (
               <AdminCommunity notify={notify} />
             ) : adminSection === "Announcements" ? (
