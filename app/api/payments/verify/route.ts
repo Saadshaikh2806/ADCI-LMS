@@ -5,6 +5,7 @@ import {
   requireAuthenticatedPaymentRequest,
   signaturesMatch
 } from "../../../../lib/supabase/payment-server";
+import { dispatchPendingEmails } from "../../../../lib/email/delivery";
 
 export const runtime = "nodejs";
 
@@ -72,8 +73,13 @@ export async function POST(request: Request) {
       payment_payload: providerPayment
     });
     if (fulfilError) throw fulfilError;
+    const emailDelivery = await dispatchPendingEmails(service, 10).catch(() => ({
+      claimed: 0,
+      sent: 0,
+      failed: 0
+    }));
 
-    return Response.json({ verified: true, invoiceId });
+    return Response.json({ verified: true, invoiceId, receiptEmailSent: emailDelivery.sent > 0 });
   } catch (error) {
     return paymentErrorResponse(error);
   }

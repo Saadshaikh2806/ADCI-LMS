@@ -34,6 +34,7 @@ import {
   type AdciAssignmentSubmission,
   type AdciAssignmentSubmissionsData
 } from "../lib/supabase/admin";
+import { dispatchAdciEmails } from "../lib/supabase/messaging";
 
 function localDateTime(value?: string | null) {
   if (!value) return "";
@@ -188,6 +189,7 @@ export default function AdminAssignments({ notify }: { notify: (message: string)
         feedback,
         decision
       );
+      if (decision === "graded") await dispatchAdciEmails().catch(() => null);
       notify(decision === "graded" ? "Submission graded" : "Submission returned for revision");
       const assignmentId = gradingData?.assignment.id;
       setSelectedSubmission(null);

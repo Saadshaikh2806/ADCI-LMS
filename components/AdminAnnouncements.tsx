@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, Check, FileText, LoaderCircle, Megaphone, Pencil, Plus, RefreshCw, Send, ShieldAlert, Trash2, UsersRound, X } from "lucide-react";
+import { AlertTriangle, Bell, Check, FileText, LoaderCircle, Mail, Megaphone, Pencil, Plus, RefreshCw, RotateCcw, Send, ShieldAlert, Trash2, UsersRound, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import {
   deleteAdciAnnouncement,
@@ -9,6 +9,12 @@ import {
   type AdciAnnouncement,
   type AdciAnnouncementAdminData
 } from "../lib/supabase/admin";
+import {
+  dispatchAdciEmails,
+  getAdminEmailDelivery,
+  retryEmailDelivery,
+  type AdminEmailDeliveryData
+} from "../lib/supabase/messaging";
 
 function localDateTime(iso?: string | null) {
   if (!iso) return "";
@@ -31,12 +37,19 @@ export default function AdminAnnouncements({ notify }: { notify: (message: strin
   const [status, setStatus] = useState<AdciAnnouncement["status"]>("draft");
   const [publishedAt, setPublishedAt] = useState("");
   const [expiresAt, setExpiresAt] = useState("");
+  const [emailData, setEmailData] = useState<AdminEmailDeliveryData | null>(null);
+  const [dispatching, setDispatching] = useState(false);
 
   async function refresh() {
     setLoading(true);
     setError("");
     try {
-      setData(await getAdciAnnouncements());
+      const [announcementsData, deliveryData] = await Promise.all([
+        getAdciAnnouncements(),
+        getAdminEmailDelivery()
+      ]);
+      setData(announcementsData);
+      setEmailData(deliveryData);
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : "Unable to load announcements");
     } finally {
@@ -68,6 +81,7 @@ export default function AdminAnnouncements({ notify }: { notify: (message: strin
     event.preventDefault();
     setSaving(true);
     setError("");
+    let deliveryWarning = "";
     try {
       await saveAdciAnnouncement({
         id: editingId || undefined,
@@ -79,11 +93,50 @@ export default function AdminAnnouncements({ notify }: { notify: (message: strin
         publishedAt: publishedAt ? new Date(publishedAt).toISOString() : null,
         expiresAt: expiresAt ? new Date(expiresAt).toISOString() : null
       });
-      notify(status === "published" ? "Announcement published" : "Announcement saved");
       setEditorOpen(false);
+      if (status === "published" && (!publishedAt || new Date(publishedAt) <= new Date())) {
+        try {
+          const result = await dispatchAdciEmails();
+          notify(result.sent > 0 ? `Announcement published and ${result.sent} email${result.sent === 1 ? "" : "s"} sent` : "Announcement published; no email was due");
+        } catch (dispatchError) {
+          deliveryWarning = `Announcement published in the app. Email delivery is pending: ${dispatchError instanceof Error ? dispatchError.message : "dispatcher unavailable"}`;
+        }
+      } else {
+        notify(status === "published" ? "Announcement scheduled" : "Announcement saved");
+      }
       await refresh();
+      if (deliveryWarning) setError(deliveryWarning);
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : "Unable to save announcement");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function sendPending() {
+    setDispatching(true);
+    setError("");
+    try {
+      const result = await dispatchAdciEmails();
+      notify(result.claimed ? `${result.sent} email${result.sent === 1 ? "" : "s"} sent${result.failed ? `, ${result.failed} queued for retry` : ""}` : "No pending emails");
+      await refresh();
+    } catch (dispatchError) {
+      setError(dispatchError instanceof Error ? dispatchError.message : "Unable to send pending emails");
+    } finally {
+      setDispatching(false);
+    }
+  }
+
+  async function retry(deliveryId: string) {
+    setSaving(true);
+    setError("");
+    try {
+      await retryEmailDelivery(deliveryId);
+      const result = await dispatchAdciEmails();
+      notify(result.sent ? "Email delivered" : "Email queued for another attempt");
+      await refresh();
+    } catch (retryError) {
+      setError(retryError instanceof Error ? retryError.message : "Unable to retry email");
     } finally {
       setSaving(false);
     }
@@ -108,13 +161,30 @@ export default function AdminAnnouncements({ notify }: { notify: (message: strin
   if (error && !data) return <div className="admin-report-state error"><Megaphone /><h2>Announcements unavailable</h2><p>{error}</p><button onClick={() => void refresh()}><RefreshCw /> Retry</button></div>;
 
   return <div className="admin-content announcements-workspace">
-    <div className="admin-welcome announcements-heading"><div><h2>Announcements</h2><p>Send targeted, trackable updates to learners and staff.</p></div><div><button onClick={() => void refresh()}><RefreshCw className={loading ? "spin" : ""} /> Refresh</button><button className="primary" onClick={() => openEditor()}><Plus /> New announcement</button></div></div>
+    <div className="admin-welcome announcements-heading"><div><h2>Announcements</h2><p>Send targeted, trackable updates to learners and staff.</p></div><div><button disabled={dispatching} onClick={() => void sendPending()}>{dispatching ? <LoaderCircle className="spin" /> : <Mail />} Send pending</button><button onClick={() => void refresh()}><RefreshCw className={loading ? "spin" : ""} /> Refresh</button><button className="primary" onClick={() => openEditor()}><Plus /> New announcement</button></div></div>
     {error && <div className="course-error">{error}</div>}
     <section className="announcement-metrics">
       <article><div><Megaphone /></div><span>TOTAL</span><strong>{data?.summary.total ?? 0}</strong></article>
       <article><div className="published"><Send /></div><span>PUBLISHED</span><strong>{data?.summary.published ?? 0}</strong></article>
       <article><div className="draft"><FileText /></div><span>DRAFTS</span><strong>{data?.summary.drafts ?? 0}</strong></article>
       <article><div className="urgent"><ShieldAlert /></div><span>URGENT</span><strong>{data?.summary.urgent ?? 0}</strong></article>
+    </section>
+    <section className="email-delivery-card">
+      <header><div><Mail /><span><strong>Email delivery</strong><small>Durable queue with automatic retry and provider tracking.</small></span></div><div><em>{emailData?.summary.queued ?? 0} pending</em><em className="sent">{emailData?.summary.delivered ?? 0} delivered</em><em className={(emailData?.summary.bounced ?? 0) ? "failed" : ""}>{emailData?.summary.bounced ?? 0} bounced</em></div></header>
+      <div className="email-delivery-table">
+        <div className="email-delivery-head"><span>Recipient</span><span>Announcement</span><span>Created</span><span>Attempts</span><span>Status</span><span>Action</span></div>
+        {(emailData?.deliveries ?? []).slice(0, 12).map((delivery) => <article key={delivery.id}>
+          <div><strong>{delivery.recipient_name}</strong><small>{delivery.recipient_email}</small></div>
+          <div><strong>{delivery.announcement_title}</strong><small>{delivery.provider_message_id || delivery.last_error || "Waiting for dispatcher"}</small></div>
+          <span>{new Date(delivery.created_at).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}</span>
+          <strong>{delivery.attempts}/5</strong>
+          <em className={delivery.provider_status === "pending" ? delivery.status : delivery.provider_status}>{delivery.provider_status === "pending" ? delivery.status : delivery.provider_status}</em>
+          {delivery.status === "failed"
+            ? <button disabled={saving} onClick={() => void retry(delivery.id)}><RotateCcw /> Retry</button>
+            : delivery.status === "sent" ? <span className="delivery-complete"><Check /> Complete</span> : <span className="delivery-waiting"><LoaderCircle /> Pending</span>}
+        </article>)}
+        {(emailData?.deliveries.length ?? 0) === 0 && <div className="report-empty"><AlertTriangle /> No announcement emails have been queued yet.</div>}
+      </div>
     </section>
     <section className="announcement-card">
       <div className="announcement-filters">{(["all", "published", "draft", "retired"] as const).map((item) => <button key={item} className={statusFilter === item ? "active" : ""} onClick={() => setStatusFilter(item)}>{item === "all" ? "All announcements" : item[0].toUpperCase() + item.slice(1)}</button>)}<span>{announcements.length} result{announcements.length === 1 ? "" : "s"}</span></div>

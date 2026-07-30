@@ -6,6 +6,7 @@ import {
   paymentErrorResponse,
   signaturesMatch
 } from "../../../../lib/supabase/payment-server";
+import { dispatchPendingEmails } from "../../../../lib/email/delivery";
 
 export const runtime = "nodejs";
 
@@ -77,6 +78,7 @@ export async function POST(request: Request) {
         payment_payload: payment
       });
       if (error) throw error;
+      await dispatchPendingEmails(service, 10).catch(() => null);
     } else if (eventType === "refund.processed" || eventType === "payment.refunded") {
       const refund = event.payload?.refund?.entity;
       const payment = event.payload?.payment?.entity;

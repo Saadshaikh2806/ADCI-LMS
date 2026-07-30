@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, Check, LoaderCircle, Megaphone, RefreshCw, ShieldAlert, X } from "lucide-react";
+import { Bell, Check, LoaderCircle, Mail, Megaphone, RefreshCw, ShieldAlert, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
   getMyNotifications,
@@ -9,6 +9,10 @@ import {
   type AdciNotification,
   type AdciNotificationFeed
 } from "../lib/supabase/learning";
+import {
+  getMyEmailPreferences,
+  saveMyEmailPreferences
+} from "../lib/supabase/messaging";
 
 export default function NotificationCenter({
   close,
@@ -22,13 +26,19 @@ export default function NotificationCenter({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [selectedId, setSelectedId] = useState("");
+  const [emailEnabled, setEmailEnabled] = useState(true);
+  const [preferenceSaving, setPreferenceSaving] = useState(false);
 
   async function refresh() {
     setLoading(true);
     setError("");
     try {
-      const data = await getMyNotifications();
+      const [data, preferences] = await Promise.all([
+        getMyNotifications(),
+        getMyEmailPreferences()
+      ]);
       setFeed(data);
+      setEmailEnabled(preferences.email_announcements);
       onUnreadChange(data.unread_count);
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : "Unable to load notifications");
@@ -69,10 +79,24 @@ export default function NotificationCenter({
     }
   }
 
+  async function toggleEmailPreference() {
+    setPreferenceSaving(true);
+    setError("");
+    try {
+      const preferences = await saveMyEmailPreferences(!emailEnabled);
+      setEmailEnabled(preferences.email_announcements);
+    } catch (preferenceError) {
+      setError(preferenceError instanceof Error ? preferenceError.message : "Unable to update email preference");
+    } finally {
+      setPreferenceSaving(false);
+    }
+  }
+
   return <div className="notification-backdrop" onMouseDown={(event) => event.target === event.currentTarget && close()}>
     <aside className="notification-drawer">
       <header><div><span><Bell /></span><div><p className="eyebrow">ADCI UPDATES</p><h2>Notifications</h2></div></div><button onClick={close}><X /></button></header>
       <div className="notification-toolbar"><span>{feed.unread_count} unread</span><button disabled={saving || feed.unread_count === 0} onClick={() => void markAllRead()}><Check /> Mark all read</button></div>
+      <div className="notification-preference"><Mail /><span><strong>Email announcements</strong><small>{emailEnabled ? "Important institute updates can reach your inbox." : "Announcements remain available inside the Learning Hub."}</small></span><button className={emailEnabled ? "enabled" : ""} disabled={preferenceSaving} onClick={() => void toggleEmailPreference()} aria-label="Toggle email announcements"><i /></button></div>
       {error && <div className="notification-error"><span>{error}</span><button onClick={() => void refresh()}><RefreshCw /> Retry</button></div>}
       <div className="notification-list">
         {loading ? <div className="notification-state"><LoaderCircle className="spin" /> Loading announcements…</div>
