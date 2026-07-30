@@ -172,6 +172,101 @@ export async function markAllAnnouncementsRead() {
   if (error) throw error;
 }
 
+export type LearnerAssignmentSubmission = {
+  id: string;
+  text_response: string | null;
+  link_url: string | null;
+  file_path: string | null;
+  file_name: string | null;
+  file_mime_type: string | null;
+  file_size_bytes: number | null;
+  status: "draft" | "submitted" | "graded" | "returned";
+  submitted_at: string | null;
+  score: number | null;
+  feedback: string | null;
+  graded_at: string | null;
+  updated_at: string;
+};
+
+export type LearnerAssignment = {
+  id: string;
+  course_id: string;
+  course_title: string;
+  title: string;
+  instructions: string;
+  submission_type: "file" | "text" | "link" | "mixed";
+  max_score: number;
+  available_from: string | null;
+  due_at: string | null;
+  allowed_mime_types: string[];
+  max_file_bytes: number;
+  state: "pending" | "overdue" | "submitted" | "graded" | "returned";
+  submission: LearnerAssignmentSubmission | null;
+};
+
+export async function getMyAssignments() {
+  const supabase = getSupabaseBrowserClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+  const { data, error } = await supabase.rpc("adci_get_my_assignments");
+  if (error) throw error;
+  return (data ?? []) as LearnerAssignment[];
+}
+
+export async function uploadAssignmentFile(assignmentId: string, file: File) {
+  const supabase = getSupabaseBrowserClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+  const { data: userData, error: userError } = await supabase.auth.getUser();
+  if (userError || !userData.user) throw userError ?? new Error("Authentication required");
+  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "-");
+  const path = `${assignmentId}/${userData.user.id}/${crypto.randomUUID()}-${safeName}`;
+  const { error } = await supabase.storage
+    .from("adci-assignment-submissions")
+    .upload(path, file, { cacheControl: "3600", upsert: false, contentType: file.type });
+  if (error) throw error;
+  return {
+    path,
+    name: file.name,
+    mimeType: file.type,
+    sizeBytes: file.size
+  };
+}
+
+export async function saveMyAssignmentSubmission(input: {
+  assignmentId: string;
+  text: string;
+  link: string;
+  filePath: string;
+  fileName: string;
+  fileMimeType: string;
+  fileSizeBytes: number | null;
+  submitNow: boolean;
+}) {
+  const supabase = getSupabaseBrowserClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+  const { data, error } = await supabase.rpc("adci_save_my_assignment_submission", {
+    target_assignment_id: input.assignmentId,
+    submission_text: input.text,
+    submission_link: input.link,
+    submission_file_path: input.filePath,
+    submission_file_name: input.fileName,
+    submission_file_mime_type: input.fileMimeType,
+    submission_file_size_bytes: input.fileSizeBytes,
+    submit_now: input.submitNow
+  });
+  if (error) throw error;
+  return data as LearnerAssignmentSubmission;
+}
+
+export async function getMyAssignmentFileUrl(path: string) {
+  const supabase = getSupabaseBrowserClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+  const { data, error } = await supabase.storage
+    .from("adci-assignment-submissions")
+    .createSignedUrl(path, 60 * 30);
+  if (error) throw error;
+  return data.signedUrl;
+}
+
 export async function getProtectedLessonUrl(asset: LearningAsset) {
   const supabase = getSupabaseBrowserClient();
   if (!supabase) throw new Error("Supabase is not configured");

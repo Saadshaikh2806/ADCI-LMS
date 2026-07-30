@@ -271,6 +271,138 @@ export async function deleteAdciAnnouncement(announcementId: string) {
   if (error) throw error;
 }
 
+export type AdciAssignment = {
+  id: string;
+  course_id: string;
+  course_title: string;
+  title: string;
+  instructions: string;
+  submission_type: "file" | "text" | "link" | "mixed";
+  max_score: number;
+  available_from: string | null;
+  due_at: string | null;
+  status: "draft" | "in_review" | "approved" | "published" | "retired";
+  allowed_mime_types: string[];
+  max_file_bytes: number;
+  created_at: string;
+  submission_count: number;
+  awaiting_review_count: number;
+  graded_count: number;
+  learner_count: number;
+};
+
+export type AdciAssignmentAdminData = {
+  summary: { total: number; published: number; awaiting_review: number; graded: number };
+  courses: { id: string; title: string; status: string }[];
+  assignments: AdciAssignment[];
+};
+
+export type AdciAssignmentSubmission = {
+  learner_id: string;
+  learner_name: string;
+  learner_email: string;
+  submission_id: string | null;
+  text_response: string | null;
+  link_url: string | null;
+  file_path: string | null;
+  file_name: string | null;
+  file_mime_type: string | null;
+  file_size_bytes: number | null;
+  status: "not_submitted" | "draft" | "submitted" | "graded" | "returned";
+  submitted_at: string | null;
+  score: number | null;
+  feedback: string | null;
+  graded_at: string | null;
+};
+
+export type AdciAssignmentSubmissionsData = {
+  assignment: { id: string; title: string; max_score: number; due_at: string | null };
+  submissions: AdciAssignmentSubmission[];
+};
+
+export async function getAdciAssignments() {
+  const supabase = getSupabaseBrowserClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+  const { data, error } = await supabase.rpc("adci_admin_get_assignments");
+  if (error) throw error;
+  return data as AdciAssignmentAdminData;
+}
+
+export async function saveAdciAssignment(input: {
+  id?: string;
+  courseId: string;
+  title: string;
+  instructions: string;
+  submissionType: AdciAssignment["submission_type"];
+  maxScore: number;
+  availableFrom: string | null;
+  dueAt: string | null;
+  status: AdciAssignment["status"];
+}) {
+  const supabase = getSupabaseBrowserClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+  const { data, error } = await supabase.rpc("adci_admin_save_assignment", {
+    target_assignment_id: input.id ?? null,
+    target_course_id: input.courseId,
+    assignment_title: input.title,
+    assignment_instructions: input.instructions,
+    assignment_submission_type: input.submissionType,
+    assignment_max_score: input.maxScore,
+    assignment_available_from: input.availableFrom,
+    assignment_due_at: input.dueAt,
+    assignment_status: input.status
+  });
+  if (error) throw error;
+  return data as string;
+}
+
+export async function archiveAdciAssignment(assignmentId: string) {
+  const supabase = getSupabaseBrowserClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+  const { data, error } = await supabase.rpc("adci_admin_archive_assignment", {
+    target_assignment_id: assignmentId
+  });
+  if (error) throw error;
+  return data as "deleted" | "archived";
+}
+
+export async function getAdciAssignmentSubmissions(assignmentId: string) {
+  const supabase = getSupabaseBrowserClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+  const { data, error } = await supabase.rpc("adci_admin_get_assignment_submissions", {
+    target_assignment_id: assignmentId
+  });
+  if (error) throw error;
+  return data as AdciAssignmentSubmissionsData;
+}
+
+export async function gradeAdciAssignmentSubmission(
+  submissionId: string,
+  score: number | null,
+  feedback: string,
+  decision: "graded" | "returned"
+) {
+  const supabase = getSupabaseBrowserClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+  const { error } = await supabase.rpc("adci_admin_grade_assignment_submission", {
+    target_submission_id: submissionId,
+    awarded_score: score,
+    teacher_feedback: feedback,
+    grading_decision: decision
+  });
+  if (error) throw error;
+}
+
+export async function getAdciSubmissionFileUrl(path: string) {
+  const supabase = getSupabaseBrowserClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+  const { data, error } = await supabase.storage
+    .from("adci-assignment-submissions")
+    .createSignedUrl(path, 60 * 30);
+  if (error) throw error;
+  return data.signedUrl;
+}
+
 export async function listAdciPeople() {
   const supabase = getSupabaseBrowserClient();
   if (!supabase) return [];
