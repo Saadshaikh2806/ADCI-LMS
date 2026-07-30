@@ -3,6 +3,7 @@
 import {
   ArrowRight,
   AlarmClock,
+  Award,
   BarChart3,
   Bell,
   BookOpen,
@@ -51,6 +52,7 @@ import AdminAuditLog from "../components/AdminAuditLog";
 import AdminDashboard from "../components/AdminDashboard";
 import AdminAnnouncements from "../components/AdminAnnouncements";
 import AdminAssignments from "../components/AdminAssignments";
+import AdminCertificates from "../components/AdminCertificates";
 import NotificationCenter from "../components/NotificationCenter";
 import StudentQuizRunner from "../components/StudentQuizRunner";
 import LiveClassSchedule from "../components/LiveClassSchedule";
@@ -58,6 +60,7 @@ import StudentCourses from "../components/StudentCourses";
 import StudentCoursePlayer from "../components/StudentCoursePlayer";
 import StudyPlan from "../components/StudyPlan";
 import StudentAssignments from "../components/StudentAssignments";
+import StudentCertificates from "../components/StudentCertificates";
 import { hasAcademicAdminRole, loadMyAdciMemberships } from "../lib/supabase/admin";
 import { getLearnerDashboard, getMyNotifications, type LearnerDashboard } from "../lib/supabase/learning";
 
@@ -67,6 +70,7 @@ const navItems = [
   { label: "Live classes", icon: Video },
   { label: "Assessments", icon: ClipboardCheck },
   { label: "Assignments", icon: ClipboardList },
+  { label: "Certificates", icon: Award },
   { label: "Study plan", icon: CalendarDays },
   { label: "Community", icon: Users }
 ];
@@ -363,7 +367,7 @@ function LearningHub() {
         </nav>
       </section>
 
-      {active !== "Overview" && active !== "My courses" && active !== "Study plan" && active !== "Assignments" && !lessonOpen && (
+      {active !== "Overview" && active !== "My courses" && active !== "Study plan" && active !== "Assignments" && active !== "Certificates" && !lessonOpen && (
         <div className="route-overlay">
           <button className="overlay-close" onClick={() => setActive("Overview")}><X /></button>
           <div className="overlay-icon">{(() => { const item = navItems.find((n) => n.label === active); const Icon = item?.icon ?? BookOpen; return <Icon size={30} />; })()}</div>
@@ -376,6 +380,7 @@ function LearningHub() {
       {active === "My courses" && !lessonOpen && <StudentCourses close={() => { setActive("Overview"); void refreshLearnerDashboard(); }} notify={notify} />}
       {active === "Study plan" && !lessonOpen && <StudyPlan close={() => setActive("Overview")} notify={notify} openAssessments={(assessmentId) => { setActiveAssessmentId(assessmentId); setExamOpen(true); }} />}
       {active === "Assignments" && !lessonOpen && <StudentAssignments close={() => setActive("Overview")} notify={notify} />}
+      {active === "Certificates" && !lessonOpen && <StudentCertificates close={() => setActive("Overview")} />}
       {openLearning && <StudentCoursePlayer
         courseId={openLearning.courseId}
         initialLessonId={openLearning.lessonId}
@@ -516,6 +521,7 @@ function LearningHub() {
               ["Academics", BookOpen],
               ["Question bank", ClipboardCheck],
               ["Assignments", ClipboardList],
+              ["Certificates", Award],
               ["Live schedule", CalendarDays],
               ["Announcements", Megaphone],
               ["Reports", BarChart3],
@@ -539,6 +545,8 @@ function LearningHub() {
               <AdminQuestionBank notify={notify} />
             ) : adminSection === "Assignments" ? (
               <AdminAssignments notify={notify} />
+            ) : adminSection === "Certificates" ? (
+              <AdminCertificates notify={notify} />
             ) : adminSection === "Announcements" ? (
               <AdminAnnouncements notify={notify} />
             ) : adminSection === "Audit log" ? (
