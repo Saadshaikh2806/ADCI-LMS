@@ -53,6 +53,7 @@ import AdminDashboard from "../components/AdminDashboard";
 import AdminAnnouncements from "../components/AdminAnnouncements";
 import AdminAssignments from "../components/AdminAssignments";
 import AdminCertificates from "../components/AdminCertificates";
+import AdminCommunity from "../components/AdminCommunity";
 import NotificationCenter from "../components/NotificationCenter";
 import StudentQuizRunner from "../components/StudentQuizRunner";
 import LiveClassSchedule from "../components/LiveClassSchedule";
@@ -61,6 +62,7 @@ import StudentCoursePlayer from "../components/StudentCoursePlayer";
 import StudyPlan from "../components/StudyPlan";
 import StudentAssignments from "../components/StudentAssignments";
 import StudentCertificates from "../components/StudentCertificates";
+import CommunityHub from "../components/CommunityHub";
 import { hasAcademicAdminRole, loadMyAdciMemberships } from "../lib/supabase/admin";
 import { getLearnerDashboard, getMyNotifications, type LearnerDashboard } from "../lib/supabase/learning";
 
@@ -367,7 +369,7 @@ function LearningHub() {
         </nav>
       </section>
 
-      {active !== "Overview" && active !== "My courses" && active !== "Study plan" && active !== "Assignments" && active !== "Certificates" && !lessonOpen && (
+      {active !== "Overview" && active !== "My courses" && active !== "Study plan" && active !== "Assignments" && active !== "Certificates" && active !== "Community" && !lessonOpen && (
         <div className="route-overlay">
           <button className="overlay-close" onClick={() => setActive("Overview")}><X /></button>
           <div className="overlay-icon">{(() => { const item = navItems.find((n) => n.label === active); const Icon = item?.icon ?? BookOpen; return <Icon size={30} />; })()}</div>
@@ -381,6 +383,7 @@ function LearningHub() {
       {active === "Study plan" && !lessonOpen && <StudyPlan close={() => setActive("Overview")} notify={notify} openAssessments={(assessmentId) => { setActiveAssessmentId(assessmentId); setExamOpen(true); }} />}
       {active === "Assignments" && !lessonOpen && <StudentAssignments close={() => setActive("Overview")} notify={notify} />}
       {active === "Certificates" && !lessonOpen && <StudentCertificates close={() => setActive("Overview")} />}
+      {active === "Community" && !lessonOpen && <CommunityHub close={() => setActive("Overview")} notify={notify} />}
       {openLearning && <StudentCoursePlayer
         courseId={openLearning.courseId}
         initialLessonId={openLearning.lessonId}
@@ -522,6 +525,7 @@ function LearningHub() {
               ["Question bank", ClipboardCheck],
               ["Assignments", ClipboardList],
               ["Certificates", Award],
+              ["Community", MessageSquareText],
               ["Live schedule", CalendarDays],
               ["Announcements", Megaphone],
               ["Reports", BarChart3],
@@ -547,6 +551,8 @@ function LearningHub() {
               <AdminAssignments notify={notify} />
             ) : adminSection === "Certificates" ? (
               <AdminCertificates notify={notify} />
+            ) : adminSection === "Community" ? (
+              <AdminCommunity notify={notify} />
             ) : adminSection === "Announcements" ? (
               <AdminAnnouncements notify={notify} />
             ) : adminSection === "Audit log" ? (
