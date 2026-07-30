@@ -170,7 +170,7 @@ export default function AdminAnnouncements({ notify }: { notify: (message: strin
       <article><div className="urgent"><ShieldAlert /></div><span>URGENT</span><strong>{data?.summary.urgent ?? 0}</strong></article>
     </section>
     <section className="email-delivery-card">
-      <header><div><Mail /><span><strong>Email delivery</strong><small>Durable queue with automatic retry and provider tracking.</small></span></div><div><em>{emailData?.summary.queued ?? 0} pending</em><em className="sent">{emailData?.summary.delivered ?? 0} delivered</em><em className={(emailData?.summary.bounced ?? 0) ? "failed" : ""}>{emailData?.summary.bounced ?? 0} bounced</em></div></header>
+      <header><div><Mail /><span><strong>Email delivery</strong><small>Standard SMTP delivery with a durable retry queue.</small></span></div><div><em>{emailData?.summary.queued ?? 0} pending</em><em className="sent">{emailData?.summary.sent ?? 0} sent</em><em className={(emailData?.summary.failed ?? 0) ? "failed" : ""}>{emailData?.summary.failed ?? 0} failed</em></div></header>
       <div className="email-delivery-table">
         <div className="email-delivery-head"><span>Recipient</span><span>Announcement</span><span>Created</span><span>Attempts</span><span>Status</span><span>Action</span></div>
         {(emailData?.deliveries ?? []).slice(0, 12).map((delivery) => <article key={delivery.id}>
@@ -178,7 +178,7 @@ export default function AdminAnnouncements({ notify }: { notify: (message: strin
           <div><strong>{delivery.announcement_title}</strong><small>{delivery.provider_message_id || delivery.last_error || "Waiting for dispatcher"}</small></div>
           <span>{new Date(delivery.created_at).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}</span>
           <strong>{delivery.attempts}/5</strong>
-          <em className={delivery.provider_status === "pending" ? delivery.status : delivery.provider_status}>{delivery.provider_status === "pending" ? delivery.status : delivery.provider_status}</em>
+          <em className={delivery.status}>{delivery.status}</em>
           {delivery.status === "failed"
             ? <button disabled={saving} onClick={() => void retry(delivery.id)}><RotateCcw /> Retry</button>
             : delivery.status === "sent" ? <span className="delivery-complete"><Check /> Complete</span> : <span className="delivery-waiting"><LoaderCircle /> Pending</span>}

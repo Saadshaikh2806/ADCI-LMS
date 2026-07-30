@@ -14,8 +14,6 @@ export type EmailDelivery = {
   status: "queued" | "processing" | "sent" | "failed" | "cancelled";
   attempts: number;
   provider_message_id: string | null;
-  provider_status: "pending" | "accepted" | "sent" | "delivered" | "delayed" | "bounced" | "complained" | "suppressed" | "failed";
-  provider_event_at: string | null;
   last_error: string | null;
   sent_at: string | null;
   created_at: string;
@@ -27,8 +25,6 @@ export type AdminEmailDeliveryData = {
     sent: number;
     failed: number;
     cancelled: number;
-    delivered: number;
-    bounced: number;
   };
   deliveries: EmailDelivery[];
 };

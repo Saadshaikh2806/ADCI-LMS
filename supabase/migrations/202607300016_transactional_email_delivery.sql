@@ -30,10 +30,6 @@ create table if not exists public.adci_email_deliveries (
   next_attempt_at timestamptz not null default now(),
   claimed_at timestamptz,
   provider_message_id text,
-  provider_status text not null default 'pending'
-    check (provider_status in ('pending','accepted','sent','delivered','delayed','bounced','complained','suppressed','failed')),
-  provider_event_at timestamptz,
-  provider_event_payload jsonb not null default '{}'::jsonb,
   last_error text,
   sent_at timestamptz,
   created_at timestamptz not null default now(),
@@ -41,17 +37,8 @@ create table if not exists public.adci_email_deliveries (
   check (announcement_id is not null or message_kind <> 'announcement')
 );
 
-create table if not exists public.adci_email_webhook_events (
-  provider_event_id text primary key,
-  event_type text not null,
-  provider_message_id text,
-  payload jsonb not null,
-  received_at timestamptz not null default now()
-);
-
 alter table public.adci_notification_preferences enable row level security;
 alter table public.adci_email_deliveries enable row level security;
-alter table public.adci_email_webhook_events enable row level security;
 
 drop policy if exists "users read own notification preferences" on public.adci_notification_preferences;
 create policy "users read own notification preferences"
@@ -303,7 +290,6 @@ begin
   update public.adci_email_deliveries
   set status = 'sent',
       provider_message_id = nullif(trim(provider_email_id), ''),
-      provider_status = case when provider_status = 'pending' then 'accepted' else provider_status end,
       sent_at = coalesce(sent_at, now()),
       last_error = null,
       updated_at = now()
@@ -362,15 +348,6 @@ begin
       'cancelled', (
         select count(*) from public.adci_email_deliveries
         where organization_id = target_organization_id and status = 'cancelled'
-      ),
-      'delivered', (
-        select count(*) from public.adci_email_deliveries
-        where organization_id = target_organization_id and provider_status = 'delivered'
-      ),
-      'bounced', (
-        select count(*) from public.adci_email_deliveries
-        where organization_id = target_organization_id
-          and provider_status in ('bounced','complained','suppressed','failed')
       )
     ),
     'deliveries', coalesce((
@@ -388,8 +365,6 @@ begin
             'status', delivery.status,
             'attempts', delivery.attempts,
             'provider_message_id', delivery.provider_message_id,
-            'provider_status', delivery.provider_status,
-            'provider_event_at', delivery.provider_event_at,
             'last_error', delivery.last_error,
             'sent_at', delivery.sent_at,
             'created_at', delivery.created_at
@@ -402,72 +377,6 @@ begin
       ) recent_delivery
     ), '[]'::jsonb)
   );
-end;
-$$;
-
-create or replace function public.adci_record_email_provider_event(
-  provider_event_id text,
-  provider_event_type text,
-  provider_email_id text,
-  provider_event_payload jsonb
-)
-returns boolean
-language plpgsql security definer set search_path = ''
-as $$
-declare inserted_event_count integer; mapped_status text;
-begin
-  insert into public.adci_email_webhook_events (
-    provider_event_id, event_type, provider_message_id, payload
-  ) values (
-    provider_event_id, provider_event_type, provider_email_id,
-    coalesce(provider_event_payload, '{}'::jsonb)
-  )
-  on conflict (provider_event_id) do nothing;
-  get diagnostics inserted_event_count = row_count;
-  if inserted_event_count = 0 then return false; end if;
-
-  mapped_status := case provider_event_type
-    when 'email.sent' then 'sent'
-    when 'email.delivered' then 'delivered'
-    when 'email.delivery_delayed' then 'delayed'
-    when 'email.bounced' then 'bounced'
-    when 'email.complained' then 'complained'
-    when 'email.suppressed' then 'suppressed'
-    when 'email.failed' then 'failed'
-    else null
-  end;
-  if mapped_status is not null then
-    update public.adci_email_deliveries
-    set provider_status = case
-          when provider_status in ('bounced','complained','suppressed','failed') then provider_status
-          when mapped_status in ('bounced','complained','suppressed','failed') then mapped_status
-          when provider_status = 'delivered' then provider_status
-          when mapped_status = 'delivered' then 'delivered'
-          when mapped_status = 'delayed'
-            and provider_status in ('pending','accepted','sent') then 'delayed'
-          when mapped_status = 'sent'
-            and provider_status in ('pending','accepted') then 'sent'
-          else provider_status
-        end,
-        provider_event_at = coalesce(
-          nullif(provider_event_payload->>'created_at', '')::timestamptz,
-          now()
-        ),
-        provider_event_payload = coalesce(provider_event_payload, '{}'::jsonb),
-        last_error = case
-          when mapped_status in ('bounced','complained','suppressed','failed')
-          then coalesce(
-            provider_event_payload #>> '{data,bounce,message}',
-            provider_event_payload #>> '{data,error,message}',
-            provider_event_type
-          )
-          else last_error
-        end,
-        updated_at = now()
-    where provider_message_id = provider_email_id
-      or id::text = provider_event_payload #>> '{data,tags,delivery}';
-  end if;
-  return true;
 end;
 $$;
 
@@ -608,7 +517,6 @@ revoke all on function public.adci_queue_due_announcement_emails() from public;
 revoke all on function public.adci_claim_email_deliveries(integer) from public;
 revoke all on function public.adci_mark_email_delivery_sent(uuid,text) from public;
 revoke all on function public.adci_mark_email_delivery_failed(uuid,text) from public;
-revoke all on function public.adci_record_email_provider_event(text,text,text,jsonb) from public;
 revoke all on function public.adci_admin_get_email_delivery() from public;
 revoke all on function public.adci_admin_retry_email_delivery(uuid) from public;
 grant execute on function public.adci_get_my_email_preferences() to authenticated;
@@ -617,6 +525,5 @@ grant execute on function public.adci_queue_due_announcement_emails() to service
 grant execute on function public.adci_claim_email_deliveries(integer) to service_role;
 grant execute on function public.adci_mark_email_delivery_sent(uuid,text) to service_role;
 grant execute on function public.adci_mark_email_delivery_failed(uuid,text) to service_role;
-grant execute on function public.adci_record_email_provider_event(text,text,text,jsonb) to service_role;
 grant execute on function public.adci_admin_get_email_delivery() to authenticated;
 grant execute on function public.adci_admin_retry_email_delivery(uuid) to authenticated;

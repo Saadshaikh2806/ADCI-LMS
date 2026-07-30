@@ -1,6 +1,7 @@
 import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import nodemailer, { type Transporter } from "nodemailer";
 import { requireServerEnvironment } from "../supabase/server";
 
 type ClaimedEmail = {
@@ -15,7 +16,29 @@ type ClaimedEmail = {
   attempt_number: number;
 };
 
-type ResendResponse = { id?: string; message?: string; name?: string };
+let smtpTransporter: Transporter | null = null;
+
+function getSmtpTransporter() {
+  if (smtpTransporter) return smtpTransporter;
+  const port = Number(requireServerEnvironment("SMTP_PORT"));
+  if (!Number.isInteger(port) || port <= 0) throw new Error("SMTP_PORT must be a valid port number");
+  smtpTransporter = nodemailer.createTransport({
+    host: requireServerEnvironment("SMTP_HOST"),
+    port,
+    secure: process.env.SMTP_SECURE === "true" || port === 465,
+    auth: {
+      user: requireServerEnvironment("SMTP_USER"),
+      pass: requireServerEnvironment("SMTP_PASS")
+    },
+    pool: true,
+    maxConnections: 4,
+    maxMessages: 100,
+    rateDelta: 1000,
+    rateLimit: 4,
+    tls: { rejectUnauthorized: true }
+  });
+  return smtpTransporter;
+}
 
 function escapeHtml(value: string) {
   return value
@@ -61,42 +84,25 @@ function emailHtml(delivery: ClaimedEmail, appUrl: string) {
 }
 
 async function sendOne(delivery: ClaimedEmail) {
-  const apiKey = requireServerEnvironment("RESEND_API_KEY");
   const from = requireServerEnvironment("EMAIL_FROM");
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://lms.adcionline.com";
   const replyTo = process.env.EMAIL_REPLY_TO;
   const subjectPrefix = delivery.message_priority === "urgent" ? "[Urgent] " : "";
-  const response = await fetch("https://api.resend.com/emails", {
-    method: "POST",
+  const messageDomain = new URL(appUrl).hostname;
+  const result = await getSmtpTransporter().sendMail({
+    from,
+    to: delivery.recipient_email,
+    replyTo: replyTo || undefined,
+    subject: `${subjectPrefix}${delivery.message_subject}`,
+    html: emailHtml(delivery, appUrl),
+    text: `Hello ${delivery.recipient_name},\n\n${delivery.message_subject}\n\n${delivery.message_body}\n\nOpen ADCI Learning Hub: ${appUrl}`,
+    messageId: `<${delivery.delivery_id}@${messageDomain}>`,
     headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-      "Idempotency-Key": `adci-announcement/${delivery.delivery_id}`,
-      "User-Agent": "ADCI-LMS/1.0"
-    },
-    body: JSON.stringify({
-      from,
-      to: [delivery.recipient_email],
-      reply_to: replyTo || undefined,
-      subject: `${subjectPrefix}${delivery.message_subject}`,
-      html: emailHtml(delivery, appUrl),
-      text: `Hello ${delivery.recipient_name},\n\n${delivery.message_subject}\n\n${delivery.message_body}\n\nOpen ADCI Learning Hub: ${appUrl}`,
-      tags: [
-        { name: "category", value: delivery.message_kind },
-        {
-          name: "delivery",
-          value: delivery.delivery_id
-        }
-      ]
-    }),
-    cache: "no-store"
+      "X-ADCI-Delivery-ID": delivery.delivery_id,
+      "X-ADCI-Message-Type": delivery.message_kind
+    }
   });
-  const payload = await response.json().catch(() => ({})) as ResendResponse;
-  if (!response.ok || !payload.id) {
-    const retryAfter = response.headers.get("retry-after");
-    throw new Error(`${payload.message || payload.name || `Resend failed (${response.status})`}${retryAfter ? `; retry after ${retryAfter}s` : ""}`);
-  }
-  return payload.id;
+  return result.messageId || delivery.delivery_id;
 }
 
 function wait(milliseconds: number) {
@@ -104,7 +110,10 @@ function wait(milliseconds: number) {
 }
 
 export async function dispatchPendingEmails(service: SupabaseClient, claimLimit = 25) {
-  requireServerEnvironment("RESEND_API_KEY");
+  requireServerEnvironment("SMTP_HOST");
+  requireServerEnvironment("SMTP_PORT");
+  requireServerEnvironment("SMTP_USER");
+  requireServerEnvironment("SMTP_PASS");
   requireServerEnvironment("EMAIL_FROM");
 
   const { data, error } = await service.rpc("adci_claim_email_deliveries", {
