@@ -57,6 +57,7 @@ import AdminAssignments from "../components/AdminAssignments";
 import AdminCertificates from "../components/AdminCertificates";
 import AdminCommunity from "../components/AdminCommunity";
 import AdminCommerce from "../components/AdminCommerce";
+import AccountSettings from "../components/AccountSettings";
 import NotificationCenter from "../components/NotificationCenter";
 import StudentQuizRunner from "../components/StudentQuizRunner";
 import LiveClassSchedule from "../components/LiveClassSchedule";
@@ -165,6 +166,7 @@ function LearningHub() {
   const [openLearning, setOpenLearning] = useState<{ courseId: string; lessonId?: string } | null>(null);
   const [notificationOpen, setNotificationOpen] = useState(false);
   const [notificationCount, setNotificationCount] = useState(0);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   async function refreshLearnerDashboard() {
     setDashboardLoading(true);
@@ -288,7 +290,7 @@ function LearningHub() {
 
         <div className="sidebar-bottom">
           <button className="nav-item"><CircleHelp size={19} /><span>Help centre</span></button>
-          <button className="nav-item"><Settings size={19} /><span>Settings</span></button>
+          <button className={`nav-item ${settingsOpen ? "active" : ""}`} onClick={() => { setSettingsOpen(true); setMenuOpen(false); }}><Settings size={19} /><span>Settings</span></button>
           <div className="mentor-card">
             <div className="mentor-icon"><Sparkles size={20} /></div>
             <strong>Need a study nudge?</strong>
@@ -315,7 +317,7 @@ function LearningHub() {
               <div><strong>{accountName}</strong><small>UPSC Foundation</small></div>
               <ChevronRight size={16} />
             </button>
-            {profileOpen && <div className="profile-menu"><button className="selected"><GraduationCap size={17} /><span><strong>Learner portal</strong><small>Continue studying</small></span><Check size={15} /></button>{canAdminister && <button onClick={() => { setAdminSection(adminEntrySection); setAdminOpen(true); setProfileOpen(false); }}><UserCog size={17} /><span><strong>Admin workspace</strong><small>Manage the institution</small></span><ArrowRight size={15} /></button>}</div>}
+            {profileOpen && <div className="profile-menu"><button className="selected"><GraduationCap size={17} /><span><strong>Learner portal</strong><small>Continue studying</small></span><Check size={15} /></button>{canAdminister && <button onClick={() => { setAdminSection(adminEntrySection); setAdminOpen(true); setProfileOpen(false); }}><UserCog size={17} /><span><strong>Admin workspace</strong><small>Manage the institution</small></span><ArrowRight size={15} /></button>}<button onClick={() => { setSettingsOpen(true); setProfileOpen(false); }}><Settings size={17} /><span><strong>Account settings</strong><small>Profile, password and sign out</small></span><ArrowRight size={15} /></button></div>}
           </div>
         </header>
 
@@ -553,7 +555,7 @@ function LearningHub() {
             <div className="admin-user"><span>{accountInitials}</span><div><strong>{accountName}</strong><small>Super administrator</small></div><button onClick={() => setAdminOpen(false)} aria-label="Return to learner portal"><X size={17} /></button></div>
           </aside>
           <section className="admin-workspace">
-            <header className="admin-topbar"><div><p className="eyebrow">ANEES DEFENCE CAREER INSTITUTE</p><h1>{adminSection}</h1></div><div><span className={`data-mode ${backendConnected ? "connected" : ""}`}><i />{backendConnected ? "Supabase connected" : "Demo data"}</span><button className="icon-button" aria-label={`${notificationCount} unread notifications`} onClick={() => setNotificationOpen(true)}><Bell size={20} />{notificationCount > 0 && <><i /><span className="notification-count">{notificationCount > 99 ? "99+" : notificationCount}</span></>}</button><button className="admin-avatar">{accountInitials}</button></div></header>
+              <header className="admin-topbar"><div><p className="eyebrow">ANEES DEFENCE CAREER INSTITUTE</p><h1>{adminSection}</h1></div><div><span className={`data-mode ${backendConnected ? "connected" : ""}`}><i />{backendConnected ? "Supabase connected" : "Demo data"}</span><button className="icon-button" aria-label={`${notificationCount} unread notifications`} onClick={() => setNotificationOpen(true)}><Bell size={20} />{notificationCount > 0 && <><i /><span className="notification-count">{notificationCount > 99 ? "99+" : notificationCount}</span></>}</button><button className="admin-avatar" onClick={() => setSettingsOpen(true)} aria-label="Open account settings" title="Account settings">{accountInitials}</button></div></header>
             {adminSection === "Dashboard" ? (
               <AdminDashboard accountName={accountName} navigate={setAdminSection} />
             ) : adminSection === "Academics" ? (
@@ -586,6 +588,7 @@ function LearningHub() {
       )}
 
       {notificationOpen && <NotificationCenter close={() => setNotificationOpen(false)} onUnreadChange={setNotificationCount} />}
+      {settingsOpen && <AccountSettings close={() => setSettingsOpen(false)} notify={notify} />}
       {toast && <div className="toast"><Check size={17} />{toast}</div>}
     </main>
   );
