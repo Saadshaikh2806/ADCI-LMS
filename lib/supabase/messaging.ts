@@ -4,6 +4,13 @@ export type EmailPreferences = {
   email_announcements: boolean;
 };
 
+export type EventNotificationPreferences = EmailPreferences & {
+  notify_support: boolean;
+  notify_assignments: boolean;
+  notify_live_classes: boolean;
+  notify_assessments: boolean;
+};
+
 export type EmailDelivery = {
   id: string;
   announcement_id: string | null;
@@ -47,6 +54,23 @@ export async function saveMyEmailPreferences(enabled: boolean) {
   });
   if (error) throw error;
   return data as EmailPreferences;
+}
+
+export async function getMyEventNotificationPreferences() {
+  const { data, error } = await requireClient().rpc("adci_get_my_notification_preferences");
+  if (error) throw error;
+  return data as EventNotificationPreferences;
+}
+
+export async function saveMyEventNotificationPreferences(preferences: Omit<EventNotificationPreferences, "email_announcements">) {
+  const { data, error } = await requireClient().rpc("adci_save_my_event_notification_preferences", {
+    receive_support: preferences.notify_support,
+    receive_assignments: preferences.notify_assignments,
+    receive_live_classes: preferences.notify_live_classes,
+    receive_assessments: preferences.notify_assessments
+  });
+  if (error) throw error;
+  return data as EventNotificationPreferences;
 }
 
 export async function getAdminEmailDelivery() {

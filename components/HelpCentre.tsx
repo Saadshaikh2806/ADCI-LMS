@@ -58,18 +58,20 @@ function formatTime(value: string) {
 export default function HelpCentre({
   close,
   notify,
-  initialCategory
+  initialCategory,
+  initialTicketId
 }: {
   close: () => void;
   notify: (message: string) => void;
   initialCategory?: SupportCategory;
+  initialTicketId?: string;
 }) {
   const [tickets, setTickets] = useState<LearnerSupportTicket[]>([]);
   const [selected, setSelected] = useState<LearnerSupportTicket | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const [view, setView] = useState<"help" | "tickets">(initialCategory ? "tickets" : "help");
+  const [view, setView] = useState<"help" | "tickets">(initialCategory || initialTicketId ? "tickets" : "help");
   const [creating, setCreating] = useState(Boolean(initialCategory));
   const [faqQuery, setFaqQuery] = useState("");
   const [openFaq, setOpenFaq] = useState<number | null>(null);
@@ -85,7 +87,7 @@ export default function HelpCentre({
     try {
       const result = await getMySupportTickets();
       setTickets(result);
-      const selectedId = preferredId ?? selected?.id;
+      const selectedId = preferredId ?? selected?.id ?? initialTicketId;
       if (selectedId) setSelected(result.find((ticket) => ticket.id === selectedId) ?? null);
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : "Unable to load support tickets");

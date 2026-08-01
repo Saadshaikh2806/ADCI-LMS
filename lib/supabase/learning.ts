@@ -199,13 +199,21 @@ export async function getMyAssessmentCentre() {
 
 export type AdciNotification = {
   id: string;
+  source: "announcement" | "event";
+  notification_type: "announcement" | "support" | "assignment" | "live_class" | "assessment" | "system";
   title: string;
   body: string;
-  audience: "all" | "learners" | "staff";
+  audience: "all" | "learners" | "staff" | "personal";
   priority: "info" | "important" | "urgent";
   published_at: string;
   expires_at: string | null;
   read: boolean;
+  action_data: {
+    kind?: "support" | "assignment" | "live_class" | "assessment";
+    id?: string;
+    course_id?: string;
+    lesson_id?: string;
+  };
 };
 
 export type AdciNotificationFeed = {
@@ -234,6 +242,23 @@ export async function markAllAnnouncementsRead() {
   const supabase = getSupabaseBrowserClient();
   if (!supabase) throw new Error("Supabase is not configured");
   const { error } = await supabase.rpc("adci_mark_all_announcements_read");
+  if (error) throw error;
+}
+
+export async function markNotificationRead(notificationId: string, source: AdciNotification["source"]) {
+  const supabase = getSupabaseBrowserClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+  const { error } = await supabase.rpc("adci_mark_notification_read", {
+    target_notification_id: notificationId,
+    notification_source: source
+  });
+  if (error) throw error;
+}
+
+export async function markAllNotificationsRead() {
+  const supabase = getSupabaseBrowserClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+  const { error } = await supabase.rpc("adci_mark_all_notifications_read");
   if (error) throw error;
 }
 
