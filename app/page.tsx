@@ -56,6 +56,7 @@ import AdminAssignments from "../components/AdminAssignments";
 import AdminCertificates from "../components/AdminCertificates";
 import AdminCommunity from "../components/AdminCommunity";
 import AdminCommerce from "../components/AdminCommerce";
+import AdminSupportInbox from "../components/AdminSupportInbox";
 import AccountSettings from "../components/AccountSettings";
 import MfaChallengeDialog from "../components/MfaChallengeDialog";
 import NotificationCenter from "../components/NotificationCenter";
@@ -64,6 +65,7 @@ import StudentQuizRunner from "../components/StudentQuizRunner";
 import LiveClassSchedule from "../components/LiveClassSchedule";
 import StudentLiveClasses from "../components/StudentLiveClasses";
 import StudentAssessmentCentre from "../components/StudentAssessmentCentre";
+import HelpCentre from "../components/HelpCentre";
 import StudentCourses from "../components/StudentCourses";
 import StudentCoursePlayer from "../components/StudentCoursePlayer";
 import StudyPlan from "../components/StudyPlan";
@@ -174,6 +176,8 @@ function LearningHub() {
   const [notificationOpen, setNotificationOpen] = useState(false);
   const [notificationCount, setNotificationCount] = useState(0);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
+  const [helpCategory, setHelpCategory] = useState<"mentor" | undefined>();
   const [adminMfaFactorId, setAdminMfaFactorId] = useState("");
 
   async function refreshLearnerDashboard() {
@@ -244,7 +248,7 @@ function LearningHub() {
             roles.has("super_admin") || roles.has("branch_admin") || roles.has("academic_lead") || roles.has("content_author")
               ? "Dashboard"
               : roles.has("finance") ? "Commerce"
-              : roles.has("support") ? "Community"
+              : roles.has("support") || roles.has("mentor") ? "Support"
               : roles.has("instructor") ? "Assignments"
               : "Community"
           );
@@ -339,13 +343,13 @@ function LearningHub() {
         </nav>
 
         <div className="sidebar-bottom">
-          <button className="nav-item"><CircleHelp size={19} /><span>Help centre</span></button>
+          <button className="nav-item" onClick={() => { setHelpCategory(undefined); setHelpOpen(true); setMenuOpen(false); }}><CircleHelp size={19} /><span>Help centre</span></button>
           <button className={`nav-item ${settingsOpen ? "active" : ""}`} onClick={() => { setSettingsOpen(true); setMenuOpen(false); }}><Settings size={19} /><span>Settings</span></button>
           <div className="mentor-card">
             <div className="mentor-icon"><Sparkles size={20} /></div>
             <strong>Need a study nudge?</strong>
             <p>Your mentor is available today.</p>
-            <button onClick={() => notify("Mentor chat opened")}>Message mentor <ArrowRight size={14} /></button>
+            <button onClick={() => { setHelpCategory("mentor"); setHelpOpen(true); }}>Message mentor <ArrowRight size={14} /></button>
           </div>
         </div>
       </aside>
@@ -594,6 +598,7 @@ function LearningHub() {
               ["Assignments", ClipboardList],
               ["Certificates", Award],
               ["Commerce", CreditCard],
+              ["Support", CircleHelp],
               ["Community", MessageSquareText],
               ["Live schedule", CalendarDays],
               ["Announcements", Megaphone],
@@ -622,6 +627,8 @@ function LearningHub() {
               <AdminCertificates notify={notify} />
             ) : adminSection === "Commerce" ? (
               <AdminCommerce notify={notify} />
+            ) : adminSection === "Support" ? (
+              <AdminSupportInbox notify={notify} />
             ) : adminSection === "Community" ? (
               <AdminCommunity notify={notify} />
             ) : adminSection === "Announcements" ? (
@@ -637,6 +644,7 @@ function LearningHub() {
 
       {notificationOpen && <NotificationCenter close={() => setNotificationOpen(false)} onUnreadChange={setNotificationCount} />}
       {settingsOpen && <AccountSettings close={() => setSettingsOpen(false)} notify={notify} onMfaChanged={(enabled) => { if (!enabled) setAdminOpen(false); }} />}
+      {helpOpen && <HelpCentre initialCategory={helpCategory} close={() => { setHelpOpen(false); setHelpCategory(undefined); }} notify={notify} />}
       {adminMfaFactorId && <MfaChallengeDialog factorId={adminMfaFactorId} close={() => setAdminMfaFactorId("")} title="Verify administrative access" onVerified={async () => { await recordSecurityEvent("admin_mfa_verified"); setAdminMfaFactorId(""); setAdminSection(adminEntrySection); setAdminOpen(true); notify("Administrative access verified"); }} />}
       {toast && <div className="toast"><Check size={17} />{toast}</div>}
     </main>
