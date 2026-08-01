@@ -12,6 +12,7 @@ Open the Supabase SQL Editor for the ADCI project and run each file once, in thi
 4. `202608010006_learner_assessment_centre.sql`
 5. `202608010007_support_ticketing.sql`
 6. `202608010008_unified_event_notifications.sql`
+7. `202608010009_r2_video_storage.sql`
 
 If some are already applied, start from the first unapplied file. Do not rename tables or paste only part of a function; run each whole file.
 
@@ -26,7 +27,9 @@ If some are already applied, start from the first unapplied file. Do not rename 
 
 ## 3. Confirm hosting environment variables
 
-Copy every variable named in `.env.example` into the production hosting project. Production must use server-only values for the Supabase service-role key, Razorpay secrets, SMTP password and cron secret. Do not prefix those values with `NEXT_PUBLIC_`.
+Copy every variable named in `.env.example` into the production hosting project. Production must use server-only values for the Supabase service-role key, Razorpay secrets, SMTP password, cron secret and R2 credentials. Do not prefix those values with `NEXT_PUBLIC_`.
+
+Before deploying, create the R2 bucket and an API token (Object Read & Write scope, restricted to that bucket) in the Cloudflare dashboard — this is a manual step, not covered by any migration or script here. Set `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` and `R2_BUCKET_NAME` from that token.
 
 After changing environment values, redeploy the latest `main` branch and confirm `/api/health` returns `{"status":"ok"}`.
 

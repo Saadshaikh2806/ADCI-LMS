@@ -13,7 +13,11 @@ Local environment files are ignored by Git. Never commit the Supabase service-ro
 
 ## Database
 
-Run the SQL files in `supabase/migrations` in filename order. Existing projects only need migrations they have not already applied. The final readiness batch is `202608010003` through `202608010008`.
+Run the SQL files in `supabase/migrations` in filename order. Existing projects only need migrations they have not already applied. The final readiness batch is `202608010003` through `202608010009`.
+
+## Video storage
+
+Lesson videos are stored in Cloudflare R2 (zero egress fees, so serving cost stays flat regardless of playback volume). Create an R2 bucket and API token in the Cloudflare dashboard, then set `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` and `R2_BUCKET_NAME` in your environment. Uploads and playback go through `app/api/storage/r2-upload-url` and `app/api/storage/r2-playback-url`, which mint short-lived presigned URLs after checking the caller's role/enrolment in Supabase. Lesson assets uploaded before this change remain in Supabase Storage and keep working (`storage_provider` on each asset row tracks which backend it lives in).
 
 ## Production
 

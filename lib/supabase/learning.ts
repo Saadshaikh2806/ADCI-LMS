@@ -6,6 +6,7 @@ export type LearningAsset = {
   mime_type: string;
   original_name: string;
   asset_type: "video" | "audio" | "pdf";
+  storage_provider?: "supabase" | "r2";
 };
 
 export type LearningLiveClass = {
@@ -357,9 +358,24 @@ export async function getMyAssignmentFileUrl(path: string) {
   return data.signedUrl;
 }
 
-export async function getProtectedLessonUrl(asset: LearningAsset) {
+export async function getProtectedLessonUrl(lessonId: string, asset: LearningAsset) {
   const supabase = getSupabaseBrowserClient();
   if (!supabase) throw new Error("Supabase is not configured");
+
+  if (asset.storage_provider === "r2") {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const accessToken = sessionData.session?.access_token;
+    if (!accessToken) throw new Error("Authentication required");
+
+    const response = await fetch("/api/storage/r2-playback-url", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${accessToken}` },
+      body: JSON.stringify({ lessonId, objectPath: asset.object_path })
+    });
+    const result = await response.json() as { signedUrl?: string; error?: string };
+    if (!response.ok || !result.signedUrl) throw new Error(result.error || "Unable to open this video");
+    return result.signedUrl;
+  }
 
   const { data, error } = await supabase.storage
     .from(asset.bucket)
@@ -368,13 +384,14 @@ export async function getProtectedLessonUrl(asset: LearningAsset) {
   return data.signedUrl;
 }
 
-export async function getProtectedVideoUrl(objectPath: string) {
-  return getProtectedLessonUrl({
+export async function getProtectedVideoUrl(lessonId: string, objectPath: string) {
+  return getProtectedLessonUrl(lessonId, {
     bucket: "adci-course-videos",
     object_path: objectPath,
     mime_type: "video/mp4",
     original_name: "Recorded lesson",
-    asset_type: "video"
+    asset_type: "video",
+    storage_provider: "r2"
   });
 }
 

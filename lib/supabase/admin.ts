@@ -1,4 +1,3 @@
-import * as tus from "tus-js-client";
 import { getSupabaseBrowserClient } from "./client";
 
 const adminRoles = new Set([
@@ -546,7 +545,7 @@ export async function createCourseBundle(input: CourseBundleInput) {
   return data as { course_id: string; module_id: string; lesson_id: string };
 }
 
-export async function uploadProtectedLessonVideo(
+async function uploadFileToR2(
   lessonId: string,
   file: File,
   onProgress: (percentage: number) => void
@@ -558,41 +557,44 @@ export async function uploadProtectedLessonVideo(
   const accessToken = sessionData.session?.access_token;
   if (!accessToken) throw new Error("Authentication required");
 
-  const projectUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  if (!projectUrl) throw new Error("Supabase project URL is missing");
-  const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-  if (!publishableKey) throw new Error("Supabase publishable key is missing");
-  const projectId = new URL(projectUrl).hostname.split(".")[0];
-  const extension = file.name.split(".").pop()?.toLowerCase() || "mp4";
-  const objectPath = `${lessonId}/${crypto.randomUUID()}.${extension}`;
+  const prepareResponse = await fetch("/api/storage/r2-upload-url", {
+    method: "POST",
+    headers: { "content-type": "application/json", authorization: `Bearer ${accessToken}` },
+    body: JSON.stringify({ lessonId, fileName: file.name, contentType: file.type || "application/octet-stream" })
+  });
+  const prepared = await prepareResponse.json() as { uploadUrl?: string; objectPath?: string; error?: string };
+  if (!prepareResponse.ok || !prepared.uploadUrl || !prepared.objectPath) {
+    throw new Error(prepared.error || "Unable to prepare upload");
+  }
 
   await new Promise<void>((resolve, reject) => {
-    const upload = new tus.Upload(file, {
-      endpoint: `https://${projectId}.storage.supabase.co/storage/v1/upload/resumable`,
-      retryDelays: [0, 3000, 5000, 10000, 20000],
-      headers: {
-        authorization: `Bearer ${accessToken}`,
-        apikey: publishableKey,
-        "x-upsert": "false"
-      },
-      uploadDataDuringCreation: true,
-      removeFingerprintOnSuccess: true,
-      chunkSize: 6 * 1024 * 1024,
-      metadata: {
-        bucketName: "adci-course-videos",
-        objectName: objectPath,
-        contentType: file.type || "video/mp4",
-        cacheControl: "3600"
-      },
-      onError: reject,
-      onProgress: (uploaded, total) => onProgress(Math.round((uploaded / total) * 100)),
-      onSuccess: () => resolve()
-    });
-    upload.start();
+    const xhr = new XMLHttpRequest();
+    xhr.open("PUT", prepared.uploadUrl as string, true);
+    xhr.setRequestHeader("content-type", file.type || "application/octet-stream");
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable) onProgress(Math.round((event.loaded / event.total) * 100));
+    };
+    xhr.onload = () => (xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(new Error("Upload failed")));
+    xhr.onerror = () => reject(new Error("Upload failed"));
+    xhr.send(file);
   });
+
+  return prepared.objectPath;
+}
+
+export async function uploadProtectedLessonVideo(
+  lessonId: string,
+  file: File,
+  onProgress: (percentage: number) => void
+) {
+  const supabase = getSupabaseBrowserClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+
+  const objectPath = await uploadFileToR2(lessonId, file, onProgress);
 
   const { error } = await supabase.from("adci_video_assets").insert({
     lesson_id: lessonId,
+    storage_provider: "r2",
     object_path: objectPath,
     mime_type: file.type || "video/mp4",
     size_bytes: file.size,
@@ -612,46 +614,12 @@ export async function uploadProtectedLessonAsset(
   const supabase = getSupabaseBrowserClient();
   if (!supabase) throw new Error("Supabase is not configured");
 
-  const { data: sessionData } = await supabase.auth.getSession();
-  const accessToken = sessionData.session?.access_token;
-  if (!accessToken) throw new Error("Authentication required");
-
-  const projectUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  if (!projectUrl) throw new Error("Supabase project URL is missing");
-  const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-  if (!publishableKey) throw new Error("Supabase publishable key is missing");
-  const projectId = new URL(projectUrl).hostname.split(".")[0];
-  const extension = file.name.split(".").pop()?.toLowerCase() || assetType;
-  const objectPath = `${lessonId}/${crypto.randomUUID()}.${extension}`;
-
-  await new Promise<void>((resolve, reject) => {
-    const upload = new tus.Upload(file, {
-      endpoint: `https://${projectId}.storage.supabase.co/storage/v1/upload/resumable`,
-      retryDelays: [0, 3000, 5000, 10000, 20000],
-      headers: {
-        authorization: `Bearer ${accessToken}`,
-        apikey: publishableKey,
-        "x-upsert": "false"
-      },
-      uploadDataDuringCreation: true,
-      removeFingerprintOnSuccess: true,
-      chunkSize: 6 * 1024 * 1024,
-      metadata: {
-        bucketName: "adci-lesson-assets",
-        objectName: objectPath,
-        contentType: file.type || "application/octet-stream",
-        cacheControl: "3600"
-      },
-      onError: reject,
-      onProgress: (uploaded, total) => onProgress(Math.round((uploaded / total) * 100)),
-      onSuccess: () => resolve()
-    });
-    upload.start();
-  });
+  const objectPath = await uploadFileToR2(lessonId, file, onProgress);
 
   const { error } = await supabase.from("adci_lesson_assets").insert({
     lesson_id: lessonId,
     asset_type: assetType,
+    storage_provider: "r2",
     object_path: objectPath,
     original_name: file.name,
     mime_type: file.type || "application/octet-stream",

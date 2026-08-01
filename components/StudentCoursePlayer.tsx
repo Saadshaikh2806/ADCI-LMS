@@ -109,7 +109,7 @@ export default function StudentCoursePlayer({
       return;
     }
     setAssetLoading(true);
-    getProtectedLessonUrl(selectedLesson.asset)
+    getProtectedLessonUrl(selectedLesson.id, selectedLesson.asset)
       .then((url) => {
         if (active) setAssetUrl(url);
       })
