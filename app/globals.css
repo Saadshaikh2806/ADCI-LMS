@@ -223,12 +223,17 @@ h1 { margin-bottom: 6px; font: 700 clamp(32.5px, 3vw, 44.2px)/1.15 var(--font-di
 .integrity-note { width:100%; padding:14px; display:flex; gap:10px; border-radius:10px; color:#37715f; background:#e8f2ed; text-align:left; }
 .integrity-note p { margin:0; color:#5e6e69; font-size:11.7px; line-height:1.5; }.integrity-note strong { color:#305f50; }
 .start-exam { margin-top:23px; min-width:180px; justify-content:center; }
+.start-exam:disabled { opacity:.55; cursor:not-allowed; }
+.exam-notice { width:100%; margin-top:14px; padding:12px 14px; border-radius:9px; color:#376d5b; background:#e7f2ed; font-size:11.7px; line-height:1.5; text-align:left; }
 .exam-header { height:72px; padding:0 28px; display:grid; grid-template-columns:1fr auto 1fr; align-items:center; border-bottom:1px solid #314348; color:white; background:#1c2d31; }
 .exam-header > div:first-child { display:flex; align-items:center; gap:10px; color:#e7aa4c; }
 .exam-header strong, .exam-header small { display:block; }.exam-header strong { color:white; font-size:14.3px; }.exam-header small { margin-top:3px; color:#839496; font-size:10.4px; }
 .exam-header > button { justify-self:end; height:34px; padding:0 13px; border:1px solid #6a7a7d; border-radius:7px; color:white; background:transparent; font-size:11.7px; font-weight:800; cursor:pointer; }
+.exam-header > button:disabled { opacity:.55; cursor:not-allowed; }
 .exam-timer { padding:8px 14px; display:flex; align-items:center; gap:8px; border-radius:8px; color:#efb158; background:#314449; font:700 18.2px var(--font-display); }
 .exam-timer.warning { color:#ff9c7f; background:#4c3634; }
+.exam-session-message { padding:9px 24px; color:#315f51; border-bottom:1px solid #cfe0d9; background:#e7f2ed; font-size:11.7px; font-weight:700; text-align:center; }
+.exam-session-message.error { color:#914b38; border-color:#e7c8bd; background:#f7e1db; }
 .exam-layout { min-height:calc(100vh - 72px); display:grid; grid-template-columns:minmax(0,1fr) 300px; }
 .question-panel { max-width:920px; width:100%; margin:0 auto; padding:60px 60px 40px; }
 .question-meta { display:flex; justify-content:space-between; color:#9a6b2b; font-size:11.7px; font-weight:800; letter-spacing:.1em; }
@@ -242,6 +247,7 @@ h1 { margin-bottom: 6px; font: 700 clamp(32.5px, 3vw, 44.2px)/1.15 var(--font-di
 .options button.selected { border-color:#d99a3f; background:#fbf2e3; box-shadow:0 0 0 1px #d99a3f; }
 .options button.selected > span { border-color:#d99a3f; color:#fff; background:#d99a3f; }
 .options button.selected > svg { color:#9a6419; }
+.options button:disabled { opacity:.65; cursor:not-allowed; }
 .question-actions { margin-top:28px; display:flex; align-items:center; justify-content:space-between; }
 .question-actions > button { padding:0; display:flex; gap:7px; align-items:center; border:0; color:#77817e; background:none; font-size:13px; font-weight:700; cursor:pointer; }
 .question-actions > button.flagged { color:#b66b2d; }
@@ -257,6 +263,9 @@ h1 { margin-bottom: 6px; font: 700 clamp(32.5px, 3vw, 44.2px)/1.15 var(--font-di
 .palette-legend span { display:flex; align-items:center; gap:7px; }.palette-legend i { width:10px; height:10px; border:1px solid #d8d5cc; border-radius:3px; }.palette-legend i.answered { border-color:#4a8d75; background:#4a8d75; }.palette-legend i.flagged { border-color:#d48a4f; background:#f7dfcc; }
 .save-status { margin-top:25px; padding:13px; display:flex; gap:9px; border-radius:9px; color:#38725f; background:#e8f2ed; }
 .save-status strong, .save-status small { display:block; }.save-status strong { font-size:11.7px; }.save-status small { margin-top:4px; color:#72827c; font-size:9.1px; }
+.exam-leave { width:100%; margin-top:12px; padding:9px; display:flex; align-items:center; justify-content:center; gap:6px; border:1px solid #ddd8ce; border-radius:8px; color:#6f7875; background:#faf9f5; font-size:10.4px; font-weight:800; cursor:pointer; }
+.exam-leave svg { width:14px; }
+.exam-leave:disabled, .question-actions > button:disabled { opacity:.5; cursor:not-allowed; }
 .result-ring { width:145px; height:145px; margin-bottom:26px; display:grid; place-items:center; border-radius:50%; background:conic-gradient(#e5a346 var(--score),#eeeae1 0); position:relative; }
 .result-ring:after { content:""; position:absolute; inset:12px; border-radius:50%; background:#fffefa; }
 .result-ring span { position:relative; z-index:1; color:#808684; font-size:14.3px; }.result-ring strong { display:block; color:var(--ink); font:700 39px var(--font-display); }
