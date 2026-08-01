@@ -62,6 +62,7 @@ import NotificationCenter from "../components/NotificationCenter";
 import GlobalLearningSearch from "../components/GlobalLearningSearch";
 import StudentQuizRunner from "../components/StudentQuizRunner";
 import LiveClassSchedule from "../components/LiveClassSchedule";
+import StudentLiveClasses from "../components/StudentLiveClasses";
 import StudentCourses from "../components/StudentCourses";
 import StudentCoursePlayer from "../components/StudentCoursePlayer";
 import StudyPlan from "../components/StudyPlan";
@@ -421,7 +422,7 @@ function LearningHub() {
             <aside className="today-card">
               <div className="section-title"><div><h3>Live classes</h3><p>Your protected course schedule</p></div><button className="more"><MoreHorizontal size={20} /></button></div>
               <LiveClassSchedule notify={notify} />
-              <button className="calendar-button" onClick={() => setActive("Study plan")}><CalendarDays size={17} /> Open full calendar</button>
+              <button className="calendar-button" onClick={() => setActive("Live classes")}><CalendarDays size={17} /> Open full schedule</button>
             </aside>
           </div>
         </div>
@@ -431,7 +432,7 @@ function LearningHub() {
         </nav>
       </section>
 
-      {active !== "Overview" && active !== "My courses" && active !== "Study plan" && active !== "Assignments" && active !== "Certificates" && active !== "Programmes" && active !== "Community" && !lessonOpen && (
+      {active !== "Overview" && active !== "My courses" && active !== "Live classes" && active !== "Study plan" && active !== "Assignments" && active !== "Certificates" && active !== "Programmes" && active !== "Community" && !lessonOpen && (
         <div className="route-overlay">
           <button className="overlay-close" onClick={() => setActive("Overview")}><X /></button>
           <div className="overlay-icon">{(() => { const item = navItems.find((n) => n.label === active); const Icon = item?.icon ?? BookOpen; return <Icon size={30} />; })()}</div>
@@ -442,6 +443,7 @@ function LearningHub() {
         </div>
       )}
       {active === "My courses" && !lessonOpen && <StudentCourses close={() => { setActive("Overview"); void refreshLearnerDashboard(); }} notify={notify} />}
+      {active === "Live classes" && !lessonOpen && <StudentLiveClasses close={() => setActive("Overview")} notify={notify} openLesson={(courseId, lessonId) => setOpenLearning({ courseId, lessonId })} />}
       {active === "Study plan" && !lessonOpen && <StudyPlan close={() => setActive("Overview")} notify={notify} openAssessments={(assessmentId) => { setActiveAssessmentId(assessmentId); setExamOpen(true); }} />}
       {active === "Assignments" && !lessonOpen && <StudentAssignments initialAssignmentId={activeAssignmentId || undefined} close={() => { setActiveAssignmentId(""); setActive("Overview"); }} notify={notify} />}
       {active === "Certificates" && !lessonOpen && <StudentCertificates close={() => setActive("Overview")} />}

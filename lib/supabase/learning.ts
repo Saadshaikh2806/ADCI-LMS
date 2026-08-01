@@ -17,6 +17,23 @@ export type LearningLiveClass = {
   has_attended: boolean;
 };
 
+export type LearnerLiveClass = {
+  lesson_id: string;
+  lesson_title: string;
+  course_id: string;
+  course_title: string;
+  module_title: string;
+  provider: "zoom" | "google_meet" | "youtube_live";
+  instructor_name: string;
+  starts_at: string;
+  ends_at: string;
+  can_join: boolean;
+  has_attended: boolean;
+  joined_at: string | null;
+  last_joined_at: string | null;
+  join_count: number;
+};
+
 export type LearningLesson = {
   id: string;
   title: string;
@@ -130,6 +147,17 @@ export async function getLearnerDashboard() {
   const { data, error } = await supabase.rpc("adci_get_learner_dashboard");
   if (error) throw error;
   return data as LearnerDashboard;
+}
+
+export async function getMyLiveClassWorkspace() {
+  const supabase = getSupabaseBrowserClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+  const { data, error } = await supabase.rpc("adci_get_my_live_class_workspace", {
+    past_days: 180,
+    future_days: 365
+  });
+  if (error) throw error;
+  return (data ?? []) as LearnerLiveClass[];
 }
 
 export type AdciNotification = {
