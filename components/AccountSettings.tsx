@@ -4,12 +4,17 @@ import {
   AtSign,
   Bell,
   Check,
+  Copy,
   KeyRound,
   LoaderCircle,
   LockKeyhole,
   LogOut,
+  QrCode,
   Save,
+  Shield,
   ShieldCheck,
+  Smartphone,
+  Trash2,
   UserRound,
   X
 } from "lucide-react";
@@ -19,14 +24,25 @@ import {
   getMyEmailPreferences,
   saveMyEmailPreferences
 } from "../lib/supabase/messaging";
+import {
+  getMfaState,
+  recordSecurityEvent,
+  removeMfaFactor,
+  startMfaEnrollment,
+  verifyMfaCode,
+  type AdciMfaState
+} from "../lib/supabase/security";
 import { useAuthSession } from "./AuthGate";
+import MfaChallengeDialog from "./MfaChallengeDialog";
 
 export default function AccountSettings({
   close,
-  notify
+  notify,
+  onMfaChanged
 }: {
   close: () => void;
   notify: (message: string) => void;
+  onMfaChanged?: (enabled: boolean) => void;
 }) {
   const session = useAuthSession();
   const user = session?.user;
@@ -39,6 +55,13 @@ export default function AccountSettings({
   const [preferenceSaving, setPreferenceSaving] = useState(false);
   const [passwordSaving, setPasswordSaving] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const [signOutScope, setSignOutScope] = useState<"local" | "global">("local");
+  const [mfaLoading, setMfaLoading] = useState(true);
+  const [mfaSaving, setMfaSaving] = useState(false);
+  const [mfaState, setMfaState] = useState<AdciMfaState | null>(null);
+  const [mfaEnrollment, setMfaEnrollment] = useState<{ factorId: string; qrCode: string; secret: string } | null>(null);
+  const [mfaCode, setMfaCode] = useState("");
+  const [mfaChallengeFactor, setMfaChallengeFactor] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
@@ -60,19 +83,24 @@ export default function AccountSettings({
         return;
       }
       try {
-        const [{ data: profile, error: profileError }, preferences] = await Promise.all([
+        const [{ data: profile, error: profileError }, preferences, security] = await Promise.all([
           supabase.from("adci_profiles").select("full_name").eq("id", user.id).single(),
-          getMyEmailPreferences()
+          getMyEmailPreferences(),
+          getMfaState()
         ]);
         if (profileError) throw profileError;
         if (active) {
           setFullName(profile?.full_name || user.user_metadata?.full_name || "");
           setEmailAnnouncements(preferences.email_announcements);
+          setMfaState(security);
         }
       } catch (loadError) {
         if (active) setError(loadError instanceof Error ? loadError.message : "Unable to load account settings");
       } finally {
-        if (active) setPreferencesLoading(false);
+        if (active) {
+          setPreferencesLoading(false);
+          setMfaLoading(false);
+        }
       }
     }
     void loadSettings();
@@ -144,6 +172,7 @@ export default function AccountSettings({
     try {
       const { error: passwordError } = await supabase.auth.updateUser({ password: newPassword });
       if (passwordError) throw passwordError;
+      await recordSecurityEvent("password_changed");
       setNewPassword("");
       setConfirmPassword("");
       notify("Password changed successfully");
@@ -154,14 +183,80 @@ export default function AccountSettings({
     }
   }
 
-  async function signOut() {
+  async function refreshMfaState() {
+    const state = await getMfaState();
+    setMfaState(state);
+    return state;
+  }
+
+  async function beginMfaSetup() {
+    if (mfaSaving) return;
+    setMfaSaving(true);
+    setError("");
+    try {
+      setMfaEnrollment(await startMfaEnrollment());
+      setMfaCode("");
+    } catch (setupError) {
+      setError(setupError instanceof Error ? setupError.message : "Unable to begin authenticator setup");
+    } finally {
+      setMfaSaving(false);
+    }
+  }
+
+  async function enableMfa(event: React.FormEvent) {
+    event.preventDefault();
+    if (!mfaEnrollment || mfaSaving) return;
+    setMfaSaving(true);
+    setError("");
+    try {
+      await verifyMfaCode(mfaEnrollment.factorId, mfaCode);
+      await recordSecurityEvent("mfa_enabled", { factor_type: "totp" });
+      await refreshMfaState();
+      setMfaEnrollment(null);
+      setMfaCode("");
+      onMfaChanged?.(true);
+      notify("Authenticator protection enabled");
+    } catch (setupError) {
+      setError(setupError instanceof Error ? setupError.message : "Unable to verify authenticator code");
+    } finally {
+      setMfaSaving(false);
+    }
+  }
+
+  async function disableMfa() {
+    const factor = mfaState?.factors[0];
+    if (!factor || mfaSaving) return;
+    if (mfaState?.currentLevel !== "aal2") {
+      setMfaChallengeFactor(factor.id);
+      return;
+    }
+    if (!window.confirm("Remove authenticator protection from this account?")) return;
+    setMfaSaving(true);
+    setError("");
+    try {
+      await recordSecurityEvent("mfa_disabled", { factor_type: "totp" });
+      await removeMfaFactor(factor.id);
+      await getSupabaseBrowserClient()?.auth.refreshSession();
+      await refreshMfaState();
+      onMfaChanged?.(false);
+      notify("Authenticator protection removed");
+    } catch (removeError) {
+      setError(removeError instanceof Error ? removeError.message : "Unable to remove authenticator protection");
+    } finally {
+      setMfaSaving(false);
+    }
+  }
+
+  async function signOut(scope: "local" | "global") {
     const supabase = getSupabaseBrowserClient();
     if (!supabase || signingOut) return;
+    setSignOutScope(scope);
     setSigningOut(true);
     setError("");
     try {
+      if (scope === "global") await recordSecurityEvent("sessions_revoked");
       window.localStorage.removeItem("adci-learning-state");
-      const { error: signOutError } = await supabase.auth.signOut({ scope: "local" });
+      const { error: signOutError } = await supabase.auth.signOut({ scope });
       if (signOutError) throw signOutError;
     } catch (signOutError) {
       setError(signOutError instanceof Error ? signOutError.message : "Unable to sign out");
@@ -207,6 +302,24 @@ export default function AccountSettings({
           </div>
         </section>
 
+        <section className="account-settings-card account-security-card">
+          <header><div><Shield /></div><span><h2>Authenticator security</h2><p>Required before staff can enter protected administration areas.</p></span><em className={mfaState?.factors.length ? "enabled" : ""}>{mfaLoading ? "Checking" : mfaState?.factors.length ? "Protected" : "Not enabled"}</em></header>
+          {mfaLoading ? <div className="account-security-state"><LoaderCircle className="spin" /> Checking account protection…</div>
+          : mfaEnrollment ? <form className="mfa-enrollment" onSubmit={enableMfa}>
+            <div className="mfa-setup-grid">
+              <div className="mfa-qr"><img src={mfaEnrollment.qrCode} alt="Authenticator setup QR code" /></div>
+              <div><h3>Scan this QR code</h3><p>Use Google Authenticator, Microsoft Authenticator, Authy or another TOTP app.</p><span>Cannot scan it? Enter this setup key:</span><button type="button" onClick={() => void navigator.clipboard.writeText(mfaEnrollment.secret).then(() => notify("Setup key copied"))}><code>{mfaEnrollment.secret}</code><Copy /></button></div>
+            </div>
+            <label><span>Six-digit verification code</span><div><KeyRound /><input required inputMode="numeric" pattern="[0-9]{6}" maxLength={6} value={mfaCode} onChange={(event) => setMfaCode(event.target.value.replace(/\D/g, "").slice(0, 6))} placeholder="000000" autoComplete="one-time-code" /></div></label>
+            <div className="mfa-enrollment-actions"><button type="button" onClick={() => setMfaEnrollment(null)}>Cancel</button><button className="account-primary" disabled={mfaSaving || mfaCode.length !== 6}>{mfaSaving ? <LoaderCircle className="spin" /> : <ShieldCheck />} Enable authenticator</button></div>
+          </form>
+          : mfaState?.factors.length ? <div className="account-factor">
+            <div><span><Smartphone /></span><div><strong>{mfaState.factors[0].friendlyName}</strong><small>Added {new Date(mfaState.factors[0].createdAt).toLocaleDateString("en-IN", { dateStyle: "medium" })} · {mfaState.currentLevel === "aal2" ? "Verified for this session" : "Verification required for protected access"}</small></div></div>
+            <div>{mfaState.currentLevel !== "aal2" && <button className="factor-verify" onClick={() => setMfaChallengeFactor(mfaState.factors[0].id)}><ShieldCheck /> Verify this session</button>}<button className="factor-remove" disabled={mfaSaving} onClick={() => void disableMfa()}><Trash2 /> Remove</button></div>
+          </div>
+          : <div className="account-security-empty"><div><QrCode /></div><span><strong>Protect this account with an authenticator app</strong><small>After setup, a rotating six-digit code is required for administrative access even if the password is compromised.</small></span><button disabled={mfaSaving} onClick={() => void beginMfaSetup()}>{mfaSaving ? <LoaderCircle className="spin" /> : <ShieldCheck />} Set up authenticator</button></div>}
+        </section>
+
         <form className="account-settings-card" onSubmit={changePassword}>
           <header><div><KeyRound /></div><span><h2>Password</h2><p>Use at least eight characters and avoid reused passwords.</p></span></header>
           <div className="account-password-grid">
@@ -218,9 +331,10 @@ export default function AccountSettings({
 
         <section className="account-settings-card account-session-card">
           <header><div><LogOut /></div><span><h2>Session</h2><p>Finish securely when you are using a shared device.</p></span></header>
-          <div><span><strong>Signed in as {user?.email}</strong><small>Signing out removes the saved session from this browser.</small></span><button disabled={signingOut} onClick={() => void signOut()}>{signingOut ? <LoaderCircle className="spin" /> : <LogOut />} {signingOut ? "Signing out…" : "Sign out"}</button></div>
+          <div><span><strong>Signed in as {user?.email}</strong><small>End this browser session, or revoke sessions across all devices if anything looks unfamiliar.</small></span><div className="account-session-actions"><button className="session-all" disabled={signingOut} onClick={() => void signOut("global")}>{signingOut && signOutScope === "global" ? <LoaderCircle className="spin" /> : <Shield />} Sign out all devices</button><button disabled={signingOut} onClick={() => void signOut("local")}>{signingOut && signOutScope === "local" ? <LoaderCircle className="spin" /> : <LogOut />} Sign out</button></div></div>
         </section>
       </div>
     </div>
+    {mfaChallengeFactor && <MfaChallengeDialog factorId={mfaChallengeFactor} close={() => setMfaChallengeFactor("")} title="Verify account security" onVerified={async () => { setMfaChallengeFactor(""); await refreshMfaState(); notify("Identity verified for this session"); }} />}
   </div>;
 }
