@@ -4,6 +4,7 @@ import { ArrowRight, Check, GraduationCap, LoaderCircle, LockKeyhole, Mail, Shie
 import type { Session } from "@supabase/supabase-js";
 import { createContext, type ReactNode, useContext, useEffect, useState } from "react";
 import { getSupabaseBrowserClient, isSupabaseConfigured } from "../lib/supabase/client";
+import MfaChallengeDialog from "./MfaChallengeDialog";
 
 type Mode = "login" | "register" | "recovery";
 const AuthSessionContext = createContext<Session | null>(null);
@@ -21,6 +22,7 @@ export default function AuthGate({ children }: { children: ReactNode }) {
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [mfaFactorId, setMfaFactorId] = useState("");
   const configured = isSupabaseConfigured();
 
   useEffect(() => {
@@ -53,11 +55,44 @@ export default function AuthGate({ children }: { children: ReactNode }) {
         return;
       }
 
+      const { data: assurance, error: assuranceError } = await authClient.auth.mfa
+        .getAuthenticatorAssuranceLevel(candidate.access_token);
+      if (assuranceError) {
+        await authClient.auth.signOut({ scope: "local" });
+        if (active) {
+          setSession(null);
+          setMessage("We could not verify account security. Please sign in again.");
+          setLoading(false);
+        }
+        return;
+      }
+
+      if (assurance.currentLevel !== "aal2" && assurance.nextLevel === "aal2") {
+        const { data: factors, error: factorError } = await authClient.auth.mfa.listFactors();
+        const factor = factors?.totp[0];
+        if (factorError || !factor) {
+          await authClient.auth.signOut({ scope: "local" });
+          if (active) {
+            setSession(null);
+            setMessage("Your authenticator could not be loaded. Please sign in again.");
+            setLoading(false);
+          }
+          return;
+        }
+        if (active) {
+          setSession(null);
+          setMfaFactorId(factor.id);
+          setLoading(false);
+        }
+        return;
+      }
+
       // Finish the one-time bootstrap before rendering so the dashboard's
       // membership query cannot race ahead of the initial admin claim.
       await authClient.rpc("adci_claim_initial_admin");
 
       if (active) {
+        setMfaFactorId("");
         setSession(candidate);
         setLoading(false);
       }
@@ -113,10 +148,51 @@ export default function AuthGate({ children }: { children: ReactNode }) {
     }
   }
 
+  async function finishMfaSignIn() {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase) return;
+    setLoading(true);
+    setMfaFactorId("");
+    const { data, error } = await supabase.auth.getSession();
+    if (error || !data.session) {
+      setSession(null);
+      setMessage("Your secure session could not be completed. Please sign in again.");
+      setLoading(false);
+      return;
+    }
+    const { data: assurance, error: assuranceError } = await supabase.auth.mfa
+      .getAuthenticatorAssuranceLevel(data.session.access_token);
+    if (assuranceError || assurance.currentLevel !== "aal2") {
+      setSession(null);
+      setMessage("The authenticator code was not applied to this session. Please try again.");
+      setLoading(false);
+      return;
+    }
+    await supabase.rpc("adci_claim_initial_admin");
+    setSession(data.session);
+    setLoading(false);
+  }
+
+  async function cancelMfaSignIn() {
+    const supabase = getSupabaseBrowserClient();
+    setMfaFactorId("");
+    setSession(null);
+    if (supabase) await supabase.auth.signOut({ scope: "local" });
+  }
+
   if (!configured) return <>{children}</>;
 
   if (loading) {
     return <div className="auth-loading"><LoaderCircle size={28} className="spin" /><span>Securing your ADCI workspace…</span></div>;
+  }
+
+  if (mfaFactorId) {
+    return <MfaChallengeDialog
+      factorId={mfaFactorId}
+      title="Complete your sign-in"
+      close={() => void cancelMfaSignIn()}
+      onVerified={() => finishMfaSignIn()}
+    />;
   }
 
   if (session) return <AuthSessionContext.Provider value={session}>{children}</AuthSessionContext.Provider>;
