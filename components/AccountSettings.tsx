@@ -62,6 +62,7 @@ export default function AccountSettings({
   const [mfaEnrollment, setMfaEnrollment] = useState<{ factorId: string; qrCode: string; secret: string } | null>(null);
   const [mfaCode, setMfaCode] = useState("");
   const [mfaChallengeFactor, setMfaChallengeFactor] = useState("");
+  const [securityError, setSecurityError] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
@@ -192,12 +193,12 @@ export default function AccountSettings({
   async function beginMfaSetup() {
     if (mfaSaving) return;
     setMfaSaving(true);
-    setError("");
+    setSecurityError("");
     try {
       setMfaEnrollment(await startMfaEnrollment());
       setMfaCode("");
     } catch (setupError) {
-      setError(setupError instanceof Error ? setupError.message : "Unable to begin authenticator setup");
+      setSecurityError(setupError instanceof Error ? setupError.message : "Unable to begin authenticator setup");
     } finally {
       setMfaSaving(false);
     }
@@ -207,17 +208,28 @@ export default function AccountSettings({
     event.preventDefault();
     if (!mfaEnrollment || mfaSaving) return;
     setMfaSaving(true);
-    setError("");
+    setSecurityError("");
     try {
       await verifyMfaCode(mfaEnrollment.factorId, mfaCode);
-      await recordSecurityEvent("mfa_enabled", { factor_type: "totp" });
       await refreshMfaState();
       setMfaEnrollment(null);
       setMfaCode("");
       onMfaChanged?.(true);
       notify("Authenticator protection enabled");
+      void recordSecurityEvent("mfa_enabled", { factor_type: "totp" });
     } catch (setupError) {
-      setError(setupError instanceof Error ? setupError.message : "Unable to verify authenticator code");
+      // Verification may have completed before a secondary request failed. Reload
+      // the factor state so the interface always reflects Supabase's source of truth.
+      const latest = await getMfaState().catch(() => null);
+      if (latest?.factors.length) {
+        setMfaState(latest);
+        setMfaEnrollment(null);
+        setMfaCode("");
+        onMfaChanged?.(true);
+        notify("Authenticator protection enabled");
+      } else {
+        setSecurityError(setupError instanceof Error ? setupError.message : "Unable to verify authenticator code");
+      }
     } finally {
       setMfaSaving(false);
     }
@@ -232,16 +244,16 @@ export default function AccountSettings({
     }
     if (!window.confirm("Remove authenticator protection from this account?")) return;
     setMfaSaving(true);
-    setError("");
+    setSecurityError("");
     try {
-      await recordSecurityEvent("mfa_disabled", { factor_type: "totp" });
       await removeMfaFactor(factor.id);
       await getSupabaseBrowserClient()?.auth.refreshSession();
       await refreshMfaState();
       onMfaChanged?.(false);
       notify("Authenticator protection removed");
+      void recordSecurityEvent("mfa_disabled", { factor_type: "totp" });
     } catch (removeError) {
-      setError(removeError instanceof Error ? removeError.message : "Unable to remove authenticator protection");
+      setSecurityError(removeError instanceof Error ? removeError.message : "Unable to remove authenticator protection");
     } finally {
       setMfaSaving(false);
     }
@@ -304,6 +316,7 @@ export default function AccountSettings({
 
         <section className="account-settings-card account-security-card">
           <header><div><Shield /></div><span><h2>Authenticator security</h2><p>Required before staff can enter protected administration areas.</p></span><em className={mfaState?.factors.length ? "enabled" : ""}>{mfaLoading ? "Checking" : mfaState?.factors.length ? "Protected" : "Not enabled"}</em></header>
+          {securityError && <div className="account-security-error">{securityError}</div>}
           {mfaLoading ? <div className="account-security-state"><LoaderCircle className="spin" /> Checking account protection…</div>
           : mfaEnrollment ? <form className="mfa-enrollment" onSubmit={enableMfa}>
             <div className="mfa-setup-grid">

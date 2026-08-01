@@ -1,39 +1,10 @@
--- Require Supabase Auth Assurance Level 2 for every staff role and record
--- account-security events in the existing administration audit log.
--- Run this complete file once after migration 202607300016.
+-- Repair the account-security audit function from migration 202608010001.
+-- The audit event primary key is bigint, not uuid. Safe to run once whether or
+-- not any authenticator setup was already attempted.
 
-create or replace function public.adci_current_user_has_role(
-  requested_org uuid,
-  allowed_roles public.adci_app_role[]
-) returns boolean
-language sql stable security definer set search_path = ''
-as $$
-  select exists (
-    select 1
-    from public.adci_memberships membership
-    where membership.user_id = auth.uid()
-      and membership.organization_id = requested_org
-      and membership.active
-      and membership.role = any(allowed_roles)
-      and (
-        membership.role <> all (
-          array[
-            'instructor',
-            'content_author',
-            'academic_lead',
-            'mentor',
-            'branch_admin',
-            'finance',
-            'super_admin',
-            'support'
-          ]::public.adci_app_role[]
-        )
-        or coalesce(auth.jwt() ->> 'aal', 'aal1') = 'aal2'
-      )
-  );
-$$;
+drop function if exists public.adci_record_security_event(text,jsonb);
 
-create or replace function public.adci_record_security_event(
+create function public.adci_record_security_event(
   event_action text,
   event_details jsonb default '{}'::jsonb
 )

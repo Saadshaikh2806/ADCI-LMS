@@ -88,7 +88,7 @@ export async function recordSecurityEvent(action: string, details: Record<string
     event_action: action,
     event_details: details
   });
-  // The audit migration may not have been applied yet. Security operations must
-  // still complete, while database enforcement becomes active after migration.
-  if (error && error.code !== "PGRST202" && error.code !== "42883") throw error;
+  // Audit reporting must never leave a completed Auth operation looking failed.
+  // The database migration repairs and records future events independently.
+  return !error;
 }
