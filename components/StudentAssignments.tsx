@@ -49,10 +49,12 @@ function deadlineNote(value: string | null) {
 
 export default function StudentAssignments({
   close,
-  notify
+  notify,
+  initialAssignmentId
 }: {
   close: () => void;
   notify: (message: string) => void;
+  initialAssignmentId?: string;
 }) {
   const [assignments, setAssignments] = useState<LearnerAssignment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -78,6 +80,12 @@ export default function StudentAssignments({
   }
 
   useEffect(() => { void refresh(); }, []);
+
+  useEffect(() => {
+    if (!initialAssignmentId || assignments.length === 0) return;
+    const target = assignments.find((assignment) => assignment.id === initialAssignmentId);
+    if (target) openAssignment(target);
+  }, [initialAssignmentId, assignments]);
 
   const visibleAssignments = useMemo(() => assignments.filter((assignment) => {
     if (filter === "active") return ["pending", "returned"].includes(assignment.state);

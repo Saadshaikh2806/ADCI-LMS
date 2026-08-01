@@ -29,7 +29,6 @@ import {
   MoreHorizontal,
   Plus,
   Play,
-  Search,
   ShieldCheck,
   ShoppingBag,
   Settings,
@@ -60,6 +59,7 @@ import AdminCommerce from "../components/AdminCommerce";
 import AccountSettings from "../components/AccountSettings";
 import MfaChallengeDialog from "../components/MfaChallengeDialog";
 import NotificationCenter from "../components/NotificationCenter";
+import GlobalLearningSearch from "../components/GlobalLearningSearch";
 import StudentQuizRunner from "../components/StudentQuizRunner";
 import LiveClassSchedule from "../components/LiveClassSchedule";
 import StudentCourses from "../components/StudentCourses";
@@ -72,6 +72,7 @@ import StudentCommerce from "../components/StudentCommerce";
 import { hasAcademicAdminRole, loadMyAdciMemberships } from "../lib/supabase/admin";
 import { getLearnerDashboard, getMyNotifications, type LearnerDashboard } from "../lib/supabase/learning";
 import { getMfaState, recordSecurityEvent } from "../lib/supabase/security";
+import type { LearningSearchResult } from "../lib/supabase/search";
 
 const navItems = [
   { label: "Overview", icon: LayoutDashboard },
@@ -150,6 +151,7 @@ function LearningHub() {
   const [lessonOpen, setLessonOpen] = useState(false);
   const [examOpen, setExamOpen] = useState(false);
   const [activeAssessmentId, setActiveAssessmentId] = useState("");
+  const [activeAssignmentId, setActiveAssignmentId] = useState("");
   const [adminOpen, setAdminOpen] = useState(false);
   const [adminSection, setAdminSection] = useState("Dashboard");
   const [profileOpen, setProfileOpen] = useState(false);
@@ -258,6 +260,28 @@ function LearningHub() {
     window.setTimeout(() => setToast(""), 2600);
   }
 
+  function openSearchResult(result: LearningSearchResult) {
+    setProfileOpen(false);
+    setSettingsOpen(false);
+    setNotificationOpen(false);
+    setMenuOpen(false);
+    if (result.result_type === "quiz") {
+      setActiveAssessmentId(result.id);
+      setExamOpen(true);
+      return;
+    }
+    if (result.result_type === "assignment") {
+      setActiveAssignmentId(result.id);
+      setActive("Assignments");
+      return;
+    }
+    setActive("Overview");
+    setOpenLearning({
+      courseId: result.course_id,
+      lessonId: result.result_type === "lesson" ? result.lesson_id ?? undefined : undefined
+    });
+  }
+
   async function openAdminWorkspace() {
     setProfileOpen(false);
     try {
@@ -328,11 +352,7 @@ function LearningHub() {
       <section className="workspace">
         <header className="topbar">
           <button className="menu-button" onClick={() => setMenuOpen(!menuOpen)} aria-label="Open menu">{menuOpen ? <X /> : <Menu />}</button>
-          <div className="search">
-            <Search size={19} />
-            <input aria-label="Search" placeholder="Search lessons, tests, notes..." onKeyDown={(event) => event.key === "Enter" && notify(`Searching for “${event.currentTarget.value}”`)} />
-            <kbd>⌘ K</kbd>
-          </div>
+          <GlobalLearningSearch openResult={openSearchResult} />
           <div className="top-actions">
             <button className="icon-button" aria-label={`${notificationCount} unread notifications`} onClick={() => setNotificationOpen(true)}><Bell size={20} />{notificationCount > 0 && <><i /><span className="notification-count">{notificationCount > 99 ? "99+" : notificationCount}</span></>}</button>
             <button className="profile" onClick={() => setProfileOpen(!profileOpen)}>
@@ -423,7 +443,7 @@ function LearningHub() {
       )}
       {active === "My courses" && !lessonOpen && <StudentCourses close={() => { setActive("Overview"); void refreshLearnerDashboard(); }} notify={notify} />}
       {active === "Study plan" && !lessonOpen && <StudyPlan close={() => setActive("Overview")} notify={notify} openAssessments={(assessmentId) => { setActiveAssessmentId(assessmentId); setExamOpen(true); }} />}
-      {active === "Assignments" && !lessonOpen && <StudentAssignments close={() => setActive("Overview")} notify={notify} />}
+      {active === "Assignments" && !lessonOpen && <StudentAssignments initialAssignmentId={activeAssignmentId || undefined} close={() => { setActiveAssignmentId(""); setActive("Overview"); }} notify={notify} />}
       {active === "Certificates" && !lessonOpen && <StudentCertificates close={() => setActive("Overview")} />}
       {active === "Programmes" && !lessonOpen && <StudentCommerce close={() => { setActive("Overview"); void refreshLearnerDashboard(); }} notify={notify} />}
       {active === "Community" && !lessonOpen && <CommunityHub close={() => setActive("Overview")} notify={notify} />}
