@@ -63,6 +63,7 @@ import GlobalLearningSearch from "../components/GlobalLearningSearch";
 import StudentQuizRunner from "../components/StudentQuizRunner";
 import LiveClassSchedule from "../components/LiveClassSchedule";
 import StudentLiveClasses from "../components/StudentLiveClasses";
+import StudentAssessmentCentre from "../components/StudentAssessmentCentre";
 import StudentCourses from "../components/StudentCourses";
 import StudentCoursePlayer from "../components/StudentCoursePlayer";
 import StudyPlan from "../components/StudyPlan";
@@ -152,6 +153,7 @@ function LearningHub() {
   const [lessonOpen, setLessonOpen] = useState(false);
   const [examOpen, setExamOpen] = useState(false);
   const [activeAssessmentId, setActiveAssessmentId] = useState("");
+  const [assessmentCentreKey, setAssessmentCentreKey] = useState(0);
   const [activeAssignmentId, setActiveAssignmentId] = useState("");
   const [adminOpen, setAdminOpen] = useState(false);
   const [adminSection, setAdminSection] = useState("Dashboard");
@@ -330,7 +332,7 @@ function LearningHub() {
             const badge = label === "Live classes" && (dashboard?.upcoming_live_count ?? 0) > 0
               ? String(dashboard?.upcoming_live_count)
               : "";
-            return <button key={label} className={`nav-item ${active === label ? "active" : ""}`} onClick={() => { if (label === "Assessments") { setActiveAssessmentId(""); setExamOpen(true); } else setActive(label); setMenuOpen(false); }}>
+            return <button key={label} className={`nav-item ${active === label ? "active" : ""}`} onClick={() => { setActive(label); setMenuOpen(false); }}>
               <Icon size={19} strokeWidth={1.8} /><span>{label}</span>{badge && <em>{badge}</em>}
             </button>;
           })}
@@ -428,11 +430,11 @@ function LearningHub() {
         </div>
 
         <nav className="mobile-nav" aria-label="Mobile navigation">
-          {navItems.slice(0, 4).map(({ label, icon: Icon }) => <button key={label} className={active === label ? "active" : ""} onClick={() => label === "Assessments" ? (setActiveAssessmentId(""), setExamOpen(true)) : setActive(label)}><Icon size={20} /><span>{label === "Live classes" ? "Live" : label}</span></button>)}
+          {navItems.slice(0, 4).map(({ label, icon: Icon }) => <button key={label} className={active === label ? "active" : ""} onClick={() => setActive(label)}><Icon size={20} /><span>{label === "Live classes" ? "Live" : label}</span></button>)}
         </nav>
       </section>
 
-      {active !== "Overview" && active !== "My courses" && active !== "Live classes" && active !== "Study plan" && active !== "Assignments" && active !== "Certificates" && active !== "Programmes" && active !== "Community" && !lessonOpen && (
+      {active !== "Overview" && active !== "My courses" && active !== "Live classes" && active !== "Assessments" && active !== "Study plan" && active !== "Assignments" && active !== "Certificates" && active !== "Programmes" && active !== "Community" && !lessonOpen && (
         <div className="route-overlay">
           <button className="overlay-close" onClick={() => setActive("Overview")}><X /></button>
           <div className="overlay-icon">{(() => { const item = navItems.find((n) => n.label === active); const Icon = item?.icon ?? BookOpen; return <Icon size={30} />; })()}</div>
@@ -444,6 +446,7 @@ function LearningHub() {
       )}
       {active === "My courses" && !lessonOpen && <StudentCourses close={() => { setActive("Overview"); void refreshLearnerDashboard(); }} notify={notify} />}
       {active === "Live classes" && !lessonOpen && <StudentLiveClasses close={() => setActive("Overview")} notify={notify} openLesson={(courseId, lessonId) => setOpenLearning({ courseId, lessonId })} />}
+      {active === "Assessments" && !lessonOpen && <StudentAssessmentCentre key={assessmentCentreKey} close={() => setActive("Overview")} openAssessment={(assessmentId) => { setActiveAssessmentId(assessmentId); setExamOpen(true); }} />}
       {active === "Study plan" && !lessonOpen && <StudyPlan close={() => setActive("Overview")} notify={notify} openAssessments={(assessmentId) => { setActiveAssessmentId(assessmentId); setExamOpen(true); }} />}
       {active === "Assignments" && !lessonOpen && <StudentAssignments initialAssignmentId={activeAssignmentId || undefined} close={() => { setActiveAssignmentId(""); setActive("Overview"); }} notify={notify} />}
       {active === "Certificates" && !lessonOpen && <StudentCertificates close={() => setActive("Overview")} />}
@@ -504,7 +507,7 @@ function LearningHub() {
         </div>
       )}
 
-      {examOpen && <StudentQuizRunner assessmentId={activeAssessmentId || undefined} close={() => { setExamOpen(false); setActiveAssessmentId(""); void refreshLearnerDashboard(); }} />}
+      {examOpen && <StudentQuizRunner assessmentId={activeAssessmentId || undefined} close={() => { setExamOpen(false); setActiveAssessmentId(""); setAssessmentCentreKey((value) => value + 1); void refreshLearnerDashboard(); }} />}
       {false && examOpen && (
         <div className="exam-room">
           {!examStarted ? (

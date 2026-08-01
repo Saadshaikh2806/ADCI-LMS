@@ -34,6 +34,35 @@ export type LearnerLiveClass = {
   join_count: number;
 };
 
+export type LearnerAssessment = {
+  id: string;
+  title: string;
+  course_id: string;
+  course_title: string;
+  lesson_id: string | null;
+  lesson_title: string | null;
+  module_title: string | null;
+  duration_seconds: number;
+  positive_marks: number;
+  negative_marks: number;
+  pass_percent: number;
+  max_attempts: number;
+  attempts_used: number;
+  attempts_remaining: number;
+  question_count: number;
+  max_score: number;
+  available_until: string | null;
+  state: "available" | "in_progress" | "completed";
+  can_start: boolean;
+  active_attempt_id: string | null;
+  server_deadline_at: string | null;
+  latest_attempt_id: string | null;
+  latest_score: number | null;
+  latest_submitted_at: string | null;
+  latest_timed_out: boolean;
+  passed: boolean;
+};
+
 export type LearningLesson = {
   id: string;
   title: string;
@@ -158,6 +187,14 @@ export async function getMyLiveClassWorkspace() {
   });
   if (error) throw error;
   return (data ?? []) as LearnerLiveClass[];
+}
+
+export async function getMyAssessmentCentre() {
+  const supabase = getSupabaseBrowserClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+  const { data, error } = await supabase.rpc("adci_get_my_assessment_centre");
+  if (error) throw error;
+  return (data ?? []) as LearnerAssessment[];
 }
 
 export type AdciNotification = {
