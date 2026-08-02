@@ -261,7 +261,7 @@ export default function StudentCoursePlayer({
             <div className="lesson-items">
               {module.lessons.map((lesson) => <button key={lesson.id} className={selectedLessonId === lesson.id ? "current" : ""} onClick={() => setSelectedLessonId(lesson.id)}>
                 <span className={`lesson-state ${lesson.completed ? "done" : ""}`}>{lesson.completed ? <Check /> : selectedLessonId === lesson.id ? <CirclePlay /> : lesson.position}</span>
-                <span><strong>{lesson.title}</strong><small>{lessonTypeNames[lesson.lesson_type]} · {durationLabel(lesson.duration_seconds)}</small></span>
+                <span><strong>{lesson.title}</strong><small>{lessonTypeNames[lesson.lesson_type]}{(lesson.lesson_type === "video" || lesson.lesson_type === "audio") ? ` · ${durationLabel(lesson.duration_seconds)}` : ""}</small></span>
               </button>)}
             </div>
           </section>)}

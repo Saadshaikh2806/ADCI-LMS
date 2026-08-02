@@ -340,7 +340,7 @@ function LearningHub() {
 
             <section className="hero-card">
             <div className="hero-copy">
-              <div className="status-row"><span className="pill"><Play size={12} fill="currentColor" /> {continueLesson ? "CONTINUE LEARNING" : "MY LEARNING"}</span><span>{continueLesson ? `${Math.max(1, Math.ceil((continueLesson.duration_seconds - continueLesson.position_seconds) / 60))} min left` : `${dashboard?.courses.length ?? 0} courses`}</span></div>
+              <div className="status-row"><span className="pill"><Play size={12} fill="currentColor" /> {continueLesson ? "CONTINUE LEARNING" : "MY LEARNING"}</span><span>{continueLesson ? (continueLesson.lesson_type === "video" || continueLesson.lesson_type === "audio" ? `${Math.max(1, Math.ceil((continueLesson.duration_seconds - continueLesson.position_seconds) / 60))} min left` : continueLesson.lesson_type.replace("html", "article")) : `${dashboard?.courses.length ?? 0} courses`}</span></div>
               <p className="hero-kicker">{continueLesson ? `${continueLesson.course_title} · ${continueLesson.module_title}` : "ANEES DEFENCE CAREER INSTITUTE"}</p>
               <h2>{continueLesson?.lesson_title ?? (dashboardLoading ? "Loading your next lesson…" : "Your learning journey starts here")}</h2>
               <p>{continueLesson ? `Resume your ${continueLesson.lesson_type} lesson from ${continueLesson.progress_percent}% progress.` : "Open My courses to begin a published course assigned by your administrator."}</p>
