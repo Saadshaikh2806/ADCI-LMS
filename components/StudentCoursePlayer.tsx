@@ -202,7 +202,7 @@ export default function StudentCoursePlayer({
   return <div className="learning-room">
     <header className="learning-header">
       <button className="back-button" onClick={close}><ArrowRight size={18} /> My courses</button>
-      <div><span>/{course.slug}</span><strong>{course.title}</strong></div>
+      <div className="learning-course-title"><strong>{course.title}</strong></div>
       <div className="secure-session"><ShieldCheck size={16} /> Progress secured</div>
     </header>
     <div className="learning-layout">

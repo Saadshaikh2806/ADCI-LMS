@@ -280,6 +280,8 @@ h1 { margin-bottom: 6px; font: 700 clamp(32.5px, 3vw, 44.2px)/1.15 var(--font-di
 .learning-header span, .learning-header strong { display:block; }
 .learning-header span { margin-bottom:4px; color:#dca85b; font-size:12.5px; font-weight:800; letter-spacing:.13em; }
 .learning-header strong { font:700 16.9px var(--font-display); }
+.learning-course-title { min-width:0; padding:8px 20px; border:1px solid rgba(255,255,255,.1); border-radius:9px; background:rgba(255,255,255,.045); }
+.learning-course-title strong { max-width:min(440px,40vw); overflow:hidden; color:#fffefa; font-size:19px; line-height:1.2; letter-spacing:-.015em; text-overflow:ellipsis; white-space:nowrap; }
 .back-button { justify-self:start; padding:0; display:flex; align-items:center; gap:6px; border:0; color:#c2cccb; background:none; font-size:14.3px; font-weight:700; cursor:pointer; }
 .back-button svg { transform:rotate(180deg); }
 .secure-session { justify-self:end; display:flex; align-items:center; gap:7px; color:#a8c9bb; font-size:13px; font-weight:700; }
@@ -475,6 +477,8 @@ h1 { margin-bottom: 6px; font: 700 clamp(32.5px, 3vw, 44.2px)/1.15 var(--font-di
   .learning-header { min-height:64px; padding:0 15px; grid-template-columns:auto 1fr auto; }
   .learning-header > div:nth-child(2) { text-align:left; }
   .learning-header > div:nth-child(2) span { display:none; }
+  .learning-course-title { justify-self:center; padding:7px 12px; border:0; background:transparent; }
+  .learning-course-title strong { max-width:50vw; font-size:17px; text-align:center; }
   .back-button { font-size:0; }
   .back-button svg { width:24px; height:24px; }
   .secure-session { font-size:0; }
