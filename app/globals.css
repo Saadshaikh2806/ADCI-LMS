@@ -24,6 +24,8 @@
 .system-page-card.error > span { color:#a24f3b; background:#f2ddd7; }
 
 * { box-sizing: border-box; }
+* { scrollbar-width:none; -ms-overflow-style:none; }
+*::-webkit-scrollbar { width:0; height:0; display:none; }
 html { background: var(--paper); }
 body { margin: 0; color: var(--ink); background: var(--paper); font-family: var(--font-body), Arial, sans-serif; }
 button, input { font: inherit; }
