@@ -21,6 +21,8 @@ Lesson videos are stored in Cloudflare R2 (zero egress fees, so serving cost sta
 
 The R2 bucket must remain private and needs an explicit browser CORS policy. Use the exact policy and upload limits in `docs/PRODUCTION_RELEASE.md` before testing uploads.
 
+Before uploading large lecture catalogs, use `scripts/bulk_optimize_videos.py` to create web-optimized H.264/AAC MP4 files. Windows installation and bulk usage instructions are in `docs/BULK_VIDEO_OPTIMIZATION.md`.
+
 ## Production
 
 The application uses the standard Next.js build: `pnpm build`. The public service check is available at `/api/health`. See `docs/PRODUCTION_RELEASE.md` for the complete release checklist.

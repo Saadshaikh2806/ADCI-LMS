@@ -5,3 +5,5 @@ tmp
 .env
 .env*.local
 *.tsbuildinfo
+__pycache__/
+*.pyc
