@@ -88,6 +88,7 @@ export default function AdminPeopleManager({ notify }: { notify: (message: strin
       {error && <div className="course-error people-error">{error}</div>}
 
       <section className="people-table">
+        <div className="people-table-scroll">
         <div className="people-head"><span>PERSON</span><span>ROLE</span><span>ACCESS</span><span>JOINED</span><span>COURSES</span></div>
         {loading ? (
           <div className="cms-loading"><LoaderCircle className="spin" /><span>Loading ADCI people…</span></div>
@@ -115,6 +116,7 @@ export default function AdminPeopleManager({ notify }: { notify: (message: strin
             </article>
           );
         })}
+        </div>
       </section>
 
       <div className="workflow-note"><ShieldCheck size={20} /><div><strong>Super-admin protected</strong><p>Role changes are validated inside PostgreSQL, recorded in the audit log, and cannot remove the final active super administrator.</p></div></div>
