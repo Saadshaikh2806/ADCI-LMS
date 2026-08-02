@@ -2440,13 +2440,14 @@ h1 { margin-bottom: 6px; font: 700 clamp(32.5px, 3vw, 44.2px)/1.15 var(--font-di
 
 /* Consistent ADCI brand mark treatments across light and dark surfaces. */
 .auth-brand > div {
-  width:60px;
-  height:48px;
+  width:72px;
+  height:58px;
   border:0;
   border-radius:0;
   background:transparent;
 }
-.auth-brand .adci-logo { width:60px; height:48px; }
+.auth-brand { gap:7px; }
+.auth-brand .adci-logo { width:72px; height:58px; }
 .mobile-auth-brand > span {
   width:52px;
   height:42px;
