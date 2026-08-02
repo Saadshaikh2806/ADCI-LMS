@@ -2120,6 +2120,9 @@ h1 { margin-bottom: 6px; font: 700 clamp(32.5px, 3vw, 44.2px)/1.15 var(--font-di
 
 /* Unified responsive safeguards for learner and administration workspaces */
 .admin-mobile-exit { display:none; }
+.enrolment-field { min-width:0; }
+.enrolment-field > span { display:none; }
+.enrolment-field select,.enrolment-field input { width:100%; }
 
 @media (max-width: 1024px) {
   .report-metrics { grid-template-columns:repeat(3,minmax(0,1fr)); }
@@ -2208,6 +2211,17 @@ h1 { margin-bottom: 6px; font: 700 clamp(32.5px, 3vw, 44.2px)/1.15 var(--font-di
   .certificate-hero > div { min-width:0; }
   .certificate-hero h1,.certificate-hero p { overflow-wrap:anywhere; }
   .verification-shell { width:calc(100% - 20px); }
+
+  .enrolment-dialog { display:flex; flex-direction:column; }
+  .enrolment-intro { line-height:1.55; }
+  .enrolment-list { width:100%; min-width:0; }
+  .enrolment-list article { width:100%; min-width:0; padding:13px; grid-template-columns:38px minmax(0,1fr); align-items:start; gap:10px; }
+  .enrolment-course-copy { min-width:0; padding-top:2px; }
+  .enrolment-course-copy strong,.enrolment-course-copy small { overflow-wrap:anywhere; }
+  .enrolment-field,.enrolment-list article > button { width:100%; grid-column:1/-1; }
+  .enrolment-field > span { margin-bottom:5px; display:block; color:#68716e; font-size:12px; font-weight:800; }
+  .enrolment-list select,.enrolment-list input,.enrolment-list article > button { width:100%; height:43px; font-size:16px; }
+  .enrolment-list article > button { margin-top:2px; }
 }
 
 @media (max-width: 430px) {

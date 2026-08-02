@@ -19,6 +19,43 @@ import {
 import AdminQuizBuilder from "./AdminQuizBuilder";
 import AdminLessonContentEditor from "./AdminLessonContentEditor";
 
+function readVideoDuration(file: File) {
+  return new Promise<number>((resolve, reject) => {
+    const video = document.createElement("video");
+    const objectUrl = URL.createObjectURL(file);
+    const cleanup = () => {
+      video.onloadedmetadata = null;
+      video.onerror = null;
+      video.removeAttribute("src");
+      video.load();
+      URL.revokeObjectURL(objectUrl);
+    };
+
+    video.preload = "metadata";
+    video.onloadedmetadata = () => {
+      const seconds = Math.ceil(video.duration);
+      cleanup();
+      if (!Number.isFinite(seconds) || seconds <= 0) reject(new Error("Unable to read the video length"));
+      else resolve(seconds);
+    };
+    video.onerror = () => {
+      cleanup();
+      reject(new Error("Unable to read the video length. Use a valid MP4 or WebM file."));
+    };
+    video.src = objectUrl;
+  });
+}
+
+function formatDuration(seconds: number) {
+  if (!seconds) return "Detecting…";
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const remainingSeconds = seconds % 60;
+  return hours > 0
+    ? `${hours}:${String(minutes).padStart(2, "0")}:${String(remainingSeconds).padStart(2, "0")}`
+    : `${minutes}:${String(remainingSeconds).padStart(2, "0")}`;
+}
+
 export default function AdminCourseManager({ notify }: { notify: (message: string) => void }) {
   const [courses, setCourses] = useState<AdciCourse[]>([]);
   const [loading, setLoading] = useState(true);
@@ -32,6 +69,8 @@ export default function AdminCourseManager({ notify }: { notify: (message: strin
   const [lessonTitle, setLessonTitle] = useState("");
   const [durationMinutes, setDurationMinutes] = useState("30");
   const [video, setVideo] = useState<File | null>(null);
+  const [videoDurationSeconds, setVideoDurationSeconds] = useState(0);
+  const [detectingVideoDuration, setDetectingVideoDuration] = useState(false);
   const [editor, setEditor] = useState<AdciCourseEditor | null>(null);
   const [editorLoading, setEditorLoading] = useState(false);
   const [editorTitle, setEditorTitle] = useState("");
@@ -43,6 +82,8 @@ export default function AdminCourseManager({ notify }: { notify: (message: strin
   const [newLessonType, setNewLessonType] = useState<AdciLesson["lesson_type"]>("video");
   const [newLessonMinutes, setNewLessonMinutes] = useState("30");
   const [newLessonFile, setNewLessonFile] = useState<File | null>(null);
+  const [newLessonDurationSeconds, setNewLessonDurationSeconds] = useState(0);
+  const [detectingLessonDuration, setDetectingLessonDuration] = useState(false);
   const [lessonUploadProgress, setLessonUploadProgress] = useState(0);
   const [quizLesson, setQuizLesson] = useState<AdciLesson | null>(null);
   const [contentLesson, setContentLesson] = useState<AdciLesson | null>(null);
@@ -66,6 +107,38 @@ export default function AdminCourseManager({ notify }: { notify: (message: strin
   useEffect(() => {
     void refresh();
   }, []);
+
+  async function selectCourseVideo(file: File | null) {
+    setVideo(file);
+    setVideoDurationSeconds(0);
+    setError("");
+    if (!file) return;
+    setDetectingVideoDuration(true);
+    try {
+      setVideoDurationSeconds(await readVideoDuration(file));
+    } catch (durationError) {
+      setVideo(null);
+      setError(durationError instanceof Error ? durationError.message : "Unable to read video length");
+    } finally {
+      setDetectingVideoDuration(false);
+    }
+  }
+
+  async function selectLessonFile(file: File | null) {
+    setNewLessonFile(file);
+    setNewLessonDurationSeconds(0);
+    setError("");
+    if (!file || newLessonType !== "video") return;
+    setDetectingLessonDuration(true);
+    try {
+      setNewLessonDurationSeconds(await readVideoDuration(file));
+    } catch (durationError) {
+      setNewLessonFile(null);
+      setError(durationError instanceof Error ? durationError.message : "Unable to read video length");
+    } finally {
+      setDetectingLessonDuration(false);
+    }
+  }
 
   async function openEditor(course: AdciCourse) {
     setEditorLoading(true);
@@ -132,16 +205,24 @@ export default function AdminCourseManager({ notify }: { notify: (message: strin
       setError(`Choose a ${newLessonType.toUpperCase()} file before adding this lesson.`);
       return;
     }
+    if (newLessonType === "video" && newLessonDurationSeconds <= 0) {
+      setError("Wait for the selected video length to be detected before adding the lesson.");
+      return;
+    }
     setSaving(true);
     setError("");
     setLessonUploadProgress(0);
     try {
-      const lesson = await addAdciModuleLesson(lessonModuleId, newLessonTitle, newLessonType, Math.max(0, Number(newLessonMinutes) * 60));
+      const lessonDuration = newLessonType === "video"
+        ? newLessonDurationSeconds
+        : Math.max(0, Number(newLessonMinutes) * 60);
+      const lesson = await addAdciModuleLesson(lessonModuleId, newLessonTitle, newLessonType, lessonDuration);
       if (newLessonFile && (newLessonType === "video" || newLessonType === "audio" || newLessonType === "pdf")) {
         await uploadProtectedLessonAsset(lesson.id, newLessonType, newLessonFile, setLessonUploadProgress);
       }
       setNewLessonTitle("");
       setNewLessonFile(null);
+      setNewLessonDurationSeconds(0);
       setLessonUploadProgress(0);
       await reloadEditor(editor.id);
       notify(newLessonFile ? "Lesson and protected file uploaded" : "Lesson added");
@@ -179,6 +260,10 @@ export default function AdminCourseManager({ notify }: { notify: (message: strin
 
   async function create(event: React.FormEvent) {
     event.preventDefault();
+    if (video && videoDurationSeconds <= 0) {
+      setError("Wait for the selected video length to be detected before creating the course.");
+      return;
+    }
     setSaving(true);
     setError("");
     setUploadProgress(0);
@@ -191,11 +276,11 @@ export default function AdminCourseManager({ notify }: { notify: (message: strin
         moduleTitle,
         lessonTitle,
         lessonType: video ? "video" : "html",
-        durationSeconds: Math.max(0, Number(durationMinutes) * 60)
+        durationSeconds: video ? videoDurationSeconds : Math.max(0, Number(durationMinutes) * 60)
       });
 
       if (video) {
-        await uploadProtectedLessonVideo(bundle.lesson_id, video, setUploadProgress);
+        await uploadProtectedLessonVideo(bundle.lesson_id, video, videoDurationSeconds, setUploadProgress);
       }
 
       notify(video ? "Course and protected video created" : "Course draft created");
@@ -205,6 +290,7 @@ export default function AdminCourseManager({ notify }: { notify: (message: strin
       setModuleTitle("Module 01");
       setLessonTitle("");
       setVideo(null);
+      setVideoDurationSeconds(0);
       await refresh();
     } catch (createError) {
       setError(createError instanceof Error ? createError.message : "Unable to create course");
@@ -241,7 +327,7 @@ export default function AdminCourseManager({ notify }: { notify: (message: strin
         ))}
       </section>
 
-      <div className="workflow-note"><ShieldCheck size={20} /><div><strong>Protected video workflow</strong><p>Uploads use resumable transfer and are stored in the private adci-course-videos bucket under the lesson ID.</p></div></div>
+      <div className="workflow-note"><ShieldCheck size={20} /><div><strong>Protected video workflow</strong><p>Video length is detected automatically before upload. Files are stored privately in Cloudflare R2 and removed from R2 when their lesson, module, or draft course is deleted.</p></div></div>
 
       {dialogOpen && (
         <div className="course-dialog-backdrop">
@@ -252,12 +338,12 @@ export default function AdminCourseManager({ notify }: { notify: (message: strin
               <label className="wide"><span>Description</span><textarea value={description} onChange={(event) => setDescription(event.target.value)} placeholder="What will learners achieve?" /></label>
               <label><span>First module</span><input required value={moduleTitle} onChange={(event) => setModuleTitle(event.target.value)} /></label>
               <label><span>First lesson</span><input required value={lessonTitle} onChange={(event) => setLessonTitle(event.target.value)} placeholder="Lesson title" /></label>
-              <label><span>Duration in minutes</span><input required min="0" type="number" value={durationMinutes} onChange={(event) => setDurationMinutes(event.target.value)} /></label>
-              <label className="video-picker"><span>Recorded lecture (optional)</span><input type="file" accept="video/mp4,video/webm" onChange={(event) => setVideo(event.target.files?.[0] ?? null)} /><div><UploadCloud size={21} /><strong>{video ? video.name : "Choose MP4 or WebM"}</strong><small>{video ? `${(video.size / 1024 / 1024).toFixed(1)} MB` : "Resumable private upload"}</small></div></label>
+              <label><span>{video ? "Detected video length" : "Duration in minutes"}</span><input required={!video} readOnly={Boolean(video)} min="0" type={video ? "text" : "number"} value={video ? formatDuration(videoDurationSeconds) : durationMinutes} onChange={(event) => setDurationMinutes(event.target.value)} /><small>{video ? "Read automatically from the selected video" : "Used when no recorded lecture is selected"}</small></label>
+              <label className="video-picker"><span>Recorded lecture (optional)</span><input type="file" accept="video/mp4,video/webm" onChange={(event) => void selectCourseVideo(event.target.files?.[0] ?? null)} /><div><UploadCloud size={21} /><strong>{video ? video.name : detectingVideoDuration ? "Reading video details…" : "Choose MP4 or WebM"}</strong><small>{video ? `${(video.size / 1024 / 1024).toFixed(1)} MB · ${formatDuration(videoDurationSeconds)}` : "Private Cloudflare R2 upload"}</small></div></label>
             </div>
             {saving && video && <div className="upload-progress"><div><FileVideo size={17} /><span>Uploading protected lecture</span><strong>{uploadProgress}%</strong></div><i><b style={{ width: `${uploadProgress}%` }} /></i></div>}
             {error && <div className="course-error">{error}</div>}
-            <div className="course-dialog-actions"><button type="button" onClick={() => setDialogOpen(false)}>Cancel</button><button className="primary" disabled={saving}>{saving ? <LoaderCircle size={17} className="spin" /> : <Check size={17} />}{saving ? "Creating…" : "Create course"}</button></div>
+            <div className="course-dialog-actions"><button type="button" onClick={() => setDialogOpen(false)}>Cancel</button><button className="primary" disabled={saving || detectingVideoDuration}>{saving ? <LoaderCircle size={17} className="spin" /> : <Check size={17} />}{detectingVideoDuration ? "Reading video…" : saving ? "Creating…" : "Create course"}</button></div>
           </form>
         </div>
       )}
@@ -291,7 +377,7 @@ export default function AdminCourseManager({ notify }: { notify: (message: strin
                 </div>
                 <div className="curriculum-actions">
                   <form onSubmit={addModule}><strong>Add module</strong><div><input required value={newModuleTitle} onChange={(event) => setNewModuleTitle(event.target.value)} placeholder="Module title" /><button disabled={saving}><Plus size={15} /> Add</button></div></form>
-                  <form onSubmit={addLesson}><strong>Add lesson</strong><select required value={lessonModuleId} onChange={(event) => setLessonModuleId(event.target.value)}>{editor.adci_modules.map((module) => <option key={module.id} value={module.id}>{module.title}</option>)}</select><input required value={newLessonTitle} onChange={(event) => setNewLessonTitle(event.target.value)} placeholder="Lesson title" /><div><select value={newLessonType} onChange={(event) => { setNewLessonType(event.target.value as AdciLesson["lesson_type"]); setNewLessonFile(null); setError(""); }}><option value="video">Video</option><option value="html">Article</option><option value="pdf">PDF</option><option value="live">Live class</option><option value="quiz">Quiz</option><option value="audio">Audio</option></select><input min="0" type="number" value={newLessonMinutes} onChange={(event) => setNewLessonMinutes(event.target.value)} aria-label="Duration in minutes" /><button disabled={saving || !lessonModuleId}><Plus size={15} /> Add</button></div>{(newLessonType === "video" || newLessonType === "audio" || newLessonType === "pdf") && <label className="lesson-asset-picker"><input type="file" accept={newLessonType === "video" ? "video/mp4,video/webm" : newLessonType === "audio" ? "audio/mpeg,audio/mp4,audio/wav,audio/ogg" : "application/pdf"} onChange={(event) => { setNewLessonFile(event.target.files?.[0] ?? null); setError(""); }} /><span><UploadCloud size={16} />{newLessonFile ? newLessonFile.name : `Choose ${newLessonType.toUpperCase()} file`}</span></label>}{saving && lessonUploadProgress > 0 && <div className="lesson-upload-meter"><i><b style={{ width: `${lessonUploadProgress}%` }} /></i><small>{lessonUploadProgress}% uploaded</small></div>}</form>
+                  <form onSubmit={addLesson}><strong>Add lesson</strong><select required value={lessonModuleId} onChange={(event) => setLessonModuleId(event.target.value)}>{editor.adci_modules.map((module) => <option key={module.id} value={module.id}>{module.title}</option>)}</select><input required value={newLessonTitle} onChange={(event) => setNewLessonTitle(event.target.value)} placeholder="Lesson title" /><div><select value={newLessonType} onChange={(event) => { setNewLessonType(event.target.value as AdciLesson["lesson_type"]); setNewLessonFile(null); setNewLessonDurationSeconds(0); setError(""); }}><option value="video">Video</option><option value="html">Article</option><option value="pdf">PDF</option><option value="live">Live class</option><option value="quiz">Quiz</option><option value="audio">Audio</option></select><input min="0" readOnly={newLessonType === "video"} type={newLessonType === "video" ? "text" : "number"} value={newLessonType === "video" ? newLessonFile ? formatDuration(newLessonDurationSeconds) : "Select video" : newLessonMinutes} onChange={(event) => setNewLessonMinutes(event.target.value)} aria-label={newLessonType === "video" ? "Detected video length" : "Duration in minutes"} title={newLessonType === "video" ? "Detected automatically from the selected video" : "Duration in minutes"} /><button disabled={saving || detectingLessonDuration || !lessonModuleId}><Plus size={15} />{detectingLessonDuration ? "Reading" : "Add"}</button></div>{(newLessonType === "video" || newLessonType === "audio" || newLessonType === "pdf") && <label className="lesson-asset-picker"><input type="file" accept={newLessonType === "video" ? "video/mp4,video/webm" : newLessonType === "audio" ? "audio/mpeg,audio/mp4,audio/wav,audio/ogg" : "application/pdf"} onChange={(event) => void selectLessonFile(event.target.files?.[0] ?? null)} /><span><UploadCloud size={16} />{newLessonFile ? `${newLessonFile.name}${newLessonType === "video" ? ` · ${formatDuration(newLessonDurationSeconds)}` : ""}` : detectingLessonDuration ? "Reading video details…" : `Choose ${newLessonType.toUpperCase()} file`}</span></label>}{saving && lessonUploadProgress > 0 && <div className="lesson-upload-meter"><i><b style={{ width: `${lessonUploadProgress}%` }} /></i><small>{lessonUploadProgress}% uploaded</small></div>}</form>
                 </div>
               </section>
             </div>

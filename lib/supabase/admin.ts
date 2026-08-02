@@ -35,11 +35,12 @@ export type AdciLesson = {
   adci_lesson_assets: Array<{
     id: string;
     asset_type: string;
+    storage_provider: string;
     original_name: string;
     size_bytes: number;
     object_path: string;
   }>;
-  adci_video_assets: Array<{ object_path: string }>;
+  adci_video_assets: Array<{ object_path: string; storage_provider: string }>;
 };
 
 export type AdciModule = {
@@ -470,7 +471,7 @@ export async function getAdciCourseEditor(courseId: string) {
 
   const { data, error } = await supabase
     .from("adci_courses")
-    .select("id,title,slug,description,status,updated_at,adci_modules(id,title,position,adci_lessons(id,title,lesson_type,position,duration_seconds,status,adci_lesson_assets(id,asset_type,original_name,size_bytes,object_path),adci_video_assets(object_path)))")
+    .select("id,title,slug,description,status,updated_at,adci_modules(id,title,position,adci_lessons(id,title,lesson_type,position,duration_seconds,status,adci_lesson_assets(id,asset_type,storage_provider,original_name,size_bytes,object_path),adci_video_assets(storage_provider,object_path)))")
     .eq("id", courseId)
     .order("position", { referencedTable: "adci_modules", ascending: true })
     .order("position", { referencedTable: "adci_modules.adci_lessons", ascending: true })
@@ -583,9 +584,28 @@ async function uploadFileToR2(
   return prepared.objectPath;
 }
 
+async function deleteFilesFromR2(objects: Array<{ lessonId: string; objectPath: string }>) {
+  if (objects.length === 0) return;
+  const supabase = getSupabaseBrowserClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+
+  const { data: sessionData } = await supabase.auth.getSession();
+  const accessToken = sessionData.session?.access_token;
+  if (!accessToken) throw new Error("Authentication required");
+
+  const response = await fetch("/api/storage/r2-delete-objects", {
+    method: "POST",
+    headers: { "content-type": "application/json", authorization: `Bearer ${accessToken}` },
+    body: JSON.stringify({ objects })
+  });
+  const result = await response.json() as { deleted?: number; error?: string };
+  if (!response.ok) throw new Error(result.error || "Unable to delete protected files from Cloudflare R2");
+}
+
 export async function uploadProtectedLessonVideo(
   lessonId: string,
   file: File,
+  durationSeconds: number,
   onProgress: (percentage: number) => void
 ) {
   const supabase = getSupabaseBrowserClient();
@@ -599,10 +619,14 @@ export async function uploadProtectedLessonVideo(
     object_path: objectPath,
     mime_type: file.type || "video/mp4",
     size_bytes: file.size,
+    duration_seconds: durationSeconds,
     processing_status: "ready"
   });
 
-  if (error) throw error;
+  if (error) {
+    await deleteFilesFromR2([{ lessonId, objectPath }]).catch(() => undefined);
+    throw error;
+  }
   return objectPath;
 }
 
@@ -627,7 +651,10 @@ export async function uploadProtectedLessonAsset(
     size_bytes: file.size
   });
 
-  if (error) throw error;
+  if (error) {
+    await deleteFilesFromR2([{ lessonId, objectPath }]).catch(() => undefined);
+    throw error;
+  }
   return objectPath;
 }
 
@@ -639,13 +666,26 @@ export async function deleteAdciAcademicEntity(
   const supabase = getSupabaseBrowserClient();
   if (!supabase) throw new Error("Supabase is not configured");
 
+  const r2Objects = lessons.flatMap((lesson) => [
+    ...(lesson.adci_lesson_assets ?? [])
+      .filter((asset) => asset.storage_provider === "r2")
+      .map((asset) => ({ lessonId: lesson.id, objectPath: asset.object_path })),
+    ...(lesson.adci_video_assets ?? [])
+      .filter((asset) => asset.storage_provider === "r2")
+      .map((asset) => ({ lessonId: lesson.id, objectPath: asset.object_path }))
+  ]);
   const lessonAssets = lessons.flatMap((lesson) =>
-    (lesson.adci_lesson_assets ?? []).map((asset) => asset.object_path)
+    (lesson.adci_lesson_assets ?? [])
+      .filter((asset) => asset.storage_provider !== "r2")
+      .map((asset) => asset.object_path)
   );
   const legacyVideos = lessons.flatMap((lesson) =>
-    (lesson.adci_video_assets ?? []).map((asset) => asset.object_path)
+    (lesson.adci_video_assets ?? [])
+      .filter((asset) => asset.storage_provider !== "r2")
+      .map((asset) => asset.object_path)
   );
 
+  await deleteFilesFromR2(r2Objects);
   if (lessonAssets.length) {
     const { error } = await supabase.storage.from("adci-lesson-assets").remove(lessonAssets);
     if (error) throw error;

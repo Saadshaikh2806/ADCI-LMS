@@ -23,15 +23,21 @@ export default function AdminEnrolmentManager({ person, close, notify }: {
     catch (loadError) { setError(loadError instanceof Error ? loadError.message : "Unable to load courses"); }
     finally { setLoading(false); }
   }
+
   useEffect(() => { void refresh(); }, [person.user_id]);
 
   async function update(course: AdciCourseEnrolment, status: NonNullable<AdciCourseEnrolment["enrolment_status"]>, expiry: string) {
-    setSaving(course.course_id); setError("");
+    setSaving(course.course_id);
+    setError("");
     try {
       await setAdciCourseEnrolment(person.user_id, course.course_id, status, expiry ? new Date(`${expiry}T23:59:59`).toISOString() : null);
-      await refresh(); notify(`${person.full_name || person.email} enrolment updated`);
-    } catch (saveError) { setError(saveError instanceof Error ? saveError.message : "Unable to update enrolment"); }
-    finally { setSaving(""); }
+      await refresh();
+      notify(`${person.full_name || person.email} enrolment updated`);
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : "Unable to update enrolment");
+    } finally {
+      setSaving("");
+    }
   }
 
   return <div className="course-dialog-backdrop"><div className="enrolment-dialog">
@@ -51,5 +57,12 @@ function EnrolmentRow({ course, saving, update }: {
 }) {
   const [status, setStatus] = useState<NonNullable<AdciCourseEnrolment["enrolment_status"]>>(course.enrolment_status ?? "pending");
   const [expiry, setExpiry] = useState(course.access_expires_at?.slice(0, 10) ?? "");
-  return <article><div className="enrolment-course-icon"><BookOpen size={19} /></div><div><strong>{course.title}</strong><small>Course: {course.status}{course.enrolment_status ? ` · Current access: ${course.enrolment_status}` : " · Not enrolled"}</small></div><select value={status} onChange={(event) => setStatus(event.target.value as typeof status)}><option value="pending">Pending</option><option value="active">Active</option><option value="frozen">Frozen</option><option value="completed">Completed</option><option value="cancelled">Cancelled</option></select><input type="date" value={expiry} onChange={(event) => setExpiry(event.target.value)} aria-label="Access expiry" /><button disabled={saving} onClick={() => update(course, status, expiry)}>{saving ? <LoaderCircle size={15} className="spin" /> : course.enrolment_status === status && (course.access_expires_at?.slice(0, 10) ?? "") === expiry ? <Check size={15} /> : <Save size={15} />}{saving ? "Saving" : "Apply"}</button></article>;
+
+  return <article>
+    <div className="enrolment-course-icon"><BookOpen size={19} /></div>
+    <div className="enrolment-course-copy"><strong>{course.title}</strong><small>Course: {course.status}{course.enrolment_status ? ` · Current access: ${course.enrolment_status}` : " · Not enrolled"}</small></div>
+    <label className="enrolment-field"><span>Access status</span><select value={status} onChange={(event) => setStatus(event.target.value as typeof status)}><option value="pending">Pending</option><option value="active">Active</option><option value="frozen">Frozen</option><option value="completed">Completed</option><option value="cancelled">Cancelled</option></select></label>
+    <label className="enrolment-field"><span>Access expires</span><input type="date" value={expiry} onChange={(event) => setExpiry(event.target.value)} /></label>
+    <button disabled={saving} onClick={() => update(course, status, expiry)}>{saving ? <LoaderCircle size={15} className="spin" /> : course.enrolment_status === status && (course.access_expires_at?.slice(0, 10) ?? "") === expiry ? <Check size={15} /> : <Save size={15} />}{saving ? "Saving" : "Apply"}</button>
+  </article>;
 }
