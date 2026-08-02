@@ -146,7 +146,7 @@ export default function AdminAuditLog({ notify }: { notify: (message: string) =>
       <article><div><FileClock /></div><span>EVENTS TODAY</span><strong>{log?.summary.today ?? 0}</strong><p>Recorded since midnight</p></article>
       <article><div className="actors"><UserCog /></div><span>ACTIVE ACTORS</span><strong>{log?.summary.actors ?? 0}</strong><p>Within the last 30 days</p></article>
       <article><div className="access"><KeyRound /></div><span>ACCESS CHANGES</span><strong>{log?.summary.access_changes ?? 0}</strong><p>Roles and enrolments</p></article>
-      <article><div className="content"><BookOpen /></div><span>CONTENT CHANGES</span><strong>{log?.summary.content_changes ?? 0}</strong><p>Courses, modules and lessons</p></article>
+      <article><div className="content-change"><BookOpen /></div><span>CONTENT CHANGES</span><strong>{log?.summary.content_changes ?? 0}</strong><p>Courses, modules and lessons</p></article>
     </section>
 
     <section className="audit-card">

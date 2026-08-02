@@ -1022,7 +1022,7 @@ h1 { margin-bottom: 6px; font: 700 clamp(32.5px, 3vw, 44.2px)/1.15 var(--font-di
 .audit-metrics article > div { width:34px; height:34px; display:grid; place-items:center; border-radius:9px; color:#4f648d; background:#e5eaf2; }
 .audit-metrics article > div.actors { color:#39755f; background:#e1eee8; }
 .audit-metrics article > div.access { color:#a2553e; background:#f6e2dc; }
-.audit-metrics article > div.content { color:#a1681d; background:#f5e8d1; }
+.audit-metrics article > div.content-change { color:#a1681d; background:#f5e8d1; }
 .audit-metrics svg { width:17px; }
 .audit-metrics span { margin-top:12px; display:block; color:#858d8a; font-size:11px; font-weight:900; letter-spacing:.09em; }
 .audit-metrics strong { margin:3px 0; display:block; font:700 26px var(--font-display); }
