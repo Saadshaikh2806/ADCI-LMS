@@ -2153,6 +2153,7 @@ h1 { margin-bottom: 6px; font: 700 clamp(32.5px, 3vw, 44.2px)/1.15 var(--font-di
   .mobile-nav button { min-width:0; flex:1; }
   .mobile-nav .mobile-admin-entry { color:#8b5b20; }
   .route-overlay { width:100%; max-width:100%; padding:18px 12px 28px; overflow-x:hidden; overflow-y:auto; }
+  .student-courses-view { overscroll-behavior:contain; background:#f7f5ef; backdrop-filter:none; -webkit-overflow-scrolling:touch; }
 
   .student-courses-head { margin:8px auto 14px; }
   .student-courses-head h2 { font-size:31px; }

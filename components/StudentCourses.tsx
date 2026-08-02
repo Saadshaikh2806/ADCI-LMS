@@ -29,6 +29,17 @@ export default function StudentCourses({
   const [error, setError] = useState("");
 
   useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    const previousOverscroll = document.body.style.overscrollBehavior;
+    document.body.style.overflow = "hidden";
+    document.body.style.overscrollBehavior = "none";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.body.style.overscrollBehavior = previousOverscroll;
+    };
+  }, []);
+
+  useEffect(() => {
     const supabase = getSupabaseBrowserClient();
     if (!supabase) {
       setLoading(false);
