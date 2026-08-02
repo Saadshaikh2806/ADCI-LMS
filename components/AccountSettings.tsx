@@ -15,8 +15,7 @@ import {
   ShieldCheck,
   Smartphone,
   Trash2,
-  UserRound,
-  X
+  UserRound
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { getSupabaseBrowserClient } from "../lib/supabase/client";
@@ -36,7 +35,6 @@ import { useAuthSession } from "./AuthGate";
 import MfaChallengeDialog from "./MfaChallengeDialog";
 
 export default function AccountSettings({
-  close,
   notify,
   onMfaChanged
 }: {
@@ -279,7 +277,6 @@ export default function AccountSettings({
   return <div className="account-settings-overlay">
     <header className="account-settings-header">
       <div><span><UserRound /></span><div><p className="eyebrow">MY ACCOUNT</p><h1>Settings</h1></div></div>
-      <button onClick={close} aria-label="Close settings"><X /></button>
     </header>
 
     <div className="account-settings-body">

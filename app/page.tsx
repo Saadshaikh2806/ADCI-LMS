@@ -285,20 +285,20 @@ function LearningHub() {
             const badge = label === "Live classes" && (dashboard?.upcoming_live_count ?? 0) > 0
               ? String(dashboard?.upcoming_live_count)
               : "";
-            return <button key={label} className={`nav-item ${active === label ? "active" : ""}`} onClick={() => { setActive(label); setMenuOpen(false); }}>
+            return <button key={label} className={`nav-item ${active === label && !settingsOpen && !helpOpen ? "active" : ""}`} onClick={() => { setActive(label); setSettingsOpen(false); setHelpOpen(false); setMenuOpen(false); }}>
               <Icon size={19} strokeWidth={1.8} /><span>{label}</span>{badge && <em>{badge}</em>}
             </button>;
           })}
         </nav>
 
         <div className="sidebar-bottom">
-          <button className="nav-item" onClick={() => { setHelpCategory(undefined); setHelpTicketId(""); setHelpOpen(true); setMenuOpen(false); }}><CircleHelp size={19} /><span>Help centre</span></button>
-          <button className={`nav-item ${settingsOpen ? "active" : ""}`} onClick={() => { setSettingsOpen(true); setMenuOpen(false); }}><Settings size={19} /><span>Settings</span></button>
+          <button className={`nav-item ${helpOpen ? "active" : ""}`} onClick={() => { setSettingsOpen(false); setHelpCategory(undefined); setHelpTicketId(""); setHelpOpen(true); setMenuOpen(false); }}><CircleHelp size={19} /><span>Help centre</span></button>
+          <button className={`nav-item ${settingsOpen ? "active" : ""}`} onClick={() => { setHelpOpen(false); setSettingsOpen(true); setMenuOpen(false); }}><Settings size={19} /><span>Settings</span></button>
           <div className="mentor-card">
             <div className="mentor-icon"><Sparkles size={20} /></div>
             <strong>Need a study nudge?</strong>
             <p>Your mentor is available today.</p>
-            <button onClick={() => { setHelpCategory("mentor"); setHelpTicketId(""); setHelpOpen(true); }}>Message mentor <ArrowRight size={14} /></button>
+            <button onClick={() => { setSettingsOpen(false); setHelpCategory("mentor"); setHelpTicketId(""); setHelpOpen(true); }}>Message mentor <ArrowRight size={14} /></button>
           </div>
         </div>
       </aside>
@@ -391,7 +391,7 @@ function LearningHub() {
         </div>
 
         <nav className="mobile-nav" aria-label="Mobile navigation">
-          {navItems.slice(0, 4).map(({ label, icon: Icon }) => <button key={label} className={active === label ? "active" : ""} onClick={() => setActive(label)}><Icon size={20} /><span>{label === "Live classes" ? "Live" : label}</span></button>)}
+          {navItems.slice(0, 4).map(({ label, icon: Icon }) => <button key={label} className={active === label && !settingsOpen && !helpOpen ? "active" : ""} onClick={() => { setActive(label); setSettingsOpen(false); setHelpOpen(false); }}><Icon size={20} /><span>{label === "Live classes" ? "Live" : label}</span></button>)}
           {canAdminister && <button className="mobile-admin-entry" onClick={() => void openAdminWorkspace()}><UserCog size={20} /><span>Admin</span></button>}
         </nav>
       </section>
@@ -424,7 +424,7 @@ function LearningHub() {
             <div className="admin-user"><span>{accountInitials}</span><div><strong>{accountName}</strong><small>{adminRoles.map((role) => role.replaceAll("_", " ")).join(" · ") || "Administrator"}</small></div><button onClick={() => setAdminOpen(false)} aria-label="Return to learner portal"><X size={17} /></button></div>
           </aside>
           <section className="admin-workspace">
-              <header className="admin-topbar"><div><p className="eyebrow">ANEES DEFENCE CAREER INSTITUTE</p><h1>{adminSection}</h1></div><div><span className={`data-mode ${backendConnected ? "connected" : ""}`}><i />{backendConnected ? "Supabase connected" : "Configuration required"}</span><button className="icon-button" aria-label={`${notificationCount} unread notifications`} onClick={() => setNotificationOpen(true)}><Bell size={20} />{notificationCount > 0 && <><i /><span className="notification-count">{notificationCount > 99 ? "99+" : notificationCount}</span></>}</button><button className="admin-avatar" onClick={() => setSettingsOpen(true)} aria-label="Open account settings" title="Account settings">{accountInitials}</button><button className="admin-mobile-exit" onClick={() => setAdminOpen(false)} aria-label="Return to learner portal" title="Return to learner portal"><X size={18} /></button></div></header>
+              <header className="admin-topbar"><div><p className="eyebrow">ANEES DEFENCE CAREER INSTITUTE</p><h1>{adminSection}</h1></div><div><span className={`data-mode ${backendConnected ? "connected" : ""}`}><i />{backendConnected ? "Supabase connected" : "Configuration required"}</span><button className="icon-button" aria-label={`${notificationCount} unread notifications`} onClick={() => setNotificationOpen(true)}><Bell size={20} />{notificationCount > 0 && <><i /><span className="notification-count">{notificationCount > 99 ? "99+" : notificationCount}</span></>}</button><button className="admin-avatar" onClick={() => { setAdminOpen(false); setSettingsOpen(true); }} aria-label="Open account settings" title="Account settings">{accountInitials}</button><button className="admin-mobile-exit" onClick={() => setAdminOpen(false)} aria-label="Return to learner portal" title="Return to learner portal"><X size={18} /></button></div></header>
             {adminSection === "Dashboard" ? (
               <AdminDashboard accountName={accountName} navigate={setAdminSection} />
             ) : adminSection === "Academics" ? (

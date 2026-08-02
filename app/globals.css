@@ -2383,13 +2383,42 @@ h1 { margin-bottom: 6px; font: 700 clamp(32.5px, 3vw, 44.2px)/1.15 var(--font-di
 .support-ticket-form footer button { font-size:13px; }
 .support-ticket-workspace { height:calc(100% - 118px); }
 
+/* Settings typography is intentionally larger than compact administration UI. */
+.account-settings-header h1 { font-size:33px; }
+.account-summary > p { font-size:14.5px; }
+.account-verified strong { font-size:14px; }
+.account-verified small { font-size:13px; line-height:1.45; }
+.account-summary dt,.account-summary dd { font-size:13px; }
+.account-settings-error { font-size:14px; }
+.account-settings-card h2 { font-size:21px; }
+.account-settings-card header p { font-size:14px; line-height:1.45; }
+.account-settings-card > label,.account-password-grid label { font-size:14px; }
+.account-settings-card input { font-size:15px; }
+.account-settings-card label > small { font-size:13px; line-height:1.45; }
+.account-primary,.account-secondary { font-size:13.5px; }
+.account-preference strong,.account-session-card strong { font-size:14px; }
+.account-preference small,.account-session-card small { font-size:13px; line-height:1.45; }
+.account-session-card button { font-size:13px; }
+.account-security-card > header > em { font-size:12px; }
+.account-security-state { font-size:14px; }
+.account-security-error { font-size:13.5px; }
+.account-security-empty strong,.account-factor strong { font-size:14px; }
+.account-security-empty small,.account-factor small { font-size:13px; line-height:1.5; }
+.account-security-empty > button,.account-factor button { font-size:13px; }
+.mfa-setup-grid h3 { font-size:20px; }
+.mfa-setup-grid p { font-size:14px; }
+.mfa-setup-grid div > span,.mfa-enrollment > label { font-size:13px; }
+.mfa-setup-grid code { font-size:13px; }
+.mfa-enrollment-actions > button { font-size:13px; }
+
 /* Keep the primary LMS navigation visible on top-level learner destinations. */
 @media (min-width: 761px) {
   .learner-assignments-page,
     .student-certificates-page,
     .community-page,
     .commerce-overlay,
-    .help-centre-page {
+    .help-centre-page,
+    .account-settings-overlay {
     inset:76px 0 0 244px;
     z-index:18;
   }
@@ -2414,11 +2443,13 @@ h1 { margin-bottom: 6px; font: 700 clamp(32.5px, 3vw, 44.2px)/1.15 var(--font-di
   .help-centre-header h1 { font-size:29px; }
   .help-centre-header nav button { font-size:0; }
   .support-ticket-workspace { height:auto; min-height:calc(100% - 104px); }
+  .account-settings-header h1 { font-size:27px; }
   .learner-assignments-page,
   .student-certificates-page,
   .community-page,
   .commerce-overlay,
-  .help-centre-page {
+  .help-centre-page,
+  .account-settings-overlay {
     inset:64px 0 calc(64px + env(safe-area-inset-bottom));
     z-index:18;
   }
