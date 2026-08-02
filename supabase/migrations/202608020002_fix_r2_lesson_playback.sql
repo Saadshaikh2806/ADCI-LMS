@@ -1,4 +1,5 @@
--- Applies the R2 authorization fix safely to projects where migration 009 was already run.
+-- Aligns R2 playback authorization with the LMS course-level publishing model.
+-- Lessons are created as draft records, while access is granted by the published course.
 
 create or replace function public.adci_can_access_lesson_asset(
   target_lesson_id uuid,
@@ -32,9 +33,5 @@ as $$
     );
 $$;
 
-revoke all on function public.adci_can_manage_lesson_assets(uuid) from public;
-revoke all on function public.adci_can_access_lesson(uuid) from public;
 revoke all on function public.adci_can_access_lesson_asset(uuid,text) from public;
-grant execute on function public.adci_can_manage_lesson_assets(uuid) to authenticated;
-grant execute on function public.adci_can_access_lesson(uuid) to authenticated;
 grant execute on function public.adci_can_access_lesson_asset(uuid,text) to authenticated;

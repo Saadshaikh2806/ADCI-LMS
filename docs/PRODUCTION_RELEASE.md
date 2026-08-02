@@ -14,6 +14,7 @@ Open the Supabase SQL Editor for the ADCI project and run each file once, in thi
 6. `202608010008_unified_event_notifications.sql`
 7. `202608010009_r2_video_storage.sql`
 8. `202608020001_harden_r2_asset_access.sql`
+9. `202608020002_fix_r2_lesson_playback.sql`
 
 If some are already applied, start from the first unapplied file. Do not rename tables or paste only part of a function; run each whole file.
 

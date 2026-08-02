@@ -46,7 +46,6 @@ as $$
       from public.adci_lessons lesson
       join public.adci_modules module on module.id = lesson.module_id
       where lesson.id = target_lesson_id
-        and lesson.status = 'published'
         and public.adci_can_access_course(module.course_id)
         and (
           exists (
