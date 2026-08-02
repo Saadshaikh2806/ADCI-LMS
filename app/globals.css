@@ -2144,6 +2144,8 @@ h1 { margin-bottom: 6px; font: 700 clamp(32.5px, 3vw, 44.2px)/1.15 var(--font-di
   .hero-card h2,.hero-card p,.welcome h1 { overflow-wrap:anywhere; }
   .toast { right:10px; bottom:calc(76px + env(safe-area-inset-bottom)); left:10px; justify-content:center; text-align:center; }
   .mobile-nav { height:calc(64px + env(safe-area-inset-bottom)); padding-bottom:calc(5px + env(safe-area-inset-bottom)); }
+  .mobile-nav button { min-width:0; flex:1; }
+  .mobile-nav .mobile-admin-entry { color:#8b5b20; }
   .route-overlay { width:100%; max-width:100%; padding:18px 12px 28px; overflow-x:hidden; overflow-y:auto; }
 
   .student-courses-head { margin:8px auto 14px; }

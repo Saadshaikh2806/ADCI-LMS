@@ -392,6 +392,7 @@ function LearningHub() {
 
         <nav className="mobile-nav" aria-label="Mobile navigation">
           {navItems.slice(0, 4).map(({ label, icon: Icon }) => <button key={label} className={active === label ? "active" : ""} onClick={() => setActive(label)}><Icon size={20} /><span>{label === "Live classes" ? "Live" : label}</span></button>)}
+          {canAdminister && <button className="mobile-admin-entry" onClick={() => void openAdminWorkspace()}><UserCog size={20} /><span>Admin</span></button>}
         </nav>
       </section>
 
