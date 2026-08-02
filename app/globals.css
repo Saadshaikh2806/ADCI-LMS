@@ -2428,6 +2428,12 @@ h1 { margin-bottom: 6px; font: 700 clamp(32.5px, 3vw, 44.2px)/1.15 var(--font-di
     inset:76px 0 0 244px;
     z-index:18;
   }
+  .certificate-preview-backdrop {
+    inset:76px 0 0 244px;
+  }
+  .certificate-preview-shell {
+    max-height:calc(100vh - 112px);
+  }
 }
 
 /* Consistent ADCI brand mark treatments across light and dark surfaces. */
