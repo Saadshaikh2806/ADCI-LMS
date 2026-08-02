@@ -87,6 +87,27 @@ const navItems = [
   { label: "Community", icon: Users }
 ];
 
+const learnerDestinations = new Set([
+  ...navItems.map((item) => item.label),
+  "Help centre",
+  "Settings"
+]);
+
+function getSavedLearnerDestination(userId?: string) {
+  if (!userId || typeof window === "undefined") return "Overview";
+  try {
+    const saved = JSON.parse(window.localStorage.getItem("adci-learning-state") || "null") as {
+      userId?: string;
+      destination?: string;
+    } | null;
+    return saved?.userId === userId && saved.destination && learnerDestinations.has(saved.destination)
+      ? saved.destination
+      : "Overview";
+  } catch {
+    return "Overview";
+  }
+}
+
 const adminNavItems = [
   { label: "Dashboard", icon: LayoutDashboard, roles: ["super_admin", "branch_admin", "academic_lead", "content_author"] },
   { label: "People", icon: UsersRound, roles: ["super_admin", "branch_admin", "support"] },
@@ -108,7 +129,8 @@ function LearningHub() {
   const authSession = useAuthSession();
   const accountName = authSession?.user.user_metadata?.full_name || authSession?.user.email?.split("@")[0] || "ADCI Learner";
   const accountInitials = accountName.split(/\s+/).slice(0, 2).map((part: string) => part[0]).join("").toUpperCase();
-  const [active, setActive] = useState("Overview");
+  const initialDestination = getSavedLearnerDestination(authSession?.user.id);
+  const [active, setActive] = useState(() => navItems.some((item) => item.label === initialDestination) ? initialDestination : "Overview");
   const [menuOpen, setMenuOpen] = useState(false);
   const [toast, setToast] = useState("");
   const [examOpen, setExamOpen] = useState(false);
@@ -126,8 +148,8 @@ function LearningHub() {
   const [openLearning, setOpenLearning] = useState<{ courseId: string; lessonId?: string } | null>(null);
   const [notificationOpen, setNotificationOpen] = useState(false);
   const [notificationCount, setNotificationCount] = useState(0);
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const [helpOpen, setHelpOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(() => initialDestination === "Settings");
+  const [helpOpen, setHelpOpen] = useState(() => initialDestination === "Help centre");
   const [helpCategory, setHelpCategory] = useState<"mentor" | undefined>();
   const [helpTicketId, setHelpTicketId] = useState("");
   const [adminRoles, setAdminRoles] = useState<string[]>([]);
@@ -148,6 +170,15 @@ function LearningHub() {
   useEffect(() => {
     if (authSession) void refreshLearnerDashboard();
   }, [authSession]);
+
+  useEffect(() => {
+    if (!authSession?.user.id) return;
+    const destination = settingsOpen ? "Settings" : helpOpen ? "Help centre" : active;
+    window.localStorage.setItem("adci-learning-state", JSON.stringify({
+      userId: authSession.user.id,
+      destination
+    }));
+  }, [active, authSession?.user.id, helpOpen, settingsOpen]);
 
   useEffect(() => {
     if (!authSession) return;
