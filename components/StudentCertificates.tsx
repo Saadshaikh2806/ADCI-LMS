@@ -3,6 +3,7 @@
 import { Award, Check, ExternalLink, GraduationCap, LoaderCircle, RefreshCw, ShieldAlert, ShieldCheck } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import CertificateDocument from "./CertificateDocument";
+import AdciLogo from "./AdciLogo";
 import { getMyCertificates, type AdciCertificate } from "../lib/supabase/certificates";
 
 export default function StudentCertificates({ close }: { close: () => void }) {
@@ -45,7 +46,7 @@ export default function StudentCertificates({ close }: { close: () => void }) {
         : certificates.length === 0 ? <div className="certificate-gallery-empty"><GraduationCap /><h3>No certificates issued yet</h3><p>Complete every published lesson, pass each quiz, and receive grades for all assignments. Your administrator can then issue the certificate.</p></div>
         : <div className="certificate-card-grid">{certificates.map((certificate) => <article key={certificate.id} className={certificate.status}>
           <div className="mini-certificate">
-            <div><GraduationCap /><strong>ADCI</strong></div><span>CERTIFICATE OF COMPLETION</span><h3>{certificate.learner_name}</h3><p>{certificate.course_title}</p><i><Award /></i>
+            <div><i className="mini-certificate-logo"><AdciLogo decorative /></i><strong>ADCI</strong></div><span>CERTIFICATE OF COMPLETION</span><h3>{certificate.learner_name}</h3><p>{certificate.course_title}</p><i><Award /></i>
           </div>
           <div className="certificate-card-copy">
             <div><span className={`certificate-status ${certificate.status}`}>{certificate.status === "valid" ? <Check /> : <ShieldAlert />}{certificate.status}</span><small>{new Date(certificate.issued_at).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</small></div>

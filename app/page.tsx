@@ -53,6 +53,7 @@ import AdminCommunity from "../components/AdminCommunity";
 import AdminCommerce from "../components/AdminCommerce";
 import AdminSupportInbox from "../components/AdminSupportInbox";
 import AccountSettings from "../components/AccountSettings";
+import AdciLogo from "../components/AdciLogo";
 import MfaChallengeDialog from "../components/MfaChallengeDialog";
 import NotificationCenter from "../components/NotificationCenter";
 import GlobalLearningSearch from "../components/GlobalLearningSearch";
@@ -275,7 +276,7 @@ function LearningHub() {
     <main className="app-shell">
       <aside className={`sidebar ${menuOpen ? "open" : ""}`}>
         <div className="brand">
-          <div className="brand-mark"><img src="/brand/adci-logo-white-trimmed.png" alt="ADCI" /></div>
+          <div className="brand-mark"><AdciLogo decorative /></div>
           <div><strong>ADCI</strong><span>Learning Hub</span></div>
         </div>
 
@@ -418,7 +419,7 @@ function LearningHub() {
       {adminOpen && (
         <div className="admin-app">
           <aside className="admin-sidebar">
-            <div className="brand"><div className="brand-mark"><img src="/brand/adci-logo-white-trimmed.png" alt="ADCI" /></div><div><strong>ADCI</strong><span>Administration</span></div></div>
+            <div className="brand"><div className="brand-mark"><AdciLogo decorative /></div><div><strong>ADCI</strong><span>Administration</span></div></div>
             <p className="nav-label">WORKSPACE</p>
             {adminNavItems.filter((item) => item.roles.some((role) => adminRoles.includes(role))).map(({ label, icon: Icon }) => <button key={label} className={`nav-item ${adminSection === label ? "active" : ""}`} onClick={() => setAdminSection(label)}><Icon size={18} /><span>{label}</span></button>)}
             <div className="admin-user"><span>{accountInitials}</span><div><strong>{accountName}</strong><small>{adminRoles.map((role) => role.replaceAll("_", " ")).join(" · ") || "Administrator"}</small></div><button onClick={() => setAdminOpen(false)} aria-label="Return to learner portal"><X size={17} /></button></div>

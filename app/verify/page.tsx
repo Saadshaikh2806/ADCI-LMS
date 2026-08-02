@@ -1,7 +1,8 @@
 "use client";
 
-import { ArrowLeft, Award, Check, GraduationCap, LoaderCircle, Search, ShieldAlert, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Award, Check, LoaderCircle, Search, ShieldAlert, ShieldCheck } from "lucide-react";
 import { useEffect, useState } from "react";
+import AdciLogo from "../../components/AdciLogo";
 import { verifyCertificate, type CertificateVerification } from "../../lib/supabase/certificates";
 
 export default function VerifyCertificatePage() {
@@ -34,7 +35,7 @@ export default function VerifyCertificatePage() {
   }, []);
 
   return <main className="verification-page">
-    <header><a href="/"><ArrowLeft /> Learning Hub</a><div><GraduationCap /><span><strong>ADCI</strong><small>Anees Defence Career Institute</small></span></div><span><ShieldCheck /> Secure verification</span></header>
+    <header><a href="/"><ArrowLeft /> Learning Hub</a><div><i className="verification-brand-logo"><AdciLogo decorative /></i><span><strong>ADCI</strong><small>Anees Defence Career Institute</small></span></div><span><ShieldCheck /> Secure verification</span></header>
     <section className="verification-shell">
       <div className="verification-intro"><span><Award /></span><p className="eyebrow">DIGITAL CREDENTIALS</p><h1>Verify an ADCI certificate</h1><p>Enter the certificate number or verification code exactly as it appears on the credential.</p></div>
       <form onSubmit={(event) => { event.preventDefault(); void verify(); }}><div><Search /><input value={code} onChange={(event) => setCode(event.target.value)} placeholder="ADCI-2026-XXXXXXXXXX" aria-label="Certificate number or verification code" /></div><button disabled={loading || !code.trim()}>{loading ? <LoaderCircle className="spin" /> : <ShieldCheck />} Verify certificate</button></form>

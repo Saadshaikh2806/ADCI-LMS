@@ -1,6 +1,7 @@
 "use client";
 
-import { Award, Check, Copy, Download, GraduationCap, ShieldCheck, X } from "lucide-react";
+import { Award, Check, Copy, Download, ShieldCheck, X } from "lucide-react";
+import AdciLogo from "./AdciLogo";
 import { useState } from "react";
 import type { AdciCertificate } from "../lib/supabase/certificates";
 
@@ -35,7 +36,7 @@ export default function CertificateDocument({
             <div className="certificate-corner top-right" />
             <div className="certificate-corner bottom-left" />
             <div className="certificate-corner bottom-right" />
-            <header><div className="certificate-brand-mark"><GraduationCap /></div><div><strong>ADCI</strong><span>ANEES DEFENCE CAREER INSTITUTE</span></div></header>
+            <header><div className="certificate-brand-mark"><AdciLogo decorative /></div><div><strong>ADCI</strong><span>ANEES DEFENCE CAREER INSTITUTE</span></div></header>
             <p className="certificate-kicker">CERTIFICATE OF COMPLETION</p>
             <div className="certificate-rule"><i /><Award /><i /></div>
             <p className="certificate-presented">This certificate is proudly presented to</p>

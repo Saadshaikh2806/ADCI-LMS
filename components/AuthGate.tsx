@@ -5,6 +5,7 @@ import type { Session } from "@supabase/supabase-js";
 import { createContext, type ReactNode, useContext, useEffect, useState } from "react";
 import { getSupabaseBrowserClient, isSupabaseConfigured } from "../lib/supabase/client";
 import MfaChallengeDialog from "./MfaChallengeDialog";
+import AdciLogo from "./AdciLogo";
 
 type Mode = "login" | "register" | "recovery";
 const AuthSessionContext = createContext<Session | null>(null);
@@ -200,7 +201,7 @@ export default function AuthGate({ children }: { children: ReactNode }) {
   return (
     <main className="auth-shell">
       <section className="auth-story">
-        <div className="auth-brand"><div><GraduationCap size={25} /></div><span><strong>ADCI</strong><small>Anees Defence Career Institute</small></span></div>
+        <div className="auth-brand"><div><AdciLogo decorative /></div><span><strong>ADCI</strong><small>Anees Defence Career Institute</small></span></div>
         <div className="auth-message">
           <p>LEARN WITH PURPOSE</p>
           <h1>Your preparation.<br />One dependable place.</h1>
@@ -211,7 +212,7 @@ export default function AuthGate({ children }: { children: ReactNode }) {
       </section>
       <section className="auth-form-panel">
         <form className="auth-form" onSubmit={submit}>
-          <div className="mobile-auth-brand"><GraduationCap size={22} /><strong>ADCI</strong></div>
+          <div className="mobile-auth-brand"><span><AdciLogo decorative /></span><strong>ADCI</strong></div>
           <p className="eyebrow">{mode === "register" ? "CREATE YOUR ACCOUNT" : mode === "recovery" ? "ACCOUNT RECOVERY" : "WELCOME BACK"}</p>
           <h2>{mode === "register" ? "Join ADCI Learning Hub" : mode === "recovery" ? "Reset your password" : "Sign in to continue"}</h2>
           <p>{mode === "register" ? "Start your guided learning journey." : mode === "recovery" ? "We’ll email you a secure recovery link." : "Access your courses, classes and assessments."}</p>
