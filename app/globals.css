@@ -2117,3 +2117,114 @@ h1 { margin-bottom: 6px; font: 700 clamp(32.5px, 3vw, 44.2px)/1.15 var(--font-di
   .assessment-card-details > span:nth-child(2) { border-right:0; }
   .assessment-card-details > span:nth-child(-n+2) { padding-bottom:9px; border-bottom:1px solid #ebe7de; }
 }
+
+/* Unified responsive safeguards for learner and administration workspaces */
+.admin-mobile-exit { display:none; }
+
+@media (max-width: 1024px) {
+  .report-metrics { grid-template-columns:repeat(3,minmax(0,1fr)); }
+  .support-admin-metrics { grid-template-columns:repeat(3,minmax(0,1fr)); }
+  .certificate-card-grid { grid-template-columns:1fr; }
+}
+
+@media (max-width: 760px) {
+  html,body { width:100%; max-width:100%; overflow-x:hidden; }
+  body { min-width:0; }
+  img,video,iframe { max-width:100%; }
+  input,select,textarea { min-width:0; font-size:16px; }
+  button,a,input,select,textarea { touch-action:manipulation; }
+
+  .sidebar { width:min(86vw,320px); padding-bottom:calc(20px + env(safe-area-inset-bottom)); }
+  .topbar { padding-left:max(12px,env(safe-area-inset-left)); padding-right:max(12px,env(safe-area-inset-right)); }
+  .top-actions { flex:none; }
+  .profile-menu { width:min(280px,calc(100vw - 20px)); max-height:calc(100vh - 78px); overflow:auto; }
+  .content,.live-learning-content,.assessment-centre-content { width:100%; min-width:0; }
+  .hero-card,.main-grid,.today-card,.course-list { min-width:0; }
+  .hero-copy { min-width:0; }
+  .hero-card h2,.hero-card p,.welcome h1 { overflow-wrap:anywhere; }
+  .toast { right:10px; bottom:calc(76px + env(safe-area-inset-bottom)); left:10px; justify-content:center; text-align:center; }
+  .mobile-nav { height:calc(64px + env(safe-area-inset-bottom)); padding-bottom:calc(5px + env(safe-area-inset-bottom)); }
+  .route-overlay { width:100%; max-width:100%; padding:18px 12px 28px; overflow-x:hidden; overflow-y:auto; }
+
+  .student-courses-head { margin:8px auto 14px; }
+  .student-courses-head h2 { font-size:31px; }
+  .student-course-grid article { min-width:0; min-height:0; padding:12px; grid-template-columns:82px minmax(0,1fr); align-items:start; gap:12px; }
+  .student-course-cover { width:82px; height:82px; }
+  .student-course-copy { min-width:0; }
+  .student-course-copy h3,.student-course-copy p { overflow-wrap:anywhere; }
+  .student-course-grid article > button { width:100%; grid-column:1/-1; justify-content:center; }
+
+  .learning-room,.exam-room,.learner-assignments-page,.student-certificates-page,.community-page,.commerce-overlay,.account-settings-overlay,.help-centre-page { width:100%; max-width:100%; overflow-x:hidden; }
+  .learning-layout,.lesson-stage,.lesson-outline,.question-panel,.question-palette { min-width:0; }
+  .lesson-content-frame { width:100%; }
+  .lesson-video { width:100%; height:auto; min-height:0; aspect-ratio:16/9; }
+  .lesson-heading h1,.lesson-summary,.lesson-content-state p { overflow-wrap:anywhere; }
+  .pdf-reader,.pdf-reader iframe { width:100%; }
+
+  .admin-app { display:block; padding:0; overflow:hidden; }
+  .admin-workspace { width:100%; height:100dvh; padding-bottom:calc(70px + env(safe-area-inset-bottom)); overflow-x:hidden; overflow-y:auto; }
+  .admin-sidebar { width:100%; height:calc(70px + env(safe-area-inset-bottom)); padding:5px max(7px,env(safe-area-inset-right)) env(safe-area-inset-bottom) max(7px,env(safe-area-inset-left)); position:fixed; inset:auto 0 0; z-index:110; flex-direction:row; align-items:stretch; gap:3px; overflow-x:auto; overflow-y:hidden; border-top:1px solid #405054; box-shadow:0 -8px 25px rgba(14,27,30,.18); scrollbar-width:none; }
+  .admin-sidebar::-webkit-scrollbar { display:none; }
+  .admin-sidebar .brand,.admin-sidebar .nav-label,.admin-sidebar .admin-user { display:none; }
+  .admin-sidebar > .nav-item { width:76px; min-width:76px; height:58px; margin:0; padding:5px 3px; flex-direction:column; justify-content:center; gap:3px; border-radius:8px; text-align:center; }
+  .admin-sidebar > .nav-item span { display:block; flex:none; width:100%; overflow:hidden; font-size:10.5px; line-height:1.15; text-overflow:ellipsis; white-space:nowrap; }
+  .admin-sidebar > .nav-item em { display:none; }
+  .admin-sidebar > .nav-item.active { box-shadow:inset 0 3px #eaa94f; }
+  .admin-topbar { min-height:68px; padding:9px 11px; position:sticky; top:0; z-index:100; gap:8px; }
+  .admin-topbar > div:first-child { min-width:0; }
+  .admin-topbar .eyebrow,.admin-topbar .data-mode { display:none; }
+  .admin-topbar h1 { max-width:42vw; overflow:hidden; font-size:23px; text-overflow:ellipsis; white-space:nowrap; }
+  .admin-topbar > div:last-child { flex:none; gap:4px; }
+  .admin-mobile-exit { width:36px; height:36px; display:grid; place-items:center; border:1px solid #ddd8ce; border-radius:50%; color:#606a67; background:#faf9f5; cursor:pointer; }
+  .admin-content { width:100%; max-width:100%; padding:18px 11px 30px; overflow-x:hidden; }
+  .admin-welcome,.reports-heading,.announcements-heading,.assignment-admin-heading,.certificate-admin-heading,.commerce-admin-heading,.audit-heading,.support-admin-heading { align-items:flex-start; flex-wrap:wrap; gap:10px; }
+  .admin-welcome > div:first-child { min-width:0; }
+  .admin-welcome h2 { overflow-wrap:anywhere; }
+  .admin-welcome > div:last-child { max-width:100%; flex-wrap:wrap; }
+  .admin-metrics,.report-metrics,.support-admin-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .admin-metrics article,.report-metrics article,.support-admin-metrics article { min-width:0; }
+
+  .recent-table,.people-table,.admin-announcement-list,.email-delivery-table,.learner-assignment-list,.assignment-admin-list,.grading-list,.certificate-admin-table,.community-admin-list,.admin-orders-table,.audit-events,.course-health-list { width:100%; max-width:100%; overflow-x:auto; overscroll-behavior-inline:contain; -webkit-overflow-scrolling:touch; }
+  .recent-table::after,.people-table::after,.admin-orders-table::after { content:"Swipe sideways to see all columns"; padding:8px 12px; display:block; color:#858d89; background:#faf9f5; font-size:11px; text-align:center; }
+
+  .course-dialog-backdrop,.assignment-dialog-backdrop,.assignment-grading-backdrop,.certificate-preview-backdrop { width:100%; max-width:100%; padding:0; place-items:start; overflow-x:hidden; }
+  .course-dialog,.course-editor,.quiz-builder,.lesson-content-editor,.enrolment-dialog,.student-assignment-dialog,.assignment-editor,.assignment-grading-panel,.grading-editor,.community-editor,.community-moderation-dialog,.checkout-dialog,.invoice-dialog,.commerce-offer-dialog,.certificate-revoke-dialog { width:100%; max-width:100%; min-height:100dvh; max-height:none; margin:0; padding:18px 14px; overflow-x:hidden; overflow-y:auto; border-radius:0; }
+  .course-dialog-head { gap:10px; }
+  .course-dialog-head h2 { min-width:0; overflow-wrap:anywhere; font-size:25px; }
+  .course-dialog-actions,.assignment-dialog-actions,.grading-editor > footer,.community-moderation-dialog > footer { flex-wrap:wrap; }
+  .course-dialog-actions button,.assignment-dialog-actions button { flex:1; justify-content:center; }
+  .module-list header,.module-lessons > div { min-width:0; }
+  .module-lessons > div { grid-template-columns:auto minmax(0,1fr) auto; }
+  .module-lessons > div > em { grid-column:2; width:max-content; }
+  .curriculum-actions form > div { flex-wrap:wrap; }
+  .curriculum-actions form > div > * { flex:1 1 130px; }
+
+  .study-plan-header,.learner-assignments-header,.student-certificates-header,.community-header,.commerce-header,.account-settings-header { padding-left:max(11px,env(safe-area-inset-left)); padding-right:max(11px,env(safe-area-inset-right)); }
+  .study-task-form > div,.assignment-admin-filters,.certificate-admin-filters,.community-admin-filters { grid-template-columns:1fr; }
+  .assignment-search,.certificate-admin-filters > div,.community-admin-filters > div { grid-column:auto; }
+  .certificate-hero { align-items:flex-start; gap:12px; }
+  .certificate-hero > div { min-width:0; }
+  .certificate-hero h1,.certificate-hero p { overflow-wrap:anywhere; }
+  .verification-shell { width:calc(100% - 20px); }
+}
+
+@media (max-width: 430px) {
+  .topbar { gap:6px; }
+  .menu-button,.icon-button { width:34px; height:34px; flex:none; }
+  .search { height:38px; padding:0 9px; }
+  .global-search-trigger > span { font-size:14px; }
+  .profile > span,.admin-avatar { width:32px; height:32px; }
+  .metrics,.admin-metrics,.report-metrics,.support-admin-metrics,.learner-assignment-summary,.assignment-admin-metrics,.certificate-admin-metrics,.community-summary,.community-admin-metrics,.commerce-admin-metrics { grid-template-columns:1fr; }
+  .hero-copy { padding:22px 17px; }
+  .lesson-art { min-height:145px; }
+  .student-course-grid article { grid-template-columns:68px minmax(0,1fr); }
+  .student-course-cover { width:68px; height:68px; }
+  .admin-topbar h1 { max-width:34vw; }
+  .admin-content { padding-inline:9px; }
+  .calendar-toolbar { align-items:flex-start; gap:10px; }
+  .calendar-toolbar h2 { font-size:22px; }
+  .calendar-toolbar > div:first-child { flex-direction:column; align-items:flex-start; }
+  .calendar-grid > button { min-height:56px; }
+  .agenda-heading { align-items:flex-start; flex-direction:column; }
+  .agenda-heading > button { width:100%; justify-content:center; }
+}
