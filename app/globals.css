@@ -2453,43 +2453,43 @@ h1 { margin-bottom: 6px; font: 700 clamp(32.5px, 3vw, 44.2px)/1.15 var(--font-di
   display:grid;
   place-items:center;
   border-radius:9px;
-  background:#1c292d;
+  background:transparent;
 }
-.mobile-auth-brand .adci-logo { width:48px; height:38px; }
+.mobile-auth-brand .adci-logo { width:48px; height:38px; filter:brightness(0); }
 .system-page-card > .system-brand-logo {
   width:76px;
   height:62px;
   padding:5px;
   border-radius:13px;
-  background:#1c292d;
+  background:transparent;
 }
-.system-brand-logo .adci-logo { width:66px; height:52px; }
+.system-brand-logo .adci-logo { width:66px; height:52px; filter:brightness(0); }
 .verification-brand-logo {
   width:49px;
   height:40px;
   display:grid;
   place-items:center;
   border-radius:8px;
-  background:#1c292d;
+  background:transparent;
 }
-.verification-brand-logo .adci-logo { width:45px; height:36px; }
+.verification-brand-logo .adci-logo { width:45px; height:36px; filter:brightness(0); }
 .mini-certificate-logo {
   width:32px;
   height:25px;
   display:grid;
   place-items:center;
   border-radius:5px;
-  background:#24383d;
+  background:transparent;
 }
-.mini-certificate-logo .adci-logo { width:29px; height:22px; }
+.mini-certificate-logo .adci-logo { width:29px; height:22px; filter:brightness(0); }
 .certificate-brand-mark {
   width:64px;
   height:48px;
   border:0;
   border-radius:9px;
-  background:#24383d;
+  background:transparent;
 }
-.certificate-brand-mark .adci-logo { width:59px; height:44px; }
+.certificate-brand-mark .adci-logo { width:59px; height:44px; filter:brightness(0); }
 
 @media (max-width: 760px) {
   .student-courses-page {
