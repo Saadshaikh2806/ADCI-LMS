@@ -2268,3 +2268,24 @@ h1 { margin-bottom: 6px; font: 700 clamp(32.5px, 3vw, 44.2px)/1.15 var(--font-di
   .agenda-heading { align-items:flex-start; flex-direction:column; }
   .agenda-heading > button { width:100%; justify-content:center; }
 }
+
+/* Keep the primary LMS navigation visible on top-level learner destinations. */
+@media (min-width: 761px) {
+  .learner-assignments-page,
+  .student-certificates-page,
+  .community-page,
+  .commerce-overlay {
+    inset:76px 0 0 244px;
+    z-index:18;
+  }
+}
+
+@media (max-width: 760px) {
+  .learner-assignments-page,
+  .student-certificates-page,
+  .community-page,
+  .commerce-overlay {
+    inset:64px 0 calc(64px + env(safe-area-inset-bottom));
+    z-index:18;
+  }
+}
