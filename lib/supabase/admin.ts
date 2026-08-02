@@ -548,6 +548,7 @@ export async function createCourseBundle(input: CourseBundleInput) {
 async function uploadFileToR2(
   lessonId: string,
   file: File,
+  assetType: "video" | "audio" | "pdf",
   onProgress: (percentage: number) => void
 ) {
   const supabase = getSupabaseBrowserClient();
@@ -560,7 +561,7 @@ async function uploadFileToR2(
   const prepareResponse = await fetch("/api/storage/r2-upload-url", {
     method: "POST",
     headers: { "content-type": "application/json", authorization: `Bearer ${accessToken}` },
-    body: JSON.stringify({ lessonId, fileName: file.name, contentType: file.type || "application/octet-stream" })
+    body: JSON.stringify({ lessonId, fileName: file.name, contentType: file.type, fileSize: file.size, assetType })
   });
   const prepared = await prepareResponse.json() as { uploadUrl?: string; objectPath?: string; error?: string };
   if (!prepareResponse.ok || !prepared.uploadUrl || !prepared.objectPath) {
@@ -590,7 +591,7 @@ export async function uploadProtectedLessonVideo(
   const supabase = getSupabaseBrowserClient();
   if (!supabase) throw new Error("Supabase is not configured");
 
-  const objectPath = await uploadFileToR2(lessonId, file, onProgress);
+  const objectPath = await uploadFileToR2(lessonId, file, "video", onProgress);
 
   const { error } = await supabase.from("adci_video_assets").insert({
     lesson_id: lessonId,
@@ -614,7 +615,7 @@ export async function uploadProtectedLessonAsset(
   const supabase = getSupabaseBrowserClient();
   if (!supabase) throw new Error("Supabase is not configured");
 
-  const objectPath = await uploadFileToR2(lessonId, file, onProgress);
+  const objectPath = await uploadFileToR2(lessonId, file, assetType, onProgress);
 
   const { error } = await supabase.from("adci_lesson_assets").insert({
     lesson_id: lessonId,

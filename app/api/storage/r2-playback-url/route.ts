@@ -15,9 +15,12 @@ export async function POST(request: Request) {
     const { userClient } = await requireServerUser(request);
     const body = await request.json() as { lessonId?: string; objectPath?: string };
 
-    if (!body.lessonId || !body.objectPath) throw new Error("A lesson and asset are required");
-    const { data: allowed, error: accessError } = await userClient.rpc("adci_can_access_lesson", {
-      target_lesson_id: body.lessonId
+    if (!body.lessonId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(body.lessonId) || !body.objectPath || body.objectPath.length > 500) {
+      throw new Error("A valid lesson and asset are required");
+    }
+    const { data: allowed, error: accessError } = await userClient.rpc("adci_can_access_lesson_asset", {
+      target_lesson_id: body.lessonId,
+      target_object_path: body.objectPath
     });
     if (accessError) throw accessError;
     if (!allowed) return errorResponse(new Error("This lesson is not available to your account"), 403);
@@ -25,10 +28,10 @@ export async function POST(request: Request) {
     const signedUrl = await getSignedUrl(
       getR2Client(),
       new GetObjectCommand({ Bucket: getR2BucketName(), Key: body.objectPath }),
-      { expiresIn: 60 * 60 }
+      { expiresIn: 15 * 60 }
     );
 
-    return Response.json({ signedUrl });
+    return Response.json({ signedUrl }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     return errorResponse(error);
   }
