@@ -2198,6 +2198,7 @@ h1 { margin-bottom: 6px; font: 700 clamp(32.5px, 3vw, 44.2px)/1.15 var(--font-di
   .recent-table::after,.people-table::after,.admin-orders-table::after { content:"Swipe sideways to see all columns"; padding:8px 12px; display:block; color:#858d89; background:#faf9f5; font-size:11px; text-align:center; }
   .people-toolbar { margin-bottom:8px; padding:10px; border-radius:12px; }
   .people-table { padding:10px; overflow:hidden; border-top:1px solid var(--line); border-radius:12px; }
+  .people-head,.people-table article { width:782px; min-width:782px; }
   .people-head { padding:0 14px; border-radius:8px 8px 0 0; background:#f7f5f0; }
   .people-table article { padding:13px 14px; }
 
