@@ -312,7 +312,7 @@ export default function AccountSettings({
         </section>
 
         <section className="account-settings-card account-security-card">
-          <header><div><Shield /></div><span><h2>Authenticator security</h2><p>Required before staff can enter protected administration areas.</p></span><em className={mfaState?.factors.length ? "enabled" : ""}>{mfaLoading ? "Checking" : mfaState?.factors.length ? "Protected" : "Not enabled"}</em></header>
+          <header><div><Shield /></div><span><h2>Authenticator security</h2><p>Optional extra protection for your account and sign-ins.</p></span><em className={mfaState?.factors.length ? "enabled" : ""}>{mfaLoading ? "Checking" : mfaState?.factors.length ? "Protected" : "Optional"}</em></header>
           {securityError && <div className="account-security-error">{securityError}</div>}
           {mfaLoading ? <div className="account-security-state"><LoaderCircle className="spin" /> Checking account protection…</div>
           : mfaEnrollment ? <form className="mfa-enrollment" onSubmit={enableMfa}>
@@ -324,10 +324,10 @@ export default function AccountSettings({
             <div className="mfa-enrollment-actions"><button type="button" onClick={() => setMfaEnrollment(null)}>Cancel</button><button className="account-primary" disabled={mfaSaving || mfaCode.length !== 6}>{mfaSaving ? <LoaderCircle className="spin" /> : <ShieldCheck />} Enable authenticator</button></div>
           </form>
           : mfaState?.factors.length ? <div className="account-factor">
-            <div><span><Smartphone /></span><div><strong>{mfaState.factors[0].friendlyName}</strong><small>Added {new Date(mfaState.factors[0].createdAt).toLocaleDateString("en-IN", { dateStyle: "medium" })} · {mfaState.currentLevel === "aal2" ? "Verified for this session" : "Verification required for protected access"}</small></div></div>
+            <div><span><Smartphone /></span><div><strong>{mfaState.factors[0].friendlyName}</strong><small>Added {new Date(mfaState.factors[0].createdAt).toLocaleDateString("en-IN", { dateStyle: "medium" })} · {mfaState.currentLevel === "aal2" ? "Verified for this session" : "Verification required at sign-in"}</small></div></div>
             <div>{mfaState.currentLevel !== "aal2" && <button className="factor-verify" onClick={() => setMfaChallengeFactor(mfaState.factors[0].id)}><ShieldCheck /> Verify this session</button>}<button className="factor-remove" disabled={mfaSaving} onClick={() => void disableMfa()}><Trash2 /> Remove</button></div>
           </div>
-          : <div className="account-security-empty"><div><QrCode /></div><span><strong>Protect this account with an authenticator app</strong><small>After setup, a rotating six-digit code is required for administrative access even if the password is compromised.</small></span><button disabled={mfaSaving} onClick={() => void beginMfaSetup()}>{mfaSaving ? <LoaderCircle className="spin" /> : <ShieldCheck />} Set up authenticator</button></div>}
+          : <div className="account-security-empty"><div><QrCode /></div><span><strong>Protect this account with an authenticator app</strong><small>If enabled, a rotating six-digit code is required when signing in even if the password is compromised.</small></span><button disabled={mfaSaving} onClick={() => void beginMfaSetup()}>{mfaSaving ? <LoaderCircle className="spin" /> : <ShieldCheck />} Set up authenticator</button></div>}
         </section>
 
         <form className="account-settings-card" onSubmit={changePassword}>

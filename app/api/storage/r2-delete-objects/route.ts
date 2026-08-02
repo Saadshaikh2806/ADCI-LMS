@@ -35,12 +35,6 @@ export async function POST(request: Request) {
       }
     }
 
-    const { data: assurance, error: assuranceError } = await userClient.auth.mfa.getAuthenticatorAssuranceLevel();
-    if (assuranceError) throw assuranceError;
-    if (assurance.currentLevel !== "aal2") {
-      return errorResponse(new Error("Authenticator verification is required before deleting protected files"), 403);
-    }
-
     const lessonIds = [...new Set(uniqueObjects.map((item) => item.lessonId))];
     for (const lessonId of lessonIds) {
       const { data: allowed, error: roleError } = await userClient.rpc("adci_can_manage_lesson_assets", {

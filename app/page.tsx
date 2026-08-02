@@ -54,7 +54,6 @@ import AdminCommerce from "../components/AdminCommerce";
 import AdminSupportInbox from "../components/AdminSupportInbox";
 import AccountSettings from "../components/AccountSettings";
 import AdciLogo from "../components/AdciLogo";
-import MfaChallengeDialog from "../components/MfaChallengeDialog";
 import NotificationCenter from "../components/NotificationCenter";
 import GlobalLearningSearch from "../components/GlobalLearningSearch";
 import StudentQuizRunner from "../components/StudentQuizRunner";
@@ -72,7 +71,6 @@ import CommunityHub from "../components/CommunityHub";
 import StudentCommerce from "../components/StudentCommerce";
 import { hasAcademicAdminRole, loadMyAdciMemberships } from "../lib/supabase/admin";
 import { getLearnerDashboard, getMyNotifications, type AdciNotification, type LearnerDashboard } from "../lib/supabase/learning";
-import { getMfaState, recordSecurityEvent } from "../lib/supabase/security";
 import type { LearningSearchResult } from "../lib/supabase/search";
 
 const navItems = [
@@ -153,7 +151,6 @@ function LearningHub() {
   const [helpCategory, setHelpCategory] = useState<"mentor" | undefined>();
   const [helpTicketId, setHelpTicketId] = useState("");
   const [adminRoles, setAdminRoles] = useState<string[]>([]);
-  const [adminMfaFactorId, setAdminMfaFactorId] = useState("");
 
   async function refreshLearnerDashboard() {
     setDashboardLoading(true);
@@ -273,24 +270,11 @@ function LearningHub() {
     }
   }
 
-  async function openAdminWorkspace() {
+  function openAdminWorkspace() {
     setProfileOpen(false);
-    try {
-      const security = await getMfaState();
-      if (security.currentLevel === "aal2") {
-        setAdminSection(adminEntrySection);
-        setAdminOpen(true);
-        return;
-      }
-      if (security.nextLevel === "aal2" && security.factors[0]) {
-        setAdminMfaFactorId(security.factors[0].id);
-        return;
-      }
-      setSettingsOpen(true);
-      notify("Set up an authenticator before entering administration");
-    } catch (securityError) {
-      notify(securityError instanceof Error ? securityError.message : "Unable to verify account security");
-    }
+    setSettingsOpen(false);
+    setAdminSection(adminEntrySection);
+    setAdminOpen(true);
   }
 
   const continueLesson = dashboard?.continue_lesson;
@@ -348,7 +332,7 @@ function LearningHub() {
               <div><strong>{accountName}</strong><small>UPSC Foundation</small></div>
               <ChevronRight size={16} />
             </button>
-            {profileOpen && <div className="profile-menu"><button className="selected"><GraduationCap size={17} /><span><strong>Learner portal</strong><small>Continue studying</small></span><Check size={15} /></button>{canAdminister && <button onClick={() => void openAdminWorkspace()}><UserCog size={17} /><span><strong>Admin workspace</strong><small>MFA-protected administration</small></span><ArrowRight size={15} /></button>}<button onClick={() => { setSettingsOpen(true); setProfileOpen(false); }}><Settings size={17} /><span><strong>Account settings</strong><small>Profile, security and sign out</small></span><ArrowRight size={15} /></button></div>}
+            {profileOpen && <div className="profile-menu"><button className="selected"><GraduationCap size={17} /><span><strong>Learner portal</strong><small>Continue studying</small></span><Check size={15} /></button>{canAdminister && <button onClick={() => void openAdminWorkspace()}><UserCog size={17} /><span><strong>Admin workspace</strong><small>Role-protected administration</small></span><ArrowRight size={15} /></button>}<button onClick={() => { setSettingsOpen(true); setProfileOpen(false); }}><Settings size={17} /><span><strong>Account settings</strong><small>Profile, security and sign out</small></span><ArrowRight size={15} /></button></div>}
           </div>
         </header>
 
@@ -491,7 +475,6 @@ function LearningHub() {
       {notificationOpen && <NotificationCenter close={() => setNotificationOpen(false)} onUnreadChange={setNotificationCount} onOpenAction={openNotificationAction} />}
       {settingsOpen && <AccountSettings close={() => setSettingsOpen(false)} notify={notify} onMfaChanged={(enabled) => { if (!enabled) setAdminOpen(false); }} />}
       {helpOpen && <HelpCentre initialCategory={helpCategory} initialTicketId={helpTicketId || undefined} close={() => { setHelpOpen(false); setHelpCategory(undefined); setHelpTicketId(""); }} notify={notify} />}
-      {adminMfaFactorId && <MfaChallengeDialog factorId={adminMfaFactorId} close={() => setAdminMfaFactorId("")} title="Verify administrative access" onVerified={async () => { await recordSecurityEvent("admin_mfa_verified"); setAdminMfaFactorId(""); setAdminSection(adminEntrySection); setAdminOpen(true); notify("Administrative access verified"); }} />}
       {toast && <div className="toast"><Check size={17} />{toast}</div>}
     </main>
   );
