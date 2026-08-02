@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  ArrowLeft,
   BookOpen,
   CalendarDays,
   Check,
@@ -124,7 +123,7 @@ export default function StudentLiveClasses({
 
   return <div className="live-learning-page">
     <header className="live-learning-header">
-      <div><button onClick={close}><ArrowLeft /> Dashboard</button><p className="eyebrow">LEARNER SCHEDULE</p><h1>Live classes</h1><span>Join securely, review attendance, and open the connected course lesson.</span></div>
+      <div><p className="eyebrow">LEARNER SCHEDULE</p><h1>Live classes</h1><span>Join securely, review attendance, and open the connected course lesson.</span></div>
       <button className="live-refresh" disabled={loading} onClick={() => void refresh()}><RefreshCw className={loading ? "spin" : ""} /> Refresh schedule</button>
     </header>
 

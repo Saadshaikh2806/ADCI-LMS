@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, BookOpen, LoaderCircle, X } from "lucide-react";
+import { ArrowRight, BookOpen, LoaderCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { getSupabaseBrowserClient } from "../lib/supabase/client";
 import StudentCoursePlayer from "./StudentCoursePlayer";
@@ -56,11 +56,13 @@ export default function StudentCourses({
     return <StudentCoursePlayer courseId={selectedCourseId} close={() => setSelectedCourseId("")} notify={notify} />;
   }
 
-  return <div className="route-overlay student-courses-view">
-    <button className="overlay-close" onClick={close}><X /></button>
-    <div className="student-courses-head">
-      <div><p className="eyebrow">MY LEARNING</p><h2>My courses</h2><p>Active enrolments and learning progress.</p></div>
-    </div>
+  return <section className="student-courses-page">
+    <header className="student-courses-header">
+      <span aria-hidden="true" />
+      <div><p className="eyebrow">MY LEARNING</p><h1>My courses</h1><p>Active enrolments and learning progress.</p></div>
+      <span aria-hidden="true" />
+    </header>
+    <div className="student-courses-content">
     {loading ? <div className="cms-loading"><LoaderCircle className="spin" /> Loading your courses…</div>
       : error ? <div className="course-error">{error}</div>
       : courses.length === 0 ? <div className="cms-empty"><div><BookOpen /></div><h3>No active courses</h3><p>Your administrator must enrol you in a published course.</p></div>
@@ -78,5 +80,6 @@ export default function StudentCourses({
           <button onClick={() => setSelectedCourseId(course.id)}>Open course <ArrowRight size={15} /></button>
         </article>;
       })}</div>}
-  </div>;
+    </div>
+  </section>;
 }

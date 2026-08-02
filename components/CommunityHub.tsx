@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  ArrowLeft,
   Check,
   ChevronUp,
   CircleHelp,
@@ -188,7 +187,7 @@ export default function CommunityHub({
 
   return <div className="community-page">
     <header className="community-header">
-      <button onClick={close}><ArrowLeft /> Dashboard</button>
+      <span aria-hidden="true" />
       <div><p className="eyebrow">ADCI LEARNING COMMUNITY</p><h1>Community</h1></div>
       <button className="primary" onClick={() => openEditor()}><MessageSquarePlus /> Start discussion</button>
     </header>

@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  ArrowLeft,
   CalendarClock,
   Check,
   ClipboardList,
@@ -172,7 +171,7 @@ export default function StudentAssignments({
 
   return <div className="learner-assignments-page">
     <header className="learner-assignments-header">
-      <button onClick={close}><ArrowLeft /> Dashboard</button>
+      <span aria-hidden="true" />
       <div><p className="eyebrow">ADCI COURSEWORK</p><h1>Assignments</h1></div>
       <button className="assignment-refresh" onClick={() => void refresh()}><RefreshCw className={loading ? "spin" : ""} /> Refresh</button>
     </header>

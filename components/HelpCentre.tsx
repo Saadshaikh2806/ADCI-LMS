@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  ArrowLeft,
   ArrowRight,
   BookOpen,
   Check,
@@ -139,7 +138,7 @@ export default function HelpCentre({
 
   return <div className="help-centre-page">
     <header className="help-centre-header">
-      <div><button onClick={close}><ArrowLeft /> Dashboard</button><p className="eyebrow">ADCI SUPPORT</p><h1>Help centre</h1><span>Find answers or speak privately with the support and mentor team.</span></div>
+      <div><p className="eyebrow">ADCI SUPPORT</p><h1>Help centre</h1><span>Find answers or speak privately with the support and mentor team.</span></div>
       <nav><button className={view === "help" ? "active" : ""} onClick={() => { setView("help"); setSelected(null); }}>Help articles</button><button className={view === "tickets" ? "active" : ""} onClick={() => setView("tickets")}>My tickets {tickets.filter((ticket) => !["resolved", "closed"].includes(ticket.status)).length > 0 && <em>{tickets.filter((ticket) => !["resolved", "closed"].includes(ticket.status)).length}</em>}</button></nav>
     </header>
 

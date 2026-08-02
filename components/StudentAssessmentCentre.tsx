@@ -2,7 +2,6 @@
 
 import {
   AlarmClock,
-  ArrowLeft,
   ArrowRight,
   Award,
   Check,
@@ -89,7 +88,7 @@ export default function StudentAssessmentCentre({
 
   return <div className="assessment-centre-page">
     <header className="assessment-centre-header">
-      <div><button onClick={close}><ArrowLeft /> Dashboard</button><p className="eyebrow">EXAM WORKSPACE</p><h1>Assessments</h1><span>Start tests, resume active attempts, and review your latest scores.</span></div>
+      <div><p className="eyebrow">EXAM WORKSPACE</p><h1>Assessments</h1><span>Start tests, resume active attempts, and review your latest scores.</span></div>
       <button disabled={loading} onClick={() => void refresh()}><RefreshCw className={loading ? "spin" : ""} /> Refresh</button>
     </header>
 

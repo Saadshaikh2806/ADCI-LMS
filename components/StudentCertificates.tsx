@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Award, Check, ExternalLink, GraduationCap, LoaderCircle, RefreshCw, ShieldAlert, ShieldCheck } from "lucide-react";
+import { Award, Check, ExternalLink, GraduationCap, LoaderCircle, RefreshCw, ShieldAlert, ShieldCheck } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import CertificateDocument from "./CertificateDocument";
 import { getMyCertificates, type AdciCertificate } from "../lib/supabase/certificates";
@@ -29,7 +29,7 @@ export default function StudentCertificates({ close }: { close: () => void }) {
 
   return <div className="student-certificates-page">
     <header className="student-certificates-header">
-      <button onClick={close}><ArrowLeft /> Dashboard</button>
+      <span aria-hidden="true" />
       <div><p className="eyebrow">ADCI ACHIEVEMENTS</p><h1>My certificates</h1></div>
       <button onClick={() => void refresh()}><RefreshCw className={loading ? "spin" : ""} /> Refresh</button>
     </header>

@@ -12,8 +12,7 @@ import {
   Plus,
   Radio,
   RefreshCw,
-  Trash2,
-  X
+  Trash2
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { getSupabaseBrowserClient } from "../lib/supabase/client";
@@ -180,7 +179,6 @@ export default function StudyPlan({
     <header className="study-plan-header">
       <div><p className="eyebrow">MY LEARNING</p><h1>Study plan</h1><span>Build a consistent routine around classes, assessments and revision.</span></div>
       <div className="study-plan-summary"><div><strong>{plan.pending_tasks}</strong><span>Open tasks</span></div><div><strong>{plan.completed_tasks}</strong><span>Completed</span></div></div>
-      <button className="overlay-close" onClick={close}><X /></button>
     </header>
 
     <div className="study-plan-layout">

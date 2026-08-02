@@ -174,7 +174,6 @@ export default function StudentCommerce({
   return <div className="commerce-overlay">
     <header className="commerce-header">
       <div><span><ShoppingBag /></span><div><p className="eyebrow">ADCI PROGRAMMES</p><h1>Courses and billing</h1></div></div>
-      <button onClick={close} aria-label="Close programmes"><X /></button>
     </header>
     <div className="commerce-tabs"><button className={tab === "catalog" ? "active" : ""} onClick={() => setTab("catalog")}><BookOpen /> Course catalogue</button><button className={tab === "billing" ? "active" : ""} onClick={() => setTab("billing")}><ReceiptIndianRupee /> My payments</button><button className="commerce-refresh" onClick={() => void refresh()}><RefreshCw className={loading ? "spin" : ""} /> Refresh</button></div>
     <main className="commerce-body">
