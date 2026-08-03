@@ -43,17 +43,38 @@ export default function AdminLessonContentEditor({ lesson, close, notify }: {
   }, [isArticle, lesson.id]);
 
   async function save(event: React.FormEvent) {
-    event.preventDefault(); setSaving(true); setError("");
+    event.preventDefault(); setError("");
+    const startDate = new Date(startsAt);
+    const endDate = new Date(endsAt);
+    if (!isArticle) {
+      if (!Number.isFinite(startDate.getTime()) || !Number.isFinite(endDate.getTime())) {
+        setError("Choose valid start and end times.");
+        return;
+      }
+      if (endDate <= startDate) {
+        setError("The live class must end after it starts.");
+        return;
+      }
+      if (!url.trim().toLowerCase().startsWith("https://")) {
+        setError("Enter a secure HTTPS meeting or stream URL.");
+        return;
+      }
+      if (instructor.trim().length < 2) {
+        setError("Enter the instructor name.");
+        return;
+      }
+    }
+    setSaving(true);
     try {
       if (isArticle) await saveAdciArticle(lesson.id, body);
       else await saveAdciLiveClass(lesson.id, {
-        provider, meeting_url: url, instructor_name: instructor,
-        starts_at: new Date(startsAt).toISOString(), ends_at: new Date(endsAt).toISOString()
+        provider, meeting_url: url.trim(), instructor_name: instructor.trim(),
+        starts_at: startDate.toISOString(), ends_at: endDate.toISOString()
       });
       notify(isArticle ? "Article saved" : "Live class scheduled");
       close();
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : "Unable to save");
+      setError(saveError instanceof Error ? saveError.message : String((saveError as { message?: string })?.message || "Unable to save"));
     } finally { setSaving(false); }
   }
 

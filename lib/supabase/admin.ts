@@ -909,7 +909,7 @@ export async function saveAdciLiveClass(lessonId: string, liveClass: AdciLiveCla
     class_starts_at: liveClass.starts_at,
     class_ends_at: liveClass.ends_at
   });
-  if (error) throw error;
+  if (error) throw new Error(error.message || "Unable to save live class");
 }
 
 export type AdciScheduledLiveClass = AdciLiveClass & {
