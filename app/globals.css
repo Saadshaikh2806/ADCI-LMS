@@ -9,6 +9,29 @@
   --green: #317d67;
   --blue: #376b91;
   --purple: #756490;
+  --surface: #fffefa;
+  --surface-soft: #faf9f5;
+  --surface-raised: #ffffff;
+  --field: #fbfaf7;
+  --shadow-color: rgba(20,39,41,.14);
+}
+
+html[data-theme="dark"] {
+  --ink: #edf3f2;
+  --muted: #a5b3b1;
+  --line: #34464a;
+  --paper: #10181b;
+  --white: #1a2529;
+  --amber: #efad4d;
+  --amber-dark: #f0b45d;
+  --green: #64b99c;
+  --blue: #75acd1;
+  --purple: #aa96cb;
+  --surface: #1a2529;
+  --surface-soft: #202d31;
+  --surface-raised: #263438;
+  --field: #152125;
+  --shadow-color: rgba(0,0,0,.38);
 }
 
 /* Production loading, error and missing-page states */
@@ -526,6 +549,125 @@ h1 { margin-bottom: 6px; font: 700 clamp(32.5px, 3vw, 44.2px)/1.15 var(--font-di
   .course-editor{min-height:100vh;max-height:none;padding:20px 15px;border-radius:0}.course-editor-layout{grid-template-columns:1fr}.curriculum-actions{grid-template-columns:1fr}.course-settings{order:2}
   .people-summary{grid-template-columns:1fr}.people-toolbar label{width:100%}.people-toolbar>span{display:none}.people-table{overflow:auto}.people-head,.people-table article{min-width:710px}.people-manager .admin-welcome .people-refresh{width:auto;padding:0 10px;font-size:13px}
   .quiz-builder{min-height:100vh;max-height:none;padding:20px 15px;border-radius:0}.quiz-builder-grid,.quiz-question-workspace{grid-template-columns:1fr}
+}
+
+/* Persisted light/dark appearance */
+.theme-toggle {
+  width:38px;
+  height:38px;
+  padding:0;
+  flex:none;
+  display:grid;
+  place-items:center;
+  border:1px solid var(--line);
+  border-radius:10px;
+  color:var(--muted);
+  background:var(--surface-soft);
+  cursor:pointer;
+  transition:border-color .2s ease,background .2s ease,color .2s ease,transform .2s ease;
+}
+.theme-toggle:hover { border-color:#b98742; color:var(--amber-dark); transform:translateY(-1px); }
+.theme-toggle:focus-visible { outline:3px solid rgba(230,155,50,.28); outline-offset:2px; }
+.theme-toggle-track { width:24px; height:24px; position:relative; display:grid; place-items:center; }
+.theme-toggle-track > svg { width:17px; height:17px; position:absolute; transition:opacity .2s ease,transform .25s ease; }
+.theme-toggle-track > svg:first-child { opacity:1; transform:rotate(0) scale(1); }
+.theme-toggle-track > svg:nth-child(2) { opacity:0; transform:rotate(-35deg) scale(.65); }
+.theme-toggle-track > i { display:none; }
+html[data-theme="dark"] .theme-toggle-track > svg:first-child { opacity:0; transform:rotate(35deg) scale(.65); }
+html[data-theme="dark"] .theme-toggle-track > svg:nth-child(2) { opacity:1; transform:rotate(0) scale(1); }
+.theme-toggle.labelled { width:100%; height:auto; min-height:68px; padding:12px 14px; display:flex; justify-content:flex-start; gap:13px; text-align:left; }
+.theme-toggle.labelled .theme-toggle-track { width:42px; height:42px; flex:none; border-radius:10px; color:#9a641e; background:#f2e2c8; }
+.theme-toggle.labelled > span:last-child { display:block; }
+.theme-toggle.labelled strong,.theme-toggle.labelled small { display:block; }
+.theme-toggle.labelled strong { color:var(--ink); font-size:14px; }
+.theme-toggle.labelled small { margin-top:4px; color:var(--muted); font-size:12.5px; }
+.auth-theme-toggle { position:fixed; top:18px; right:18px; z-index:5; box-shadow:0 8px 24px var(--shadow-color); }
+
+html[data-theme="dark"] body,
+html[data-theme="dark"] .workspace,
+html[data-theme="dark"] .admin-app,
+html[data-theme="dark"] .admin-workspace,
+html[data-theme="dark"] .admin-content,
+html[data-theme="dark"] .content,
+html[data-theme="dark"] .route-overlay,
+html[data-theme="dark"] .student-courses-view,
+html[data-theme="dark"] .student-courses-page,
+html[data-theme="dark"] .learning-room,
+html[data-theme="dark"] .exam-room,
+html[data-theme="dark"] .study-plan-room,
+html[data-theme="dark"] .live-learning-page,
+html[data-theme="dark"] .assessment-centre-page,
+html[data-theme="dark"] .learner-assignments-page,
+html[data-theme="dark"] .student-certificates-page,
+html[data-theme="dark"] .community-page,
+html[data-theme="dark"] .commerce-overlay,
+html[data-theme="dark"] .account-settings-overlay,
+html[data-theme="dark"] .help-centre-page,
+html[data-theme="dark"] .auth-loading,
+html[data-theme="dark"] .system-page { background-color:var(--paper)!important; color:var(--ink); }
+
+html[data-theme="dark"] .topbar,
+html[data-theme="dark"] .admin-topbar,
+html[data-theme="dark"] .mobile-nav,
+html[data-theme="dark"] .account-settings-header,
+html[data-theme="dark"] .student-courses-header,
+html[data-theme="dark"] .help-centre-header,
+html[data-theme="dark"] .profile-menu,
+html[data-theme="dark"] .global-search-dialog,
+html[data-theme="dark"] .global-search-dialog > footer,
+html[data-theme="dark"] .certificate-preview-toolbar { background:rgba(26,37,41,.96)!important; color:var(--ink); }
+
+html[data-theme="dark"] .auth-shell,
+html[data-theme="dark"] .auth-form-panel { background:var(--paper); }
+html[data-theme="dark"] .auth-form,
+html[data-theme="dark"] .system-page-card,
+html[data-theme="dark"] :where([class$="-dialog"],.course-editor,.quiz-builder,.lesson-content-editor,.enrolment-dialog,.certificate-preview-shell),
+html[data-theme="dark"] :where([class$="-toolbar"],.search,.global-search-dialog > footer),
+html[data-theme="dark"] :where([class*="metrics"] > article,[class*="summary"] > article,[class*="grid"] > article,[class*="list"] > article),
+html[data-theme="dark"] :where(.account-settings-card,.account-summary,.course-settings,.curriculum-actions form,.module-list > article,.quiz-settings-card,.question-creator,.content-editor-note,.people-table,.support-admin-workspace,.support-ticket-list,.support-ticket-detail,.notification-panel,.today-card,.course-card,.metrics article) {
+  background-color:var(--surface)!important;
+  border-color:var(--line)!important;
+  color:var(--ink);
+  box-shadow:0 14px 34px var(--shadow-color);
+}
+
+html[data-theme="dark"] :where(input,textarea,select),
+html[data-theme="dark"] :where(.auth-form label > div,.account-readonly,.search,kbd) {
+  color:var(--ink)!important;
+  background-color:var(--field)!important;
+  border-color:var(--line)!important;
+}
+html[data-theme="dark"] :where(input,textarea)::placeholder { color:#71817f; }
+html[data-theme="dark"] :where(option) { color:var(--ink); background:var(--field); }
+
+html[data-theme="dark"] :where(main,.account-settings-overlay,.help-centre-page,.student-courses-page) :where(h1,h2,h3,h4,strong) { color:var(--ink); }
+html[data-theme="dark"] :where(.auth-form label > span,.course-form-grid label > span,.course-settings label > span,.lesson-content-editor label > span,.live-class-grid label > span,.account-settings-card > label,.account-password-grid label) { color:#c0cdcb; }
+html[data-theme="dark"] :where(.global-search-list > button:hover,.global-search-list > button.selected,.profile-menu button:hover,.profile-menu button.selected,.support-ticket-list > button:hover,.support-ticket-list > button.selected,.support-admin-list > button:hover,.support-admin-list > button.selected) { background:#2a3739!important; }
+html[data-theme="dark"] :where(.module-list header,.quiz-settings-card,.course-settings,.curriculum-actions form,.account-preference,.account-factor,.account-security-empty) { background-color:var(--surface-soft)!important; border-color:var(--line)!important; }
+html[data-theme="dark"] :where(.course-dialog-actions button,.certificate-preview-toolbar button,.people-refresh,.exam-leave) { color:var(--ink); background:var(--surface-soft); border-color:var(--line); }
+html[data-theme="dark"] :where(.primary,.auth-submit,.quiz-build-button,.curriculum-actions button,.student-course-grid article > button) { color:#1d292c; }
+html[data-theme="dark"] :where(.course-error,.people-error,.account-settings-error,.account-security-error) { color:#ffc1b1; background:#532f2a; }
+html[data-theme="dark"] :where(.auth-notice,.content-editor-note) { color:#f2c783; background-color:#3e3425!important; }
+html[data-theme="dark"] :where(.content-editor-note small,.auth-form > p:not(.eyebrow),.account-settings-card header p) { color:var(--muted); }
+html[data-theme="dark"] .icon-button:hover,
+html[data-theme="dark"] .theme-toggle:hover { background:#28373a; }
+html[data-theme="dark"] .mobile-auth-brand .adci-logo,
+html[data-theme="dark"] .system-brand-logo .adci-logo,
+html[data-theme="dark"] .verification-brand-logo .adci-logo { filter:none; }
+
+/* Certificates retain their printable paper appearance in either app theme. */
+html[data-theme="dark"] :where(.mini-certificate,.certificate-paper) { color:#23383e!important; background:#fffdf5!important; }
+html[data-theme="dark"] :where(.mini-certificate,.certificate-paper) :where(h1,h2,h3,h4,strong) { color:#23383e!important; }
+html[data-theme="dark"] .certificate-preview-shell { background:#263236!important; }
+
+@media (max-width:760px) {
+  .auth-theme-toggle { top:12px; right:12px; }
+  .top-actions .theme-toggle,.admin-topbar .theme-toggle { width:34px; height:34px; }
+  .theme-toggle.labelled { min-height:64px; }
+}
+
+@media (prefers-reduced-motion:reduce) {
+  .theme-toggle,.theme-toggle-track > svg { transition:none; }
 }
 
 .help-centre-page { position:fixed; inset:0; z-index:400; overflow:auto; background:#f5f3ed; }

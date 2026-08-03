@@ -14,6 +14,7 @@ import {
   Shield,
   ShieldCheck,
   Smartphone,
+  Sun,
   Trash2,
   UserRound
 } from "lucide-react";
@@ -33,6 +34,7 @@ import {
 } from "../lib/supabase/security";
 import { useAuthSession } from "./AuthGate";
 import MfaChallengeDialog from "./MfaChallengeDialog";
+import ThemeToggle from "./ThemeToggle";
 
 export default function AccountSettings({
   notify,
@@ -293,6 +295,11 @@ export default function AccountSettings({
 
       <div className="account-settings-sections">
         {error && <div className="account-settings-error">{error}</div>}
+
+        <section className="account-settings-card appearance-card">
+          <header><div><Sun /></div><span><h2>Appearance</h2><p>Choose the display theme used across the LMS.</p></span></header>
+          <ThemeToggle labelled />
+        </section>
 
         <form className="account-settings-card" onSubmit={saveProfile}>
           <header><div><UserRound /></div><span><h2>Profile</h2><p>Keep your learner identity up to date.</p></span></header>

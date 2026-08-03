@@ -56,6 +56,7 @@ import AccountSettings from "../components/AccountSettings";
 import AdciLogo from "../components/AdciLogo";
 import NotificationCenter from "../components/NotificationCenter";
 import GlobalLearningSearch from "../components/GlobalLearningSearch";
+import ThemeToggle from "../components/ThemeToggle";
 import StudentQuizRunner from "../components/StudentQuizRunner";
 import LiveClassSchedule from "../components/LiveClassSchedule";
 import StudentLiveClasses from "../components/StudentLiveClasses";
@@ -349,6 +350,7 @@ function LearningHub() {
           <button className="menu-button" onClick={() => setMenuOpen(!menuOpen)} aria-label="Open menu">{menuOpen ? <X /> : <Menu />}</button>
           <GlobalLearningSearch openResult={openSearchResult} />
           <div className="top-actions">
+            <ThemeToggle />
             <button className="icon-button" aria-label={`${notificationCount} unread notifications`} onClick={() => setNotificationOpen(true)}><Bell size={20} />{notificationCount > 0 && <><i /><span className="notification-count">{notificationCount > 99 ? "99+" : notificationCount}</span></>}</button>
             <button className="profile" onClick={() => setProfileOpen(!profileOpen)}>
               <span>{accountInitials}</span>
@@ -463,7 +465,7 @@ function LearningHub() {
             <div className="admin-user"><span>{accountInitials}</span><div><strong>{accountName}</strong><small>{adminRoles.map((role) => role.replaceAll("_", " ")).join(" · ") || "Administrator"}</small></div><button onClick={() => setAdminOpen(false)} aria-label="Return to learner portal"><X size={17} /></button></div>
           </aside>
           <section className="admin-workspace">
-              <header className="admin-topbar"><div><p className="eyebrow">ANEES DEFENCE CAREER INSTITUTE</p><h1>{adminSection}</h1></div><div><span className={`data-mode ${backendConnected ? "connected" : ""}`}><i />{backendConnected ? "Supabase connected" : "Configuration required"}</span><button className="icon-button" aria-label={`${notificationCount} unread notifications`} onClick={() => setNotificationOpen(true)}><Bell size={20} />{notificationCount > 0 && <><i /><span className="notification-count">{notificationCount > 99 ? "99+" : notificationCount}</span></>}</button><button className="admin-avatar" onClick={() => { setAdminOpen(false); setSettingsOpen(true); }} aria-label="Open account settings" title="Account settings">{accountInitials}</button><button className="admin-mobile-exit" onClick={() => setAdminOpen(false)} aria-label="Return to learner portal" title="Return to learner portal"><X size={18} /></button></div></header>
+              <header className="admin-topbar"><div><p className="eyebrow">ANEES DEFENCE CAREER INSTITUTE</p><h1>{adminSection}</h1></div><div><span className={`data-mode ${backendConnected ? "connected" : ""}`}><i />{backendConnected ? "Supabase connected" : "Configuration required"}</span><ThemeToggle /><button className="icon-button" aria-label={`${notificationCount} unread notifications`} onClick={() => setNotificationOpen(true)}><Bell size={20} />{notificationCount > 0 && <><i /><span className="notification-count">{notificationCount > 99 ? "99+" : notificationCount}</span></>}</button><button className="admin-avatar" onClick={() => { setAdminOpen(false); setSettingsOpen(true); }} aria-label="Open account settings" title="Account settings">{accountInitials}</button><button className="admin-mobile-exit" onClick={() => setAdminOpen(false)} aria-label="Return to learner portal" title="Return to learner portal"><X size={18} /></button></div></header>
             {adminSection === "Dashboard" ? (
               <AdminDashboard accountName={accountName} navigate={setAdminSection} />
             ) : adminSection === "Academics" ? (

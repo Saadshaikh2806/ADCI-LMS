@@ -5,6 +5,7 @@ import type { Session } from "@supabase/supabase-js";
 import { createContext, type ReactNode, useContext, useEffect, useState } from "react";
 import { getSupabaseBrowserClient, isSupabaseConfigured } from "../lib/supabase/client";
 import MfaChallengeDialog from "./MfaChallengeDialog";
+import ThemeToggle from "./ThemeToggle";
 import AdciLogo from "./AdciLogo";
 
 type Mode = "login" | "register" | "recovery";
@@ -200,6 +201,7 @@ export default function AuthGate({ children }: { children: ReactNode }) {
 
   return (
     <main className="auth-shell">
+      <ThemeToggle className="auth-theme-toggle" />
       <section className="auth-story">
         <div className="auth-brand"><div><AdciLogo decorative /></div><span><strong>ADCI</strong><small>Anees Defence Career Institute</small></span></div>
         <div className="auth-message">
