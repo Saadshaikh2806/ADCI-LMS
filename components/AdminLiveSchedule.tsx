@@ -40,7 +40,10 @@ function localDateTime(iso?: string) {
   return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
 }
 
-export default function AdminLiveSchedule({ notify }: { notify: (message: string) => void }) {
+export default function AdminLiveSchedule({ notify, openAcademics }: {
+  notify: (message: string) => void;
+  openAcademics: () => void;
+}) {
   const [schedule, setSchedule] = useState<AdciLiveSchedule | null>(null);
   const [days, setDays] = useState(30);
   const [filter, setFilter] = useState<"all" | "scheduled" | "live" | "ended" | "unscheduled">("all");
@@ -173,7 +176,7 @@ export default function AdminLiveSchedule({ notify }: { notify: (message: string
   return <div className="admin-content admin-live-workspace">
     <div className="admin-welcome admin-live-heading">
       <div><h2>Live schedule</h2><p>Schedule external classrooms and monitor learner attendance.</p></div>
-      <div><select value={days} onChange={(event) => setDays(Number(event.target.value))}><option value="7">Next 7 days</option><option value="30">Next 30 days</option><option value="90">Next 90 days</option><option value="180">Next 6 months</option></select><button onClick={() => void refresh()}><RefreshCw className={loading ? "spin" : ""} /> Refresh</button><button className="primary" disabled={!schedule?.unscheduled_lessons.length} onClick={() => schedule?.unscheduled_lessons[0] && openEditor(schedule.unscheduled_lessons[0])}><Plus /> Schedule class</button></div>
+      <div><select value={days} onChange={(event) => setDays(Number(event.target.value))}><option value="7">Next 7 days</option><option value="30">Next 30 days</option><option value="90">Next 90 days</option><option value="180">Next 6 months</option></select><button onClick={() => void refresh()}><RefreshCw className={loading ? "spin" : ""} /> Refresh</button><button className="primary" onClick={() => schedule?.unscheduled_lessons[0] ? openEditor(schedule.unscheduled_lessons[0]) : openAcademics()}><Plus /> {schedule?.unscheduled_lessons.length ? "Schedule class" : "Create live lesson"}</button></div>
     </div>
     {error && <div className="course-error">{error}</div>}
 

@@ -473,7 +473,7 @@ function LearningHub() {
             ) : adminSection === "Reports" ? (
               <AdminReports notify={notify} />
             ) : adminSection === "Live schedule" ? (
-              <AdminLiveSchedule notify={notify} />
+              <AdminLiveSchedule notify={notify} openAcademics={() => setAdminSection("Academics")} />
             ) : adminSection === "Question bank" ? (
               <AdminQuestionBank notify={notify} />
             ) : adminSection === "Assignments" ? (
