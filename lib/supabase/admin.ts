@@ -41,6 +41,7 @@ export type AdciLesson = {
     object_path: string;
   }>;
   adci_video_assets: Array<{ object_path: string; storage_provider: string }>;
+  adci_live_classes: AdciLiveClass[];
 };
 
 export type AdciModule = {
@@ -471,7 +472,7 @@ export async function getAdciCourseEditor(courseId: string) {
 
   const { data, error } = await supabase
     .from("adci_courses")
-    .select("id,title,slug,description,status,updated_at,adci_modules(id,title,position,adci_lessons(id,title,lesson_type,position,duration_seconds,status,adci_lesson_assets(id,asset_type,storage_provider,original_name,size_bytes,object_path),adci_video_assets(storage_provider,object_path)))")
+    .select("id,title,slug,description,status,updated_at,adci_modules(id,title,position,adci_lessons(id,title,lesson_type,position,duration_seconds,status,adci_lesson_assets(id,asset_type,storage_provider,original_name,size_bytes,object_path),adci_video_assets(storage_provider,object_path),adci_live_classes(provider,meeting_url,instructor_name,starts_at,ends_at)))")
     .eq("id", courseId)
     .order("position", { referencedTable: "adci_modules", ascending: true })
     .order("position", { referencedTable: "adci_modules.adci_lessons", ascending: true })

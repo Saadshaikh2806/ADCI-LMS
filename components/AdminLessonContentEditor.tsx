@@ -17,8 +17,8 @@ function localDateTime(iso?: string) {
   return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
 }
 
-export default function AdminLessonContentEditor({ lesson, close, notify }: {
-  lesson: AdciLesson; close: () => void; notify: (message: string) => void;
+export default function AdminLessonContentEditor({ lesson, close, notify, saved }: {
+  lesson: AdciLesson; close: () => void; notify: (message: string) => void; saved?: () => Promise<void>;
 }) {
   const isArticle = lesson.lesson_type === "html";
   const [loading, setLoading] = useState(true);
@@ -72,6 +72,7 @@ export default function AdminLessonContentEditor({ lesson, close, notify }: {
         starts_at: startDate.toISOString(), ends_at: endDate.toISOString()
       });
       notify(isArticle ? "Article saved" : "Live class scheduled");
+      await saved?.();
       close();
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : String((saveError as { message?: string })?.message || "Unable to save"));

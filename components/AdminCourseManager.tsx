@@ -60,6 +60,10 @@ function formatDuration(seconds: number) {
     : `${minutes}:${String(remainingSeconds).padStart(2, "0")}`;
 }
 
+function liveClassForLesson(lesson: AdciLesson) {
+  return lesson.adci_live_classes?.[0] ?? null;
+}
+
 export default function AdminCourseManager({ notify }: { notify: (message: string) => void }) {
   const [courses, setCourses] = useState<AdciCourse[]>([]);
   const [loading, setLoading] = useState(true);
@@ -369,7 +373,10 @@ export default function AdminCourseManager({ notify }: { notify: (message: strin
                     <article key={module.id}>
                       <header><span><Layers3 size={16} /></span><div><strong>{module.position}. {module.title}</strong><small>{module.adci_lessons.length} lesson{module.adci_lessons.length === 1 ? "" : "s"}</small></div><button className="icon-danger" disabled={saving} onClick={() => void removeEntity("module", module.id, `module "${module.title}" and its lessons`, module.adci_lessons)} aria-label={`Delete ${module.title}`}><Trash2 size={15} /></button></header>
                       <div className="module-lessons">
-                        {module.adci_lessons.map((lesson) => <div key={lesson.id}><CirclePlay size={15} /><span><strong>{lesson.position}. {lesson.title}</strong><small>{lesson.lesson_type}{isTimedMedia(lesson.lesson_type) ? ` · ${formatDuration(lesson.duration_seconds)}` : ""}{lesson.adci_lesson_assets?.[0] ? ` · ${lesson.adci_lesson_assets[0].original_name}` : ""}</small></span>{lesson.lesson_type === "quiz" ? <button className="quiz-build-button" onClick={() => setQuizLesson(lesson)}>Build quiz</button> : lesson.lesson_type === "html" ? <button className="quiz-build-button" onClick={() => setContentLesson(lesson)}>Edit article</button> : lesson.lesson_type === "live" ? <button className="quiz-build-button" onClick={() => setContentLesson(lesson)}>Schedule</button> : <em className={lesson.adci_lesson_assets?.length ? "asset-ready" : ""}>{lesson.adci_lesson_assets?.length ? "file ready" : lesson.status}</em>}<button className="icon-danger" disabled={saving} onClick={() => void removeEntity("lesson", lesson.id, `lesson "${lesson.title}"`, [lesson])} aria-label={`Delete ${lesson.title}`}><Trash2 size={14} /></button></div>)}
+                        {module.adci_lessons.map((lesson) => {
+                          const liveClass = liveClassForLesson(lesson);
+                          return <div key={lesson.id}><CirclePlay size={15} /><span><strong>{lesson.position}. {lesson.title}</strong><small>{lesson.lesson_type}{isTimedMedia(lesson.lesson_type) ? ` · ${formatDuration(lesson.duration_seconds)}` : ""}{lesson.adci_lesson_assets?.[0] ? ` · ${lesson.adci_lesson_assets[0].original_name}` : ""}{liveClass ? ` · ${new Date(liveClass.starts_at).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}` : ""}</small></span>{lesson.lesson_type === "quiz" ? <button className="quiz-build-button" onClick={() => setQuizLesson(lesson)}>Build quiz</button> : lesson.lesson_type === "html" ? <button className="quiz-build-button" onClick={() => setContentLesson(lesson)}>Edit article</button> : lesson.lesson_type === "live" ? <button className="quiz-build-button" onClick={() => setContentLesson(lesson)}>{liveClass ? "Edit schedule" : "Schedule"}</button> : <em className={lesson.adci_lesson_assets?.length ? "asset-ready" : ""}>{lesson.adci_lesson_assets?.length ? "file ready" : lesson.status}</em>}<button className="icon-danger" disabled={saving} onClick={() => void removeEntity("lesson", lesson.id, `lesson "${lesson.title}"`, [lesson])} aria-label={`Delete ${lesson.title}`}><Trash2 size={14} /></button></div>;
+                        })}
                         {module.adci_lessons.length === 0 && <p>No lessons yet.</p>}
                       </div>
                     </article>
@@ -386,7 +393,7 @@ export default function AdminCourseManager({ notify }: { notify: (message: strin
         </div>
       )}
       {quizLesson && <AdminQuizBuilder lessonId={quizLesson.id} lessonTitle={quizLesson.title} close={() => setQuizLesson(null)} notify={notify} />}
-      {contentLesson && <AdminLessonContentEditor lesson={contentLesson} close={() => setContentLesson(null)} notify={notify} />}
+      {contentLesson && <AdminLessonContentEditor lesson={contentLesson} close={() => setContentLesson(null)} notify={notify} saved={async () => { if (editor) await reloadEditor(editor.id); }} />}
     </div>
   );
 }
