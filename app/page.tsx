@@ -91,19 +91,26 @@ const learnerDestinations = new Set([
   "Settings"
 ]);
 
-function getSavedLearnerDestination(userId?: string) {
-  if (!userId || typeof window === "undefined") return "Overview";
+type SavedLearningState = {
+  userId?: string;
+  destination?: string;
+  workspace?: "learner" | "admin";
+  adminSection?: string;
+};
+
+function getSavedLearningState(userId?: string): SavedLearningState | null {
+  if (!userId || typeof window === "undefined") return null;
   try {
-    const saved = JSON.parse(window.localStorage.getItem("adci-learning-state") || "null") as {
-      userId?: string;
-      destination?: string;
-    } | null;
-    return saved?.userId === userId && saved.destination && learnerDestinations.has(saved.destination)
-      ? saved.destination
-      : "Overview";
+    const saved = JSON.parse(window.localStorage.getItem("adci-learning-state") || "null") as SavedLearningState | null;
+    return saved?.userId === userId ? saved : null;
   } catch {
-    return "Overview";
+    return null;
   }
+}
+
+function getSavedLearnerDestination(userId?: string) {
+  const saved = getSavedLearningState(userId);
+  return saved?.destination && learnerDestinations.has(saved.destination) ? saved.destination : "Overview";
 }
 
 const adminNavItems = [
@@ -127,6 +134,7 @@ function LearningHub() {
   const authSession = useAuthSession();
   const accountName = authSession?.user.user_metadata?.full_name || authSession?.user.email?.split("@")[0] || "ADCI Learner";
   const accountInitials = accountName.split(/\s+/).slice(0, 2).map((part: string) => part[0]).join("").toUpperCase();
+  const [savedLearningState] = useState(() => getSavedLearningState(authSession?.user.id));
   const initialDestination = getSavedLearnerDestination(authSession?.user.id);
   const [active, setActive] = useState(() => navItems.some((item) => item.label === initialDestination) ? initialDestination : "Overview");
   const [menuOpen, setMenuOpen] = useState(false);
@@ -139,6 +147,7 @@ function LearningHub() {
   const [adminSection, setAdminSection] = useState("Dashboard");
   const [profileOpen, setProfileOpen] = useState(false);
   const [canAdminister, setCanAdminister] = useState(false);
+  const [rolesLoaded, setRolesLoaded] = useState(false);
   const [adminEntrySection, setAdminEntrySection] = useState("Dashboard");
   const [dashboard, setDashboard] = useState<LearnerDashboard | null>(null);
   const [dashboardLoading, setDashboardLoading] = useState(true);
@@ -169,13 +178,15 @@ function LearningHub() {
   }, [authSession]);
 
   useEffect(() => {
-    if (!authSession?.user.id) return;
+    if (!authSession?.user.id || !rolesLoaded) return;
     const destination = settingsOpen ? "Settings" : helpOpen ? "Help centre" : active;
     window.localStorage.setItem("adci-learning-state", JSON.stringify({
       userId: authSession.user.id,
-      destination
+      destination,
+      workspace: adminOpen ? "admin" : "learner",
+      adminSection
     }));
-  }, [active, authSession?.user.id, helpOpen, settingsOpen]);
+  }, [active, adminOpen, adminSection, authSession?.user.id, helpOpen, rolesLoaded, settingsOpen]);
 
   useEffect(() => {
     if (!authSession) return;
@@ -187,30 +198,42 @@ function LearningHub() {
   useEffect(() => {
     if (!authSession) return;
     let active = true;
+    let workspaceRestored = false;
     async function loadRole() {
       try {
         const memberships = await loadMyAdciMemberships();
         if (active) {
-          setCanAdminister(hasAcademicAdminRole(memberships));
+          const mayAdminister = hasAcademicAdminRole(memberships);
+          setCanAdminister(mayAdminister);
           const roles = new Set(memberships.map((membership) => membership.role));
           setAdminRoles([...roles]);
-          setAdminEntrySection(
+          const entrySection =
             roles.has("super_admin") || roles.has("branch_admin") || roles.has("academic_lead") || roles.has("content_author")
               ? "Dashboard"
               : roles.has("finance") ? "Commerce"
               : roles.has("support") || roles.has("mentor") ? "Support"
               : roles.has("instructor") ? "Assignments"
-              : "Community"
-          );
+              : "Community";
+          setAdminEntrySection(entrySection);
+          if (!workspaceRestored && mayAdminister && savedLearningState?.workspace === "admin") {
+            const savedSection = adminNavItems.find((item) => item.label === savedLearningState.adminSection && item.roles.some((role) => roles.has(role)))?.label;
+            setAdminSection(savedSection ?? entrySection);
+            setAdminOpen(true);
+            workspaceRestored = true;
+          }
+          setRolesLoaded(true);
         }
       } catch {
-        if (active) setCanAdminister(false);
+        if (active) {
+          setCanAdminister(false);
+          setRolesLoaded(true);
+        }
       }
     }
     void loadRole();
     const retry = window.setTimeout(loadRole, 1800);
     return () => { active = false; window.clearTimeout(retry); };
-  }, [authSession]);
+  }, [authSession, savedLearningState?.adminSection, savedLearningState?.workspace]);
 
   function notify(message: string) {
     setToast(message);
