@@ -1,31 +1,31 @@
 :root {
   color-scheme:light;
   --ink: #182127;
-  --muted: #6f797b;
-  --line: #e8e4dc;
-  --paper: #f7f5ef;
-  --white: #fffefa;
+  --muted: #626d6a;
+  --line: #d4cec3;
+  --paper: #f0ede6;
+  --white: #fbfaf6;
   --amber: #e69b32;
   --amber-dark: #a55f0d;
   --green: #317d67;
   --blue: #376b91;
   --purple: #756490;
-  --surface: #fffefa;
-  --surface-soft: #faf9f5;
-  --surface-raised: #ffffff;
-  --field: #fbfaf7;
-  --paper-soft: #f5f3ed;
+  --surface: #fbfaf6;
+  --surface-soft: #f5f2eb;
+  --surface-raised: #fffdf8;
+  --field: #f3f0e9;
+  --paper-soft: #ebe8e0;
   --amber-soft: #f3e4cd;
   --green-soft: #e7f2ed;
   --blue-soft: #e7ebf3;
   --purple-soft: #ece5f1;
   --red-soft: #f2ddd7;
-  --neutral-soft: #ecece8;
-  --text-secondary: #59625f;
-  --line-soft: #e8e4dc;
-  --surface-glass: rgba(255,254,250,.96);
-  --paper-glass: rgba(247,245,239,.97);
-  --toggle-track: #c9cdcb;
+  --neutral-soft: #e7e3da;
+  --text-secondary: #4f5957;
+  --line-soft: #ded8ce;
+  --surface-glass: rgba(251,250,246,.96);
+  --paper-glass: rgba(240,237,230,.97);
+  --toggle-track: #bfc2be;
   --amber-text: #8f5f20;
   --green-text: #39725d;
   --blue-text: #50678e;
@@ -34,7 +34,7 @@
   --on-dark-muted: #aab8b7;
   --on-dark-secondary: #cbd5d3;
   --on-dark-amber: #efb45c;
-  --shadow-color: rgba(20,39,41,.14);
+  --shadow-color: rgba(20,39,41,.16);
 }
 
 html[data-theme="dark"] {
@@ -2774,6 +2774,20 @@ html[data-theme="dark"] .verification-page {
 
 html[data-theme="dark"] .learner-onboarding {
   background:linear-gradient(135deg,var(--surface),var(--amber-soft));
+}
+
+/* Light-theme controls use the raised surface instead of literal white. */
+html:not([data-theme="dark"]) :where(
+  .search kbd,
+  .circle-button,
+  .event > button,
+  .course-dialog-actions button,
+  .dashboard-data-state.error button,
+  .study-plan-error button
+) {
+  color:var(--text-secondary);
+  background:var(--surface-raised);
+  border-color:var(--line);
 }
 
 /* Unified search controls across learner and administration workspaces. */
