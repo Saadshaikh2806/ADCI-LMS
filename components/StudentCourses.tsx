@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { ArrowRight, BookOpen, LoaderCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { getSupabaseBrowserClient } from "../lib/supabase/client";
@@ -15,6 +16,21 @@ type LearnerCourse = {
   lesson_count: number;
   completed_count: number;
 };
+
+const courseCoverImages = [
+  "/images/course-covers/learning-sunrise.webp",
+  "/images/course-covers/guided-path.webp",
+  "/images/course-covers/focused-study.webp",
+  "/images/course-covers/academic-progress.webp"
+] as const;
+
+function getCourseCoverImage(seed: string) {
+  let hash = 0;
+  for (let index = 0; index < seed.length; index += 1) {
+    hash = ((hash << 5) - hash + seed.charCodeAt(index)) | 0;
+  }
+  return courseCoverImages[(hash >>> 0) % courseCoverImages.length];
+}
 
 export default function StudentCourses({
   close,
@@ -68,8 +84,9 @@ export default function StudentCourses({
       : courses.length === 0 ? <div className="cms-empty"><div><BookOpen /></div><h3>No active courses</h3><p>Your administrator must enrol you in a published course.</p></div>
       : <div className="student-course-grid">{courses.map((course) => {
         const progress = course.lesson_count ? Math.round(course.completed_count / course.lesson_count * 100) : 0;
+        const coverImage = getCourseCoverImage(course.id);
         return <article key={course.id}>
-          <div className="student-course-cover"><BookOpen /></div>
+          <div className="student-course-cover" aria-hidden="true"><Image src={coverImage} alt="" fill sizes="(max-width: 760px) 82px, 120px" /></div>
           <div className="student-course-copy">
             <span>/{course.slug}</span>
             <h3>{course.title}</h3>
