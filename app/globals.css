@@ -207,13 +207,9 @@ h1 { margin-bottom: 6px; font: 700 clamp(32.5px, 3vw, 44.2px)/1.15 var(--font-di
 .primary:hover { transform: translateY(-1px); background: #f0b660; }
 .save { border: 1px solid #587074; color: #e8eeee; background: transparent; }
 .save.saved { color: #bde1ca; border-color: #5c8d79; background: rgba(65,128,102,.18); }
-.lesson-art { position: relative; min-height: 260px; overflow: hidden; background: radial-gradient(circle at 70% 25%, #cb8e43 0 2%, transparent 3%), linear-gradient(140deg,#bc743a 0%,#e4a54e 55%,#e9c883 100%); }
-.lesson-art:before { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg,#263f45 0%,transparent 28%), linear-gradient(0deg,rgba(50,47,33,.3),transparent 65%); }
-.art-grid { position: absolute; inset: 0; opacity: .18; background-image: linear-gradient(rgba(255,255,255,.3) 1px, transparent 1px),linear-gradient(90deg,rgba(255,255,255,.3) 1px,transparent 1px); background-size: 35px 35px; transform: perspective(400px) rotateY(-8deg) scale(1.2); }
-.monument { width: 210px; height: 130px; position: absolute; right: 14%; bottom: 37px; display: flex; justify-content: center; gap: 21px; border-bottom: 12px solid rgba(69,61,44,.58); }
-.monument > span { width: 15px; height: 93px; align-self: flex-end; background: linear-gradient(90deg,#71694f,#c6b989,#81775a); box-shadow: 0 -12px 0 #797153, 0 -17px 0 -3px #d1c593; }
-.monument i { position: absolute; top: 0; width: 186px; height: 21px; background: #756c51; clip-path: polygon(8% 0,92% 0,100% 100%,0 100%); box-shadow: 0 9px 0 #a99c70; }
-.topic-tag { position: absolute; right: 18px; bottom: 16px; color: rgba(48,48,36,.7); font-size: 13.5px; font-weight: 900; letter-spacing: .13em; }
+.lesson-art { position: relative; min-height: 260px; overflow: hidden; background:#173036; }
+.lesson-art > img { z-index:0; object-fit:cover; object-position:center center; }
+.lesson-art:before { content:""; position:absolute; inset:0; z-index:1; pointer-events:none; background:linear-gradient(90deg,#263f45 0%,rgba(38,63,69,.72) 11%,transparent 35%),linear-gradient(0deg,rgba(13,31,35,.22),transparent 55%); }
 
 .metrics { margin: 20px 0 34px; display: grid; grid-template-columns: repeat(4,1fr); gap: 11px; }
 .metrics article { min-height: 88px; padding: 16px; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--white); }

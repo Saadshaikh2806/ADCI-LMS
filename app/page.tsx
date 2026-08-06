@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import {
   ArrowRight,
   Award,
@@ -391,9 +392,7 @@ function LearningHub() {
               </div>
             </div>
             <div className="lesson-art" aria-hidden="true">
-              <div className="art-grid" />
-              <div className="monument"><span /><span /><span /><span /><i /></div>
-              <div className="topic-tag">CONSTITUTIONAL LAW</div>
+              <Image src="/images/adci-defence-career-hero.webp" alt="" fill priority sizes="(max-width: 760px) 100vw, 42vw" />
             </div>
           </section>
 
