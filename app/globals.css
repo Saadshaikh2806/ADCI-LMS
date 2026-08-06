@@ -2755,3 +2755,150 @@ html[data-theme="dark"] .verification-page {
 html[data-theme="dark"] .learner-onboarding {
   background:linear-gradient(135deg,var(--surface),var(--amber-soft));
 }
+
+/* Unified search controls across learner and administration workspaces. */
+:is(
+  .search,
+  .assessment-centre-toolbar label,
+  .people-toolbar label,
+  .support-admin-list > header label,
+  .learner-report-tools label,
+  .question-bank-toolbar label,
+  .audit-search,
+  .assignment-search,
+  .certificate-admin-filters > div:first-child,
+  .community-admin-filters > div:first-child,
+  .community-filters form,
+  .help-search-hero label,
+  .verification-shell > form > div
+) {
+  color:var(--text-secondary)!important;
+  border-color:var(--line)!important;
+  background:var(--field)!important;
+  transition:border-color .18s ease,box-shadow .18s ease,background-color .18s ease;
+}
+
+:is(
+  .assessment-centre-toolbar label,
+  .people-toolbar label,
+  .support-admin-list > header label,
+  .learner-report-tools label,
+  .question-bank-toolbar label,
+  .audit-search,
+  .assignment-search,
+  .certificate-admin-filters > div:first-child,
+  .community-admin-filters > div:first-child,
+  .community-filters form,
+  .help-search-hero label,
+  .verification-shell > form > div
+):focus-within {
+  border-color:var(--amber)!important;
+  box-shadow:0 0 0 3px rgba(230,155,50,.14)!important;
+}
+
+:is(
+  .assessment-centre-toolbar label,
+  .people-toolbar label,
+  .support-admin-list > header label,
+  .learner-report-tools label,
+  .question-bank-toolbar label,
+  .audit-search,
+  .assignment-search,
+  .certificate-admin-filters > div:first-child,
+  .community-admin-filters > div:first-child,
+  .community-filters form,
+  .help-search-hero label,
+  .verification-shell > form > div,
+  .global-search-dialog > header
+) > input {
+  min-width:0;
+  color:var(--ink)!important;
+  border:0!important;
+  outline:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  caret-color:var(--amber);
+}
+
+:is(
+  .assessment-centre-toolbar label,
+  .people-toolbar label,
+  .support-admin-list > header label,
+  .learner-report-tools label,
+  .question-bank-toolbar label,
+  .audit-search,
+  .assignment-search,
+  .certificate-admin-filters > div:first-child,
+  .community-admin-filters > div:first-child,
+  .community-filters form,
+  .help-search-hero label,
+  .verification-shell > form > div,
+  .global-search-dialog > header
+) > input::placeholder {
+  color:var(--muted)!important;
+  opacity:1;
+}
+
+:is(
+  .assessment-centre-toolbar label,
+  .people-toolbar label,
+  .support-admin-list > header label,
+  .learner-report-tools label,
+  .question-bank-toolbar label,
+  .audit-search,
+  .assignment-search,
+  .certificate-admin-filters > div:first-child,
+  .community-admin-filters > div:first-child,
+  .community-filters form,
+  .help-search-hero label,
+  .verification-shell > form > div
+) > svg {
+  flex:none;
+  color:var(--text-secondary)!important;
+}
+
+.search:focus-visible,
+.search:hover {
+  color:var(--ink)!important;
+  border-color:var(--amber)!important;
+  background:var(--field)!important;
+  box-shadow:0 0 0 3px rgba(230,155,50,.12);
+  outline:0;
+}
+
+.search kbd {
+  color:var(--muted)!important;
+  border-color:var(--line)!important;
+  background:var(--surface-soft)!important;
+}
+
+.global-search-dialog > header {
+  color:var(--text-secondary)!important;
+  border-color:var(--line)!important;
+  background:var(--field)!important;
+  transition:border-color .18s ease,box-shadow .18s ease;
+}
+.global-search-dialog > header:focus-within {
+  border-bottom-color:var(--amber)!important;
+  box-shadow:inset 0 -2px var(--amber);
+}
+.global-search-dialog > header > svg { color:var(--text-secondary)!important; }
+.global-search-dialog > header button {
+  color:var(--text-secondary);
+  background:var(--surface-soft);
+}
+.global-search-dialog > header button:hover {
+  color:var(--ink);
+  background:var(--neutral-soft);
+}
+
+.community-filters form button {
+  color:var(--text-secondary);
+  border-left-color:var(--line);
+  background:var(--surface-soft);
+  transition:color .18s ease,background-color .18s ease;
+}
+.community-filters form button:hover {
+  color:var(--amber-text);
+  background:var(--amber-soft);
+}
