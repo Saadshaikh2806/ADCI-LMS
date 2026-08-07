@@ -132,7 +132,7 @@ export default function AdminLiveSchedule({ notify, openAcademics }: {
         starts_at: startDate.toISOString(),
         ends_at: endDate.toISOString()
       });
-      notify("Live class schedule saved");
+      notify("Live class scheduled and published");
       setEditorLesson(null);
       await refresh();
     } catch (saveError) {

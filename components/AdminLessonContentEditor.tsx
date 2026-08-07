@@ -71,7 +71,7 @@ export default function AdminLessonContentEditor({ lesson, close, notify, saved 
         provider, meeting_url: url.trim(), instructor_name: instructor.trim(),
         starts_at: startDate.toISOString(), ends_at: endDate.toISOString()
       });
-      notify(isArticle ? "Article saved" : "Live class scheduled");
+      notify(isArticle ? "Article saved" : "Live class scheduled and published");
       await saved?.();
       close();
     } catch (saveError) {
