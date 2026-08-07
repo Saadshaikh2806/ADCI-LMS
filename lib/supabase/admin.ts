@@ -913,6 +913,22 @@ export async function saveAdciLiveClass(lessonId: string, liveClass: AdciLiveCla
   if (error) throw new Error(error.message || "Unable to save live class");
 }
 
+export async function saveAdciDailyLiveClasses(lessonId: string, liveClass: AdciLiveClass, repeatUntil: string) {
+  const supabase = getSupabaseBrowserClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+  const { data, error } = await supabase.rpc("adci_schedule_daily_live_classes", {
+    target_lesson_id: lessonId,
+    class_provider: liveClass.provider,
+    class_url: liveClass.meeting_url,
+    class_instructor: liveClass.instructor_name,
+    class_starts_at: liveClass.starts_at,
+    class_ends_at: liveClass.ends_at,
+    repeat_until: repeatUntil
+  });
+  if (error) throw new Error(error.message || "Unable to schedule daily live classes");
+  return data as { series_id: string; classes_created: number };
+}
+
 export type AdciScheduledLiveClass = AdciLiveClass & {
   lesson_id: string;
   lesson_title: string;

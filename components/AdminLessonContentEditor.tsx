@@ -6,6 +6,7 @@ import {
   getAdciArticle,
   getAdciLiveClass,
   saveAdciArticle,
+  saveAdciDailyLiveClasses,
   saveAdciLiveClass,
   type AdciLesson,
   type AdciLiveClass
@@ -30,6 +31,9 @@ export default function AdminLessonContentEditor({ lesson, close, notify, saved 
   const [instructor, setInstructor] = useState("");
   const [startsAt, setStartsAt] = useState("");
   const [endsAt, setEndsAt] = useState("");
+  const [recurrence, setRecurrence] = useState<"once" | "daily">("once");
+  const [repeatUntil, setRepeatUntil] = useState("");
+  const canRepeat = !lesson.adci_live_classes?.length;
 
   useEffect(() => {
     (isArticle ? getAdciArticle(lesson.id) : getAdciLiveClass(lesson.id)).then((data) => {
@@ -63,15 +67,28 @@ export default function AdminLessonContentEditor({ lesson, close, notify, saved 
         setError("Enter the instructor name.");
         return;
       }
+      if (recurrence === "daily" && !repeatUntil) {
+        setError("Choose the final date for the daily schedule.");
+        return;
+      }
     }
     setSaving(true);
     try {
       if (isArticle) await saveAdciArticle(lesson.id, body);
-      else await saveAdciLiveClass(lesson.id, {
-        provider, meeting_url: url.trim(), instructor_name: instructor.trim(),
-        starts_at: startDate.toISOString(), ends_at: endDate.toISOString()
-      });
-      notify(isArticle ? "Article saved" : "Live class scheduled and published");
+      else {
+        const liveClass = {
+          provider, meeting_url: url.trim(), instructor_name: instructor.trim(),
+          starts_at: startDate.toISOString(), ends_at: endDate.toISOString()
+        };
+        if (recurrence === "daily" && canRepeat) {
+          const result = await saveAdciDailyLiveClasses(lesson.id, liveClass, repeatUntil);
+          notify(`${result.classes_created} daily classes scheduled and published`);
+        } else {
+          await saveAdciLiveClass(lesson.id, liveClass);
+          notify("Live class scheduled and published");
+        }
+      }
+      if (isArticle) notify("Article saved");
       await saved?.();
       close();
     } catch (saveError) {
@@ -86,7 +103,7 @@ export default function AdminLessonContentEditor({ lesson, close, notify, saved 
       <label><span>Article body</span><textarea required className="article-body-editor" value={body} onChange={(event) => setBody(event.target.value)} placeholder={"Introduction\n\nExplain the topic in clear sections…"} /></label>
     </> : <>
       <div className="content-editor-note"><Radio /><span><strong>External live classroom</strong><small>Students receive the meeting link through their protected course schedule.</small></span></div>
-      <div className="live-class-grid"><label><span>Provider</span><select value={provider} onChange={(event) => setProvider(event.target.value as AdciLiveClass["provider"])}><option value="google_meet">Google Meet</option><option value="zoom">Zoom</option><option value="youtube_live">YouTube Live</option></select></label><label><span>Instructor</span><input required value={instructor} onChange={(event) => setInstructor(event.target.value)} /></label><label className="wide"><span>HTTPS meeting or stream URL</span><input required type="url" value={url} onChange={(event) => setUrl(event.target.value)} placeholder="https://…" /></label><label><span>Starts</span><input required type="datetime-local" value={startsAt} onChange={(event) => setStartsAt(event.target.value)} /></label><label><span>Ends</span><input required type="datetime-local" value={endsAt} onChange={(event) => setEndsAt(event.target.value)} /></label></div>
+      <div className="live-class-grid"><label><span>Provider</span><select value={provider} onChange={(event) => setProvider(event.target.value as AdciLiveClass["provider"])}><option value="google_meet">Google Meet</option><option value="zoom">Zoom</option><option value="youtube_live">YouTube Live</option></select></label><label><span>Instructor</span><input required value={instructor} onChange={(event) => setInstructor(event.target.value)} /></label><label className="wide"><span>HTTPS meeting or stream URL</span><input required type="url" value={url} onChange={(event) => setUrl(event.target.value)} placeholder="https://…" /></label><label><span>Starts</span><input required type="datetime-local" value={startsAt} onChange={(event) => setStartsAt(event.target.value)} /></label><label><span>Ends</span><input required type="datetime-local" value={endsAt} onChange={(event) => setEndsAt(event.target.value)} /></label>{canRepeat && <label><span>Schedule</span><select value={recurrence} onChange={(event) => setRecurrence(event.target.value as "once" | "daily")}><option value="once">One class</option><option value="daily">Repeat daily</option></select></label>}{canRepeat && recurrence === "daily" && <label><span>Repeat until</span><input required type="date" min={startsAt.slice(0, 10)} value={repeatUntil} onChange={(event) => setRepeatUntil(event.target.value)} /></label>}</div>
     </>}
     {error && <div className="course-error">{error}</div>}
     <div className="course-dialog-actions"><button type="button" onClick={close}>Cancel</button><button className="primary" disabled={saving}><Save size={16} /> {saving ? "Saving…" : isArticle ? "Save article" : "Schedule class"}</button></div>
