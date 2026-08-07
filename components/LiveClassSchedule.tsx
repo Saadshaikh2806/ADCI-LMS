@@ -42,19 +42,25 @@ export default function LiveClassSchedule({ notify }: { notify: (message: string
   useEffect(() => { void refresh(); }, []);
 
   async function join(liveClass: LiveClass) {
-    const popup = window.open("", "_blank", "noopener,noreferrer");
+    const popup = window.open("about:blank", "_blank");
+    if (!popup) {
+      setError("Your browser blocked the meeting tab. Allow pop-ups for this LMS and try again.");
+      return;
+    }
+    popup.opener = null;
+    popup.document.title = "Opening live class";
+    popup.document.body.textContent = "Opening your live class…";
     const supabase = getSupabaseBrowserClient();
-    if (!supabase) { popup?.close(); return; }
+    if (!supabase) { popup.close(); return; }
     setJoining(liveClass.lesson_id);
     const { data, error: joinError } = await supabase.rpc("adci_join_live_class", {
       target_lesson_id: liveClass.lesson_id
     });
     if (joinError) {
-      popup?.close();
+      popup.close();
       setError(joinError.message);
     } else {
-      if (popup) popup.location.href = data as string;
-      else window.location.href = data as string;
+      popup.location.replace(data as string);
       notify("Attendance recorded. Opening live class.");
       await refresh();
     }

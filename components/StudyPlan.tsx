@@ -155,18 +155,23 @@ export default function StudyPlan({
   async function joinLiveClass(studyEvent: StudyEvent) {
     if (!studyEvent.lesson_id) return;
     const popup = window.open("about:blank", "_blank");
-    if (popup) popup.opener = null;
+    if (!popup) {
+      setError("Your browser blocked the meeting tab. Allow pop-ups for this LMS and try again.");
+      return;
+    }
+    popup.opener = null;
+    popup.document.title = "Opening live class";
+    popup.document.body.textContent = "Opening your live class…";
     const supabase = getSupabaseBrowserClient();
-    if (!supabase) { popup?.close(); return; }
+    if (!supabase) { popup.close(); return; }
     const { data, error: joinError } = await supabase.rpc("adci_join_live_class", {
       target_lesson_id: studyEvent.lesson_id
     });
     if (joinError) {
-      popup?.close();
+      popup.close();
       setError(joinError.message);
     } else {
-      if (popup) popup.location.href = data as string;
-      else window.location.href = data as string;
+      popup.location.replace(data as string);
       notify("Attendance recorded. Opening live class.");
     }
   }
