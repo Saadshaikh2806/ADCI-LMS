@@ -64,6 +64,19 @@ function liveClassForLesson(lesson: AdciLesson) {
   return lesson.adci_live_classes?.[0] ?? null;
 }
 
+function getErrorMessage(error: unknown, fallback: string) {
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "message" in error &&
+    typeof error.message === "string" &&
+    error.message.trim()
+  ) {
+    return error.message;
+  }
+  return fallback;
+}
+
 export default function AdminCourseManager({ notify }: { notify: (message: string) => void }) {
   const [courses, setCourses] = useState<AdciCourse[]>([]);
   const [loading, setLoading] = useState(true);
@@ -104,7 +117,7 @@ export default function AdminCourseManager({ notify }: { notify: (message: strin
     try {
       setCourses(await listAdciCourses());
     } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : "Unable to load courses");
+      setError(getErrorMessage(loadError, "Unable to load courses"));
     } finally {
       setLoading(false);
     }
@@ -124,7 +137,7 @@ export default function AdminCourseManager({ notify }: { notify: (message: strin
       setVideoDurationSeconds(await readMediaDuration(file, "video"));
     } catch (durationError) {
       setVideo(null);
-      setError(durationError instanceof Error ? durationError.message : "Unable to read video length");
+      setError(getErrorMessage(durationError, "Unable to read video length"));
     } finally {
       setDetectingVideoDuration(false);
     }
@@ -140,7 +153,7 @@ export default function AdminCourseManager({ notify }: { notify: (message: strin
       setNewLessonDurationSeconds(await readMediaDuration(file, newLessonType));
     } catch (durationError) {
       setNewLessonFile(null);
-      setError(durationError instanceof Error ? durationError.message : `Unable to read ${newLessonType} length`);
+      setError(getErrorMessage(durationError, `Unable to read ${newLessonType} length`));
     } finally {
       setDetectingLessonDuration(false);
     }
@@ -157,7 +170,7 @@ export default function AdminCourseManager({ notify }: { notify: (message: strin
       setEditorStatus(detail.status);
       setLessonModuleId(detail.adci_modules[0]?.id ?? "");
     } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : "Unable to open course");
+      setError(getErrorMessage(loadError, "Unable to open course"));
     } finally {
       setEditorLoading(false);
     }
@@ -166,6 +179,9 @@ export default function AdminCourseManager({ notify }: { notify: (message: strin
   async function reloadEditor(courseId: string) {
     const detail = await getAdciCourseEditor(courseId);
     setEditor(detail);
+    setEditorTitle(detail.title);
+    setEditorDescription(detail.description);
+    setEditorStatus(detail.status);
     setLessonModuleId((current) => current || detail.adci_modules[0]?.id || "");
   }
 
@@ -180,7 +196,7 @@ export default function AdminCourseManager({ notify }: { notify: (message: strin
       await refresh();
       notify("Course details and publishing status saved");
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : "Unable to save course");
+      setError(getErrorMessage(saveError, "Unable to save course"));
     } finally {
       setSaving(false);
     }
@@ -197,7 +213,7 @@ export default function AdminCourseManager({ notify }: { notify: (message: strin
       await reloadEditor(editor.id);
       notify("Module added");
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : "Unable to add module");
+      setError(getErrorMessage(saveError, "Unable to add module"));
     } finally {
       setSaving(false);
     }
@@ -231,7 +247,7 @@ export default function AdminCourseManager({ notify }: { notify: (message: strin
       await reloadEditor(editor.id);
       notify(newLessonFile ? "Lesson and protected file uploaded" : "Lesson added");
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : "Unable to add lesson");
+      setError(getErrorMessage(saveError, "Unable to add lesson"));
     } finally {
       setSaving(false);
     }
@@ -256,7 +272,7 @@ export default function AdminCourseManager({ notify }: { notify: (message: strin
       }
       notify(`${kind[0].toUpperCase()}${kind.slice(1)} deleted`);
     } catch (deleteError) {
-      setError(deleteError instanceof Error ? deleteError.message : `Unable to delete ${kind}`);
+      setError(getErrorMessage(deleteError, `Unable to delete ${kind}`));
     } finally {
       setSaving(false);
     }
@@ -297,7 +313,7 @@ export default function AdminCourseManager({ notify }: { notify: (message: strin
       setVideoDurationSeconds(0);
       await refresh();
     } catch (createError) {
-      setError(createError instanceof Error ? createError.message : "Unable to create course");
+      setError(getErrorMessage(createError, "Unable to create course"));
     } finally {
       setSaving(false);
     }

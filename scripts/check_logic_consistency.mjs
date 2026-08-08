@@ -58,6 +58,7 @@ for (const signature of serviceOnly) {
 
 const requiredRules = [
   "course.status = 'published'",
+  "Add at least one lesson to module",
   "Finish the content for lesson",
   "Structural curriculum edits move a published course back to draft",
   "assignment_record.submission_type = 'file'",

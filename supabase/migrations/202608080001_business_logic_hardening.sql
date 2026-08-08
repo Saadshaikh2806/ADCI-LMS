@@ -47,6 +47,7 @@ set search_path = ''
 as $$
 declare
   course_record public.adci_courses;
+  empty_module text;
   unready_lesson text;
 begin
   select * into course_record
@@ -65,6 +66,19 @@ begin
   end if;
 
   if course_status = 'published' then
+    select module.title into empty_module
+    from public.adci_modules module
+    left join public.adci_lessons lesson on lesson.module_id = module.id
+    where module.course_id = target_course_id
+    group by module.id, module.title, module.position
+    having count(lesson.id) = 0
+    order by module.position
+    limit 1;
+
+    if empty_module is not null then
+      raise exception 'Add at least one lesson to module "%" before publishing', empty_module;
+    end if;
+
     if not exists (
       select 1 from public.adci_modules module
       join public.adci_lessons lesson on lesson.module_id = module.id
