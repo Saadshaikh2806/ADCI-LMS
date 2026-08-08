@@ -2,7 +2,7 @@
 
 import { ArrowRight, Check, GraduationCap, LoaderCircle, LockKeyhole, Mail, ShieldCheck } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
-import { createContext, type ReactNode, useContext, useEffect, useState } from "react";
+import { createContext, type ReactNode, useContext, useEffect, useRef, useState } from "react";
 import { getSupabaseBrowserClient, isSupabaseConfigured } from "../lib/supabase/client";
 import MfaChallengeDialog from "./MfaChallengeDialog";
 import ThemeToggle from "./ThemeToggle";
@@ -25,7 +25,19 @@ export default function AuthGate({ children }: { children: ReactNode }) {
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [mfaFactorId, setMfaFactorId] = useState("");
+  const initialAdminClaimAttempts = useRef(new Set<string>());
   const configured = isSupabaseConfigured();
+
+  async function claimInitialAdminOnce(userId: string) {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase || initialAdminClaimAttempts.current.has(userId)) return;
+
+    initialAdminClaimAttempts.current.add(userId);
+    const { error } = await supabase.rpc("adci_claim_initial_admin");
+    if (error && !error.message.includes("already been claimed")) {
+      initialAdminClaimAttempts.current.delete(userId);
+    }
+  }
 
   useEffect(() => {
     const supabase = getSupabaseBrowserClient();
@@ -91,7 +103,7 @@ export default function AuthGate({ children }: { children: ReactNode }) {
 
       // Finish the one-time bootstrap before rendering so the dashboard's
       // membership query cannot race ahead of the initial admin claim.
-      await authClient.rpc("adci_claim_initial_admin");
+      await claimInitialAdminOnce(verifiedUser.id);
 
       if (active) {
         setMfaFactorId("");
@@ -170,7 +182,7 @@ export default function AuthGate({ children }: { children: ReactNode }) {
       setLoading(false);
       return;
     }
-    await supabase.rpc("adci_claim_initial_admin");
+    await claimInitialAdminOnce(data.session.user.id);
     setSession(data.session);
     setLoading(false);
   }
