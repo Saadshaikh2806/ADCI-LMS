@@ -119,13 +119,13 @@ const adminNavItems = [
   { label: "Dashboard", icon: LayoutDashboard, roles: ["super_admin", "branch_admin", "academic_lead", "content_author"] },
   { label: "People", icon: UsersRound, roles: ["super_admin", "branch_admin", "support"] },
   { label: "Academics", icon: BookOpen, roles: ["super_admin", "branch_admin", "academic_lead", "content_author"] },
-  { label: "Question bank", icon: ClipboardCheck, roles: ["super_admin", "branch_admin", "academic_lead", "content_author", "instructor"] },
+  { label: "Question bank", icon: ClipboardCheck, roles: ["super_admin", "branch_admin", "academic_lead", "content_author"] },
   { label: "Assignments", icon: ClipboardList, roles: ["super_admin", "branch_admin", "academic_lead", "content_author", "instructor"] },
   { label: "Certificates", icon: Award, roles: ["super_admin", "branch_admin", "academic_lead"] },
   { label: "Commerce", icon: CreditCard, roles: ["super_admin", "branch_admin", "finance"] },
   { label: "Support", icon: CircleHelp, roles: ["super_admin", "branch_admin", "support", "mentor"] },
   { label: "Community", icon: MessageSquareText, roles: ["super_admin", "branch_admin", "support", "mentor", "instructor"] },
-  { label: "Live schedule", icon: CalendarDays, roles: ["super_admin", "branch_admin", "academic_lead", "content_author", "instructor"] },
+  { label: "Live schedule", icon: CalendarDays, roles: ["super_admin", "branch_admin", "academic_lead", "content_author"] },
   { label: "Announcements", icon: Megaphone, roles: ["super_admin", "branch_admin", "academic_lead", "content_author", "support"] },
   { label: "Reports", icon: BarChart3, roles: ["super_admin", "branch_admin", "academic_lead"] },
   { label: "Audit log", icon: History, roles: ["super_admin", "branch_admin"] }
@@ -470,7 +470,7 @@ function LearningHub() {
             ) : adminSection === "Academics" ? (
               <AdminCourseManager notify={notify} />
             ) : adminSection === "People" ? (
-              <AdminPeopleManager notify={notify} />
+              <AdminPeopleManager notify={notify} currentRoles={adminRoles} />
             ) : adminSection === "Reports" ? (
               <AdminReports notify={notify} />
             ) : adminSection === "Live schedule" ? (

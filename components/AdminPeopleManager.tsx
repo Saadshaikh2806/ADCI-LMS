@@ -21,13 +21,15 @@ const roles = [
   ["super_admin", "Super administrator"]
 ];
 
-export default function AdminPeopleManager({ notify }: { notify: (message: string) => void }) {
+export default function AdminPeopleManager({ notify, currentRoles }: { notify: (message: string) => void; currentRoles: string[] }) {
   const [people, setPeople] = useState<AdciPerson[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState("");
   const [query, setQuery] = useState("");
   const [error, setError] = useState("");
   const [enrolmentPerson, setEnrolmentPerson] = useState<AdciPerson | null>(null);
+  const canManageRoles = currentRoles.includes("super_admin");
+  const canManageEnrolments = canManageRoles || currentRoles.includes("branch_admin");
 
   async function refresh() {
     setLoading(true);
@@ -103,23 +105,23 @@ export default function AdminPeopleManager({ notify }: { notify: (message: strin
                 <div><strong>{person.full_name || "Unnamed user"}</strong><small>{person.email}</small></div>
               </div>
               <label className="role-select">
-                <select value={person.role ?? "student"} disabled={busy} onChange={(event) => void updatePerson(person, event.target.value, person.role ? person.active : true)}>
+                <select value={person.role ?? "student"} disabled={busy || !canManageRoles} onChange={(event) => void updatePerson(person, event.target.value, person.role ? person.active : true)}>
                   {roles.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
                 </select>
               </label>
-              <button className={`access-toggle ${person.active ? "active" : ""}`} disabled={busy} onClick={() => void updatePerson(person, person.role ?? "student", !person.active)}>
+              <button className={`access-toggle ${person.active ? "active" : ""}`} disabled={busy || !canManageRoles} onClick={() => void updatePerson(person, person.role ?? "student", !person.active)}>
                 {busy ? <LoaderCircle size={14} className="spin" /> : person.active ? <Check size={14} /> : null}
                 {busy ? "Saving" : person.active ? "Active" : "Inactive"}
               </button>
               <time>{new Date(person.created_at).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</time>
-              <button className="manage-enrolment" onClick={() => setEnrolmentPerson(person)}><BookOpen size={14} /> Manage</button>
+              {canManageEnrolments ? <button className="manage-enrolment" onClick={() => setEnrolmentPerson(person)}><BookOpen size={14} /> Manage</button> : <span aria-label="Course access is read-only">—</span>}
             </article>
           );
         })}
         </div>
       </section>
 
-      <div className="workflow-note"><ShieldCheck size={20} /><div><strong>Super-admin protected</strong><p>Role changes are validated inside PostgreSQL, recorded in the audit log, and cannot remove the final active super administrator.</p></div></div>
+      <div className="workflow-note"><ShieldCheck size={20} /><div><strong>{canManageRoles ? "Super-admin protected" : "Read-only role access"}</strong><p>{canManageRoles ? "Role changes are validated inside PostgreSQL, recorded in the audit log, and cannot remove the final active super administrator." : canManageEnrolments ? "Branch administrators can manage course enrolments. Only a super administrator can change account roles or access." : "Support staff can view account details for assistance. Role and course-access changes remain restricted."}</p></div></div>
       {enrolmentPerson && <AdminEnrolmentManager person={enrolmentPerson} close={() => setEnrolmentPerson(null)} notify={notify} />}
     </div>
   );

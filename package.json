@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "test:logic": "node scripts/check_logic_consistency.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1100.0",
