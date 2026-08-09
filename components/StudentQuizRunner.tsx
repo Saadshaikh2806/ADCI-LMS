@@ -354,6 +354,7 @@ export default function StudentQuizRunner({
     <ContentProtection
       watermark={watermark}
       strict
+      concealWhenInactive
       active={Boolean(attemptId && !result && proctorReady)}
       onViolation={(reason) => void handleIntegrityViolation(reason)}
     />

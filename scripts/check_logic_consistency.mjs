@@ -76,6 +76,8 @@ const protectionRules = [
   [contentProtection, "visibilitychange", "Tab visibility protection"],
   [contentProtection, "fullscreenchange", "Fullscreen exit protection"],
   [contentProtection, "beforeunload", "Navigation protection"],
+  [contentProtection, "concealWhenInactive", "Inactive-window shielding"],
+  [contentProtection, "toLocaleString", "Timestamped learner watermark"],
   [contentProtection, 'document.addEventListener("copy"', "Copy protection"],
   [quizRunner, "requestFullscreen", "Mandatory test fullscreen"],
   [quizRunner, "handleIntegrityViolation", "Automatic integrity submission"],

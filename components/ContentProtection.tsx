@@ -1,19 +1,23 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export default function ContentProtection({
   watermark,
   strict = false,
   active = true,
+  concealWhenInactive = false,
   onViolation
 }: {
   watermark: string;
   strict?: boolean;
   active?: boolean;
+  concealWhenInactive?: boolean;
   onViolation?: (reason: string) => void;
 }) {
   const violationHandler = useRef(onViolation);
+  const shield = useRef<HTMLDivElement>(null);
+  const [timestamp, setTimestamp] = useState("");
 
   useEffect(() => {
     violationHandler.current = onViolation;
@@ -21,12 +25,30 @@ export default function ContentProtection({
 
   useEffect(() => {
     if (!active) return;
+    const updateTimestamp = () => setTimestamp(new Date().toLocaleString("en-IN", { hour12: false }));
+    updateTimestamp();
+    const timer = window.setInterval(updateTimestamp, 15_000);
+    return () => window.clearInterval(timer);
+  }, [active]);
+
+  useEffect(() => {
+    if (!active) return;
 
     const prevent = (event: Event) => event.preventDefault();
+    let screenshotTimer = 0;
     const preventProtectedShortcut = (event: KeyboardEvent) => {
       const protectedShortcut = (event.ctrlKey || event.metaKey)
         && ["c", "p", "s", "u"].includes(event.key.toLowerCase());
-      if (event.key === "PrintScreen" || protectedShortcut) event.preventDefault();
+      if (event.key === "PrintScreen") {
+        event.preventDefault();
+        shield.current?.classList.add("visible");
+        window.clearTimeout(screenshotTimer);
+        screenshotTimer = window.setTimeout(() => {
+          if (!concealWhenInactive || (!document.hidden && document.hasFocus())) {
+            shield.current?.classList.remove("visible");
+          }
+        }, 2_000);
+      } else if (protectedShortcut) event.preventDefault();
     };
 
     document.addEventListener("contextmenu", prevent);
@@ -40,8 +62,28 @@ export default function ContentProtection({
       document.removeEventListener("cut", prevent);
       document.removeEventListener("dragstart", prevent);
       document.removeEventListener("keydown", preventProtectedShortcut);
+      window.clearTimeout(screenshotTimer);
     };
-  }, [active]);
+  }, [active, concealWhenInactive]);
+
+  useEffect(() => {
+    if (!active || !concealWhenInactive) return;
+    const conceal = () => shield.current?.classList.add("visible");
+    const reveal = () => {
+      if (!document.hidden && document.hasFocus()) shield.current?.classList.remove("visible");
+    };
+    const updateVisibility = () => document.hidden ? conceal() : reveal();
+
+    document.addEventListener("visibilitychange", updateVisibility);
+    window.addEventListener("blur", conceal);
+    window.addEventListener("focus", reveal);
+    updateVisibility();
+    return () => {
+      document.removeEventListener("visibilitychange", updateVisibility);
+      window.removeEventListener("blur", conceal);
+      window.removeEventListener("focus", reveal);
+    };
+  }, [active, concealWhenInactive]);
 
   useEffect(() => {
     if (!active || !strict) return;
@@ -79,7 +121,13 @@ export default function ContentProtection({
     };
   }, [active, strict]);
 
-  return <div className="content-protection-watermark" aria-hidden="true">
-    {Array.from({ length: 12 }, (_, index) => <span key={index}>ADCI PROTECTED · {watermark}</span>)}
-  </div>;
+  const label = `ADCI PROTECTED · ${watermark}${timestamp ? ` · ${timestamp}` : ""}`;
+  return <>
+    <div className="content-protection-watermark" aria-hidden="true">
+      {Array.from({ length: 16 }, (_, index) => <span key={index}>{label}</span>)}
+    </div>
+    <div ref={shield} className="content-protection-shield" aria-hidden="true">
+      <span>Protected content hidden<small>Return to this window to continue.</small></span>
+    </div>
+  </>;
 }

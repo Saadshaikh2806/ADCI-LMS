@@ -222,7 +222,7 @@ export default function StudentCoursePlayer({
       <section className="lesson-stage dynamic-lesson-stage">
         {!selectedLesson ? <div className="empty-curriculum"><BookOpen /><h2>No lessons yet</h2><p>Your instructor is still preparing this course.</p></div> : <>
           <div className="lesson-content-frame">
-            <ContentProtection watermark={watermark} />
+            <ContentProtection watermark={watermark} concealWhenInactive />
             {assetLoading ? <div className="lesson-content-state"><LoaderCircle className="spin" /><span>Opening protected content…</span></div>
             : selectedLesson.lesson_type === "video" && assetUrl ? <video
               className="lesson-video"
