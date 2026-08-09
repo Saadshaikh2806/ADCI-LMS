@@ -25,6 +25,7 @@ import {
   type LearningLesson
 } from "../lib/supabase/learning";
 import { getSupabaseBrowserClient } from "../lib/supabase/client";
+import ContentProtection from "./ContentProtection";
 import StudentQuizRunner from "./StudentQuizRunner";
 
 const lessonTypeNames: Record<LearningLesson["lesson_type"], string> = {
@@ -66,7 +67,14 @@ export default function StudentCoursePlayer({
   const [saving, setSaving] = useState(false);
   const [joining, setJoining] = useState(false);
   const [quizAssessmentId, setQuizAssessmentId] = useState("");
+  const [watermark, setWatermark] = useState("AUTHORISED LEARNER");
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    void getSupabaseBrowserClient()?.auth.getUser().then(({ data }) => {
+      if (data.user) setWatermark(data.user.email || data.user.id);
+    });
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -204,7 +212,7 @@ export default function StudentCoursePlayer({
   if (loading) return <div className="learning-room learner-player-state"><LoaderCircle className="spin" /><span>Preparing your protected course…</span></div>;
   if (!course) return <div className="learning-room learner-player-state"><BookOpen /><h2>Course unavailable</h2><p>{error || "This course could not be loaded."}</p><button className="primary" onClick={close}>Return to My courses</button></div>;
 
-  return <div className="learning-room">
+  return <div className="learning-room protected-session">
     <header className="learning-header">
       <button className="back-button" onClick={close}><ArrowRight size={18} /> My courses</button>
       <div className="learning-course-title"><strong>{course.title}</strong></div>
@@ -214,11 +222,14 @@ export default function StudentCoursePlayer({
       <section className="lesson-stage dynamic-lesson-stage">
         {!selectedLesson ? <div className="empty-curriculum"><BookOpen /><h2>No lessons yet</h2><p>Your instructor is still preparing this course.</p></div> : <>
           <div className="lesson-content-frame">
+            <ContentProtection watermark={watermark} />
             {assetLoading ? <div className="lesson-content-state"><LoaderCircle className="spin" /><span>Opening protected content…</span></div>
             : selectedLesson.lesson_type === "video" && assetUrl ? <video
               className="lesson-video"
               controls
-              controlsList="nodownload"
+              controlsList="nodownload noremoteplayback"
+              disablePictureInPicture
+              disableRemotePlayback
               preload="metadata"
               src={assetUrl}
               onLoadedMetadata={(event) => {
@@ -238,7 +249,7 @@ export default function StudentCoursePlayer({
               onPause={(event) => void saveMediaProgress(event.currentTarget)}
               onEnded={(event) => void saveMediaProgress(event.currentTarget, true)}
             /></div>
-            : selectedLesson.lesson_type === "pdf" && assetUrl ? <div className="pdf-reader"><iframe title={selectedLesson.title} src={`${assetUrl}#toolbar=0&navpanes=0`} /><a href={assetUrl} target="_blank" rel="noreferrer"><FileText size={17} /> Open PDF in a new tab</a></div>
+            : selectedLesson.lesson_type === "pdf" && assetUrl ? <div className="pdf-reader"><iframe title={selectedLesson.title} src={`${assetUrl}#toolbar=0&navpanes=0`} /><span><FileText size={17} /> Protected PDF viewer</span></div>
             : selectedLesson.lesson_type === "html" ? <article className="article-reader"><p className="eyebrow">ADCI STUDY ARTICLE</p><h2>{selectedLesson.title}</h2><div>{selectedLesson.article_body || "This article has not been written yet."}</div></article>
             : selectedLesson.lesson_type === "live" ? <div className="live-lesson-card"><div className="live-lesson-icon"><Radio /></div><p className="eyebrow">LIVE LEARNING</p><h2>{selectedLesson.title}</h2>{selectedLesson.live_class ? <><p>{liveProviderNames[selectedLesson.live_class.provider]} with <strong>{selectedLesson.live_class.instructor_name}</strong></p><div className="live-lesson-time"><Clock3 /><span><strong>{new Date(selectedLesson.live_class.starts_at).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}</strong><small>Ends {new Date(selectedLesson.live_class.ends_at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}</small></span></div><button className="primary" disabled={!selectedLesson.live_class.can_join || joining} onClick={() => void joinLiveClass()}><Video /> {joining ? "Opening…" : selectedLesson.live_class.can_join ? "Join live class" : "Join opens 15 minutes before class"}</button></> : <p>Schedule and meeting details have not been added yet.</p>}</div>
             : selectedLesson.lesson_type === "quiz" ? <div className="quiz-lesson-card"><div><CirclePlay /></div><p className="eyebrow">INTERACTIVE ASSESSMENT</p><h2>{selectedLesson.quiz?.title || selectedLesson.title}</h2><p>Start the timed quiz, save each answer securely and receive your score immediately after submission.</p><button className="primary" disabled={!selectedLesson.quiz} onClick={() => selectedLesson.quiz && setQuizAssessmentId(selectedLesson.quiz.assessment_id)}><Play fill="currentColor" /> {selectedLesson.quiz ? "Start quiz" : "Quiz is not published yet"}</button></div>

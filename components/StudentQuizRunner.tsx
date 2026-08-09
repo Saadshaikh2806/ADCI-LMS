@@ -3,6 +3,7 @@
 import { AlarmClock, ArrowRight, Check, ClipboardCheck, Flag, LoaderCircle, ShieldCheck, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { getSupabaseBrowserClient } from "../lib/supabase/client";
+import ContentProtection from "./ContentProtection";
 
 type QuizQuestion = { id: string; prompt: string; options: string[]; position: number };
 type Quiz = {
@@ -65,11 +66,20 @@ export default function StudentQuizRunner({
   const [canStart, setCanStart] = useState(true);
   const [savingCount, setSavingCount] = useState(0);
   const [submitting, setSubmitting] = useState(false);
+  const [proctorReady, setProctorReady] = useState(false);
+  const [watermark, setWatermark] = useState("AUTHORISED LEARNER");
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
   const pendingSaves = useRef<Set<Promise<void>>>(new Set());
   const submittingRef = useRef(false);
   const autoSubmittedRef = useRef(false);
+  const integrityViolationRef = useRef(false);
+
+  useEffect(() => {
+    void getSupabaseBrowserClient()?.auth.getUser().then(({ data }) => {
+      if (data.user) setWatermark(data.user.email || data.user.id);
+    });
+  }, []);
 
   function applyAttemptState(selectedQuiz: Quiz, state: AttemptState) {
     setAttemptsUsed(state.attempts_used ?? 0);
@@ -176,10 +186,28 @@ export default function StudentQuizRunner({
     });
   }
 
+  async function enterFullscreen() {
+    if (!document.fullscreenEnabled) {
+      setError("This browser does not support the fullscreen mode required for tests.");
+      return false;
+    }
+    try {
+      if (!document.fullscreenElement) await document.documentElement.requestFullscreen();
+      integrityViolationRef.current = false;
+      setProctorReady(true);
+      setError("");
+      return true;
+    } catch {
+      setError("Fullscreen permission is required. Allow fullscreen, then try again.");
+      return false;
+    }
+  }
+
   async function start() {
     if (!quiz || starting || !canStart) return;
     const supabase = getSupabaseBrowserClient();
     if (!supabase) return;
+    if (!await enterFullscreen()) return;
     setStarting(true);
     setError("");
     setNotice("");
@@ -189,6 +217,8 @@ export default function StudentQuizRunner({
       target_assessment_id: quiz.id
     });
     if (startError) {
+      setProctorReady(false);
+      if (document.fullscreenElement) await document.exitFullscreen();
       setError(startError.message);
       setStarting(false);
       return;
@@ -202,8 +232,15 @@ export default function StudentQuizRunner({
     setFlagged([]);
     setCurrent(0);
     const stateLoaded = await loadAttemptState(quiz);
-    if (stateLoaded) setNotice("Quiz started. Your timer and answers are protected.");
+    if (stateLoaded) setNotice("Quiz started in protected fullscreen mode. Leaving it will submit the test.");
     setStarting(false);
+  }
+
+  async function handleIntegrityViolation(reason: string) {
+    if (integrityViolationRef.current || !attemptId || result) return;
+    integrityViolationRef.current = true;
+    setNotice(`The test was submitted automatically because ${reason}.`);
+    await submit(true);
   }
 
   async function answer(index: number) {
@@ -281,6 +318,7 @@ export default function StudentQuizRunner({
     });
     if (submitError) {
       setError(submitError.message);
+      integrityViolationRef.current = false;
       submittingRef.current = false;
       setSubmitting(false);
       return;
@@ -291,15 +329,12 @@ export default function StudentQuizRunner({
     setAttemptsUsed(completed.attempts_used);
     setMaxAttempts(completed.max_attempts);
     setCanStart(completed.attempts_used < completed.max_attempts);
+    integrityViolationRef.current = true;
+    setProctorReady(false);
+    if (document.fullscreenElement) await document.exitFullscreen().catch(() => undefined);
     setSubmitting(false);
     submittingRef.current = false;
     onCompleted?.();
-  }
-
-  function requestClose() {
-    if (submitting) return;
-    if (attemptId && !result && !window.confirm("Your quiz timer will keep running. Close and resume it later?")) return;
-    close();
   }
 
   if (loading) {
@@ -315,7 +350,13 @@ export default function StudentQuizRunner({
     </section></div>;
   }
 
-  return <div className="exam-room">
+  return <div className="exam-room protected-session">
+    <ContentProtection
+      watermark={watermark}
+      strict
+      active={Boolean(attemptId && !result && proctorReady)}
+      onViolation={(reason) => void handleIntegrityViolation(reason)}
+    />
     {result ? <section className="result-panel">
       <button className="overlay-close" onClick={close}><X /></button>
       <div className="result-ring" style={{ background: `conic-gradient(#e5a346 ${result.max_score > 0 ? Math.max(0, Math.min(100, result.score / result.max_score * 100)) : 0}%,#eeeae1 0)` }}><span><strong>{result.score}</strong>/ {result.max_score}</span></div>
@@ -341,11 +382,20 @@ export default function StudentQuizRunner({
         <div><ShieldCheck /><span><strong>+{quiz.positive_marks} / -{quiz.negative_marks}</strong><small>Marking scheme</small></span></div>
         <div><Check /><span><strong>{attemptsUsed} / {maxAttempts} used</strong><small>{quiz.pass_percent}% required to pass</small></span></div>
       </div>
+      <div className="integrity-note"><ShieldCheck /><p><strong>Protected test:</strong> fullscreen is required. Switching tabs, changing windows, exiting fullscreen or trying to leave will submit the attempt automatically.</p></div>
       {notice && <div className="exam-notice">{notice}</div>}
       {error && <div className="course-error">{error}</div>}
       <button className="primary start-exam" disabled={starting || !canStart || quiz.questions.length === 0} onClick={() => void start()}>
         {starting ? <><LoaderCircle className="spin" /> Starting…</> : canStart ? <>Start quiz <ArrowRight /></> : "Maximum attempts reached"}
       </button>
+    </section> : !proctorReady ? <section className="exam-intro">
+      <div className="exam-badge"><ShieldCheck /></div>
+      <p className="eyebrow">ACTIVE TEST</p>
+      <h1>Resume in fullscreen</h1>
+      <p>Your server timer is still running. The questions stay hidden until the protected fullscreen session is restored.</p>
+      {notice && <div className="exam-notice">{notice}</div>}
+      {error && <div className="course-error">{error}</div>}
+      <button className="primary start-exam" onClick={() => void enterFullscreen()}>Resume test <ArrowRight /></button>
     </section> : <>
       <header className="exam-header">
         <div><ClipboardCheck /><span><strong>{quiz.title}</strong><small>{savingCount > 0 ? "Saving answer…" : "All answers saved"}</small></span></div>
@@ -376,7 +426,7 @@ export default function StudentQuizRunner({
           <div className="palette-grid">{quiz.questions.map((question, index) => <button key={question.id} className={`${current === index ? "current" : ""} ${answers[index] !== undefined ? "answered" : ""} ${flagged.includes(index) ? "flagged" : ""}`} onClick={() => setCurrent(index)}>{index + 1}</button>)}</div>
           <div className="palette-legend"><span><i className="answered" />Answered</span><span><i />Not answered</span><span><i className="flagged" />Review</span></div>
           <div className="save-status"><ShieldCheck /><span><strong>{savingCount > 0 ? "Saving changes" : "Attempt protected"}</strong><small>{savingCount > 0 ? "Please keep this window open." : "You can safely refresh and resume."}</small></span></div>
-          <button className="exam-leave" disabled={submitting} onClick={requestClose}><X /> Leave and resume later</button>
+          <div className="exam-lock-note"><ShieldCheck /><span><strong>Fullscreen locked</strong><small>Leaving this screen submits the test.</small></span></div>
         </aside>
       </div>
     </>}

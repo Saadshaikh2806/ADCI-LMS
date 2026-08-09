@@ -69,6 +69,23 @@ for (const rule of requiredRules) {
   if (!hardening.includes(rule)) failures.push(`Expected business rule is missing: ${rule}`);
 }
 
+const contentProtection = readFileSync(join(root, "components", "ContentProtection.tsx"), "utf8");
+const quizRunner = readFileSync(join(root, "components", "StudentQuizRunner.tsx"), "utf8");
+const coursePlayer = readFileSync(join(root, "components", "StudentCoursePlayer.tsx"), "utf8");
+const protectionRules = [
+  [contentProtection, "visibilitychange", "Tab visibility protection"],
+  [contentProtection, "fullscreenchange", "Fullscreen exit protection"],
+  [contentProtection, "beforeunload", "Navigation protection"],
+  [contentProtection, 'document.addEventListener("copy"', "Copy protection"],
+  [quizRunner, "requestFullscreen", "Mandatory test fullscreen"],
+  [quizRunner, "handleIntegrityViolation", "Automatic integrity submission"],
+  [coursePlayer, "disablePictureInPicture", "Picture-in-picture protection"],
+  [coursePlayer, "<ContentProtection", "Course watermark protection"]
+];
+for (const [source, rule, label] of protectionRules) {
+  if (!source.includes(rule)) failures.push(`${label} is missing`);
+}
+
 if (failures.length) {
   console.error("ADCI logic checks failed:\n" + failures.map((failure) => `- ${failure}`).join("\n"));
   process.exit(1);
@@ -76,3 +93,4 @@ if (failures.length) {
 
 console.log(`ADCI logic checks passed: ${rpcCalls.size} client RPCs mapped across ${migrationFiles.length} migrations.`);
 console.log(`Validated ${serviceOnly.length} service-only permission boundaries and ${requiredRules.length} core business rules.`);
+console.log(`Validated ${protectionRules.length} protected-content and test-integrity controls.`);
