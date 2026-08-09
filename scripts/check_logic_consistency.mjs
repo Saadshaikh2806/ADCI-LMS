@@ -72,7 +72,9 @@ for (const rule of requiredRules) {
 const contentProtection = readFileSync(join(root, "components", "ContentProtection.tsx"), "utf8");
 const quizRunner = readFileSync(join(root, "components", "StudentQuizRunner.tsx"), "utf8");
 const coursePlayer = readFileSync(join(root, "components", "StudentCoursePlayer.tsx"), "utf8");
+const rootLayout = readFileSync(join(root, "app", "layout.tsx"), "utf8");
 const protectionRules = [
+  [rootLayout, "contextmenu", "Global right-click protection"],
   [contentProtection, "visibilitychange", "Tab visibility protection"],
   [contentProtection, "fullscreenchange", "Fullscreen exit protection"],
   [contentProtection, "beforeunload", "Navigation protection"],
