@@ -16,6 +16,7 @@ export default function ContentProtection({
   onViolation?: (reason: string) => void;
 }) {
   const violationHandler = useRef(onViolation);
+  const watermarkLayer = useRef<HTMLDivElement>(null);
   const shield = useRef<HTMLDivElement>(null);
   const [timestamp, setTimestamp] = useState("");
 
@@ -41,10 +42,12 @@ export default function ContentProtection({
         && ["c", "p", "s", "u"].includes(event.key.toLowerCase());
       if (event.key === "PrintScreen") {
         event.preventDefault();
+        watermarkLayer.current?.classList.add("visible");
         shield.current?.classList.add("visible");
         window.clearTimeout(screenshotTimer);
         screenshotTimer = window.setTimeout(() => {
           if (!concealWhenInactive || (!document.hidden && document.hasFocus())) {
+            watermarkLayer.current?.classList.remove("visible");
             shield.current?.classList.remove("visible");
           }
         }, 2_000);
@@ -68,9 +71,15 @@ export default function ContentProtection({
 
   useEffect(() => {
     if (!active || !concealWhenInactive) return;
-    const conceal = () => shield.current?.classList.add("visible");
+    const conceal = () => {
+      watermarkLayer.current?.classList.add("visible");
+      shield.current?.classList.add("visible");
+    };
     const reveal = () => {
-      if (!document.hidden && document.hasFocus()) shield.current?.classList.remove("visible");
+      if (!document.hidden && document.hasFocus()) {
+        watermarkLayer.current?.classList.remove("visible");
+        shield.current?.classList.remove("visible");
+      }
     };
     const updateVisibility = () => document.hidden ? conceal() : reveal();
 
@@ -123,7 +132,7 @@ export default function ContentProtection({
 
   const label = `ADCI PROTECTED · ${watermark}${timestamp ? ` · ${timestamp}` : ""}`;
   return <>
-    <div className="content-protection-watermark" aria-hidden="true">
+    <div ref={watermarkLayer} className="content-protection-watermark" aria-hidden="true">
       {Array.from({ length: 16 }, (_, index) => <span key={index}>{label}</span>)}
     </div>
     <div ref={shield} className="content-protection-shield" aria-hidden="true">

@@ -796,8 +796,9 @@ html[data-theme="dark"] .certificate-preview-shell { background:#263236!importan
 .pdf-reader iframe { width:100%; min-height:610px; flex:1; border:0; background:white; }
 .pdf-reader > span { min-height:45px; padding:0 18px; display:flex; align-items:center; justify-content:center; gap:7px; color:var(--amber-text); background:var(--amber-soft); font-size:13px; font-weight:800; }
 .protected-session { user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; }
-.content-protection-watermark { position:absolute; inset:-6%; z-index:20; overflow:hidden; display:grid; grid-template-columns:repeat(4,1fr); grid-template-rows:repeat(4,1fr); pointer-events:none; animation:content-watermark-drift 12s ease-in-out infinite alternate; }
-.exam-room > :where(.content-protection-watermark,.content-protection-shield) { position:fixed; z-index:90; }
+.content-protection-watermark { position:absolute; inset:-6%; z-index:22; overflow:hidden; display:grid; grid-template-columns:repeat(4,1fr); grid-template-rows:repeat(4,1fr); pointer-events:none; opacity:0; animation:content-watermark-drift 12s ease-in-out infinite alternate; animation-play-state:paused; }
+.content-protection-watermark.visible { opacity:1; animation-play-state:running; }
+.exam-room > :where(.content-protection-watermark,.content-protection-shield) { position:fixed; }
 .content-protection-watermark span { align-self:center; justify-self:center; color:rgba(244,166,58,.42); font-size:11px; font-weight:900; letter-spacing:.06em; white-space:nowrap; transform:rotate(-24deg); text-shadow:0 1px 2px rgba(0,0,0,.85),0 0 1px white; }
 .content-protection-shield { position:absolute; inset:0; z-index:21; display:grid; place-items:center; pointer-events:none; opacity:0; color:white; background:#13272b; }
 .content-protection-shield.visible { opacity:1; }
