@@ -2616,6 +2616,17 @@ html[data-theme="dark"] .certificate-preview-shell { background:#263236!importan
   flex:0 0 auto;
 }
 
+@media (max-width:760px) {
+  .assignment-refresh,
+  .live-refresh,
+  .commerce-refresh,
+  .community-refresh,
+  .student-certificates-header > button:last-child,
+  .assessment-centre-header > button {
+    gap:0;
+  }
+}
+
 /* Help Centre uses the normal learner navigation and readable support copy. */
 .help-centre-header h1 { font-size:38px; }
 .help-centre-header > div > span { font-size:14px; }
