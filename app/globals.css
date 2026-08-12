@@ -525,9 +525,10 @@ h1 { margin-bottom: 6px; font: 700 clamp(32.5px, 3vw, 44.2px)/1.15 var(--font-di
   .sidebar.open { transform:translateX(0); }
   .scrim { display:block; position:fixed; inset:0; z-index:25; border:0; background:rgba(18,28,30,.45); }
   .workspace { width:100%; margin:0; padding-bottom:70px; }
-  .topbar { height:64px; padding:0 16px; gap:10px; }
-  .menu-button { display:grid; place-items:center; width:36px; height:36px; cursor:pointer; }
-  .search { width:auto; flex:1; }
+  .topbar { height:64px; padding:0 max(14px,env(safe-area-inset-right)) 0 max(14px,env(safe-area-inset-left)); display:grid; grid-template-columns:36px minmax(0,1fr) auto; align-items:center; justify-content:normal; gap:10px; }
+  .menu-button { width:36px; height:36px; margin:0; display:grid; place-items:center; justify-self:start; cursor:pointer; }
+  .menu-button > svg { width:22px; height:22px; display:block; }
+  .search { width:100%; min-width:0; margin:0; }
   .search kbd, .profile div, .profile > svg { display:none; }
   .global-search-backdrop { padding:0; align-items:stretch; }
   .global-search-dialog { width:100%; max-height:100vh; border:0; border-radius:0; }
@@ -539,7 +540,9 @@ h1 { margin-bottom: 6px; font: 700 clamp(32.5px, 3vw, 44.2px)/1.15 var(--font-di
   .global-search-dialog > footer { justify-content:center; }
   .global-search-dialog > footer span:not(:last-child) { display:none; }
   .global-search-dialog > footer span:last-child { margin:0; }
-  .top-actions { gap:5px; }
+  .top-actions { min-width:0; margin:0; padding-right:2px; justify-self:end; align-items:center; gap:6px; }
+  .top-actions > button { margin:0; align-self:center; }
+  .top-actions :where(.theme-toggle-track,.theme-toggle-track > svg,.icon-button > svg) { place-items:center; }
   .profile > span { width:34px; height:34px; }
   .content { padding:24px 15px 32px; }
   .welcome { align-items:flex-start; }
@@ -2480,10 +2483,35 @@ html[data-theme="dark"] .certificate-preview-shell { background:#263236!importan
   .enrolment-field > span { margin-bottom:5px; display:block; color:var(--text-secondary); font-size:12px; font-weight:800; }
   .enrolment-list select,.enrolment-list input,.enrolment-list article > button { width:100%; height:43px; font-size:16px; }
   .enrolment-list article > button { margin-top:2px; }
+
+  .assignment-refresh,
+  .live-refresh,
+  .commerce-refresh,
+  .community-refresh,
+  .student-certificates-header > button:last-child,
+  .assessment-centre-header > button {
+    width:38px;
+    min-width:38px;
+    height:38px;
+    padding:0;
+    display:grid;
+    place-items:center;
+    gap:0;
+    line-height:0;
+  }
+  .assignment-refresh > svg,
+  .live-refresh > svg,
+  .commerce-refresh > svg,
+  .community-refresh > svg,
+  .student-certificates-header > button:last-child > svg,
+  .assessment-centre-header > button > svg {
+    width:16px;
+    height:16px;
+  }
 }
 
 @media (max-width: 430px) {
-  .topbar { gap:6px; }
+  .topbar { padding-right:max(12px,env(safe-area-inset-right)); padding-left:max(12px,env(safe-area-inset-left)); gap:8px; }
   .menu-button,.icon-button { width:34px; height:34px; flex:none; }
   .search { height:38px; padding:0 9px; }
   .global-search-trigger > span { font-size:14px; }
