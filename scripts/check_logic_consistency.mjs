@@ -79,6 +79,7 @@ const protectionRules = [
   [contentProtection, "fullscreenchange", "Fullscreen exit protection"],
   [contentProtection, "beforeunload", "Navigation protection"],
   [contentProtection, "concealWhenInactive", "Inactive-window shielding"],
+  [coursePlayer, "concealOnMobileOnly", "Mobile-only course shielding"],
   [contentProtection, 'watermarkLayer.current?.classList.add("visible")', "Conditional watermark activation"],
   [contentProtection, "toLocaleString", "Timestamped learner watermark"],
   [contentProtection, 'document.addEventListener("copy"', "Copy protection"],

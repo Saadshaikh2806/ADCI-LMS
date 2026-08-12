@@ -7,12 +7,14 @@ export default function ContentProtection({
   strict = false,
   active = true,
   concealWhenInactive = false,
+  concealOnMobileOnly = false,
   onViolation
 }: {
   watermark: string;
   strict?: boolean;
   active?: boolean;
   concealWhenInactive?: boolean;
+  concealOnMobileOnly?: boolean;
   onViolation?: (reason: string) => void;
 }) {
   const violationHandler = useRef(onViolation);
@@ -36,12 +38,14 @@ export default function ContentProtection({
     if (!active) return;
 
     const prevent = (event: Event) => event.preventDefault();
+    const shouldConceal = () => !concealOnMobileOnly || window.matchMedia("(max-width: 760px)").matches;
     let screenshotTimer = 0;
     const preventProtectedShortcut = (event: KeyboardEvent) => {
       const protectedShortcut = (event.ctrlKey || event.metaKey)
         && ["c", "p", "s", "u"].includes(event.key.toLowerCase());
       if (event.key === "PrintScreen") {
         event.preventDefault();
+        if (!shouldConceal()) return;
         watermarkLayer.current?.classList.add("visible");
         shield.current?.classList.add("visible");
         window.clearTimeout(screenshotTimer);
@@ -67,11 +71,12 @@ export default function ContentProtection({
       document.removeEventListener("keydown", preventProtectedShortcut);
       window.clearTimeout(screenshotTimer);
     };
-  }, [active, concealWhenInactive]);
+  }, [active, concealWhenInactive, concealOnMobileOnly]);
 
   useEffect(() => {
     if (!active || !concealWhenInactive) return;
     const conceal = () => {
+      if (concealOnMobileOnly && !window.matchMedia("(max-width: 760px)").matches) return;
       watermarkLayer.current?.classList.add("visible");
       shield.current?.classList.add("visible");
     };
@@ -92,7 +97,7 @@ export default function ContentProtection({
       window.removeEventListener("blur", conceal);
       window.removeEventListener("focus", reveal);
     };
-  }, [active, concealWhenInactive]);
+  }, [active, concealWhenInactive, concealOnMobileOnly]);
 
   useEffect(() => {
     if (!active || !strict) return;
