@@ -104,7 +104,10 @@ export default function AgoraClassroom({ lessonId, close, notify }: {
 
         if (!active) return;
         setCredentials(result);
-        setError(localTracks.length ? "" : "Camera and microphone access were blocked by your browser.");
+        setError([
+          microphone.status === "rejected" ? "Microphone access was blocked or unavailable." : "",
+          camera.status === "rejected" ? "Camera access was blocked or unavailable. Allow it in your browser's site settings, then rejoin." : ""
+        ].filter(Boolean).join(" "));
         notifyRef.current("Joined the private live classroom");
       } catch (joinError) {
         if (active) setError(joinError instanceof Error ? joinError.message : "Unable to enter the private classroom");

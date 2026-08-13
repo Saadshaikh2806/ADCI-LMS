@@ -99,6 +99,8 @@ const paidLiveMigration = readFileSync(
 );
 const paidLiveRoute = readFileSync(join(root, "app", "api", "live-sessions", "create-series", "route.ts"), "utf8");
 const liveTokenRoute = readFileSync(join(root, "app", "api", "live-sessions", "token", "route.ts"), "utf8");
+const nextConfig = readFileSync(join(root, "next.config.ts"), "utf8");
+const classroom = readFileSync(join(root, "components", "AgoraClassroom.tsx"), "utf8");
 const paidLiveRules = [
   [paidLiveMigration, "sale_ends_at > now()", "Expired live-session checkout protection"],
   [paidLiveMigration, "adci_create_bookable_live_series", "Per-session entitlement creation"],
@@ -107,6 +109,8 @@ const paidLiveRules = [
   [paidLiveMigration, "adci_authorize_agora_join", "Server-side live-class access check"],
   [paidLiveMigration, "'provider', 'agora'", "Private Agora session provider"],
   [liveTokenRoute, "buildTokenWithUserAccount", "User-bound Agora token generation"],
+  [nextConfig, "camera=(self)", "Browser camera permission"],
+  [classroom, "Camera access was blocked or unavailable", "Camera permission feedback"],
   [paidLiveRoute, '"message" in error', "Supabase live-session error reporting"],
   [paidLiveRoute, 'recurrence?: "once" | "weekly"', "Configurable live-session recurrence"]
 ];
