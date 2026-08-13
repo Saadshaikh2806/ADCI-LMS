@@ -14,6 +14,12 @@ type SeriesRequest = {
   gstRate?: number;
 };
 
+function errorMessage(error: unknown) {
+  if (error instanceof Error) return error.message;
+  if (typeof error === "object" && error && "message" in error && typeof error.message === "string") return error.message;
+  return "Unable to create live sessions";
+}
+
 function indiaDateKey(date: Date) {
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Kolkata",
@@ -77,7 +83,6 @@ export async function POST(request: Request) {
     if (error) throw error;
     return Response.json(data);
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unable to create live sessions";
-    return Response.json({ error: message }, { status: 400 });
+    return Response.json({ error: errorMessage(error) }, { status: 400 });
   }
 }

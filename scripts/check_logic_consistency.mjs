@@ -106,6 +106,7 @@ const paidLiveRules = [
   [paidLiveMigration, "adci_authorize_agora_join", "Server-side live-class access check"],
   [paidLiveMigration, "'provider', 'agora'", "Private Agora session provider"],
   [liveTokenRoute, "buildTokenWithUserAccount", "User-bound Agora token generation"],
+  [paidLiveRoute, '"message" in error', "Supabase live-session error reporting"],
   [paidLiveRoute, 'recurrence?: "once" | "weekly"', "Configurable live-session recurrence"]
 ];
 for (const [source, rule, label] of paidLiveRules) {
