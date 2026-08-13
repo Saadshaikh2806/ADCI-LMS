@@ -12,7 +12,13 @@ alter table public.adci_live_classes
 drop policy if exists "course members read live classes" on public.adci_live_classes;
 
 alter table public.adci_live_classes
-  add column if not exists agora_channel_name text;
+  add column if not exists agora_channel_name text,
+  add column if not exists series_id uuid,
+  add column if not exists series_date date;
+
+create index if not exists adci_live_classes_series_idx
+on public.adci_live_classes (series_id, series_date)
+where series_id is not null;
 
 create unique index if not exists adci_live_classes_agora_channel_idx
 on public.adci_live_classes (agora_channel_name)

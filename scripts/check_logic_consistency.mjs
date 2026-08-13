@@ -102,6 +102,7 @@ const liveTokenRoute = readFileSync(join(root, "app", "api", "live-sessions", "t
 const paidLiveRules = [
   [paidLiveMigration, "sale_ends_at > now()", "Expired live-session checkout protection"],
   [paidLiveMigration, "adci_create_bookable_live_series", "Per-session entitlement creation"],
+  [paidLiveMigration, "add column if not exists series_id uuid", "Self-contained live-series database setup"],
   [paidLiveMigration, 'drop policy if exists "course members read live classes"', "Direct meeting-link access prevention"],
   [paidLiveMigration, "adci_authorize_agora_join", "Server-side live-class access check"],
   [paidLiveMigration, "'provider', 'agora'", "Private Agora session provider"],
