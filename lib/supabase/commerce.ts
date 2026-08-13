@@ -12,6 +12,8 @@ export type CourseOffer = {
   compare_at_paise: number | null;
   gst_rate: number;
   access_days: number | null;
+  sale_ends_at: string | null;
+  live_starts_at: string | null;
   lesson_count: number;
   has_access: boolean;
 };

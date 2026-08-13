@@ -33,7 +33,7 @@ begin
     raise exception 'Live class administration permission required';
   end if;
 
-  if class_provider not in ('zoom','google_meet','youtube_live') then
+  if class_provider not in ('agora','zoom','youtube_live') then
     raise exception 'Unsupported live provider';
   end if;
   if class_url is null or class_url !~ '^https://.+' then

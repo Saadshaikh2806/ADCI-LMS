@@ -1,5 +1,6 @@
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
+import AgoraToken from "agora-token";
 
 const root = process.cwd();
 
@@ -92,6 +93,34 @@ for (const [source, rule, label] of protectionRules) {
   if (!source.includes(rule)) failures.push(`${label} is missing`);
 }
 
+const paidLiveMigration = readFileSync(
+  join(root, "supabase", "migrations", "202608120001_bookable_agora_series.sql"),
+  "utf8"
+);
+const paidLiveRoute = readFileSync(join(root, "app", "api", "live-sessions", "create-series", "route.ts"), "utf8");
+const liveTokenRoute = readFileSync(join(root, "app", "api", "live-sessions", "token", "route.ts"), "utf8");
+const paidLiveRules = [
+  [paidLiveMigration, "sale_ends_at > now()", "Expired live-session checkout protection"],
+  [paidLiveMigration, "adci_create_bookable_live_series", "Per-session entitlement creation"],
+  [paidLiveMigration, 'drop policy if exists "course members read live classes"', "Direct meeting-link access prevention"],
+  [paidLiveMigration, "adci_authorize_agora_join", "Server-side live-class access check"],
+  [paidLiveMigration, "'provider', 'agora'", "Private Agora session provider"],
+  [liveTokenRoute, "buildTokenWithUserAccount", "User-bound Agora token generation"],
+  [paidLiveRoute, 'recurrence?: "once" | "weekly"', "Configurable live-session recurrence"]
+];
+for (const [source, rule, label] of paidLiveRules) {
+  if (!source.includes(rule)) failures.push(`${label} is missing`);
+}
+if (/saturday|extract\s*\(\s*isodow/i.test(paidLiveMigration)) {
+  failures.push("Bookable live sessions must not hard-code a weekday");
+}
+
+const { RtcRole, RtcTokenBuilder } = AgoraToken;
+const sampleAgoraToken = RtcTokenBuilder.buildTokenWithUserAccount(
+  "a".repeat(32), "b".repeat(32), "adci_test", "user", RtcRole.PUBLISHER, 60, 60
+);
+if (!sampleAgoraToken.startsWith("007")) failures.push("Agora token generation failed");
+
 if (failures.length) {
   console.error("ADCI logic checks failed:\n" + failures.map((failure) => `- ${failure}`).join("\n"));
   process.exit(1);
@@ -100,3 +129,4 @@ if (failures.length) {
 console.log(`ADCI logic checks passed: ${rpcCalls.size} client RPCs mapped across ${migrationFiles.length} migrations.`);
 console.log(`Validated ${serviceOnly.length} service-only permission boundaries and ${requiredRules.length} core business rules.`);
 console.log(`Validated ${protectionRules.length} protected-content and test-integrity controls.`);
+console.log(`Validated ${paidLiveRules.length} paid live-session access and recurrence controls.`);

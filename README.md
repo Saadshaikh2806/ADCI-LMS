@@ -26,3 +26,9 @@ Before uploading large lecture catalogs, use `scripts/bulk_optimize_videos.py` t
 ## Production
 
 The application uses the standard Next.js build: `pnpm build`. The public service check is available at `/api/health`. See `docs/PRODUCTION_RELEASE.md` for the complete release checklist.
+
+## Paid private live sessions
+
+The Live schedule workspace creates one-time or weekly paid sessions on any selected day. Each occurrence becomes a separate one-lesson course and Razorpay offer, so a purchase unlocks only that date. Apply migration `202608120001_bookable_agora_series.sql`.
+
+Video runs inside the LMS with Agora. Create a free Agora project, enable its App Certificate, and set `AGORA_APP_ID` and `AGORA_APP_CERTIFICATE` in the server environment. The LMS creates a private channel for every session and issues a short-lived, user-bound token only after checking the learner's purchase and join time. There is no external meeting URL or lobby to manage.

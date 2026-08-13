@@ -4,12 +4,14 @@ import {
   CalendarDays,
   Check,
   Clock3,
+  Copy,
   ExternalLink,
   LoaderCircle,
   Pencil,
   Plus,
   Radio,
   RefreshCw,
+  ShieldCheck,
   Trash2,
   UsersRound,
   Video,
@@ -17,6 +19,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import {
+  createAdciBookableLiveSeries,
   deleteAdciLiveSchedule,
   getAdciAdminLiveSchedule,
   getAdciLiveAttendance,
@@ -28,10 +31,11 @@ import {
   type AdciScheduledLiveClass,
   type AdciUnscheduledLiveLesson
 } from "../lib/supabase/admin";
+import AgoraClassroom from "./AgoraClassroom";
 
 const providerNames = {
+  agora: "ADCI Live Classroom",
   zoom: "Zoom",
-  google_meet: "Google Meet",
   youtube_live: "YouTube Live"
 };
 
@@ -52,7 +56,7 @@ export default function AdminLiveSchedule({ notify, openAcademics }: {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [editorLesson, setEditorLesson] = useState<AdciScheduledLiveClass | AdciUnscheduledLiveLesson | null>(null);
-  const [provider, setProvider] = useState<AdciLiveClass["provider"]>("google_meet");
+  const [provider, setProvider] = useState<AdciLiveClass["provider"]>("zoom");
   const [meetingUrl, setMeetingUrl] = useState("");
   const [instructor, setInstructor] = useState("");
   const [startsAt, setStartsAt] = useState("");
@@ -62,6 +66,19 @@ export default function AdminLiveSchedule({ notify, openAcademics }: {
   const [attendanceClass, setAttendanceClass] = useState<AdciScheduledLiveClass | null>(null);
   const [attendees, setAttendees] = useState<AdciLiveAttendee[]>([]);
   const [attendanceLoading, setAttendanceLoading] = useState(false);
+  const [bookableOpen, setBookableOpen] = useState(false);
+  const [classroomLessonId, setClassroomLessonId] = useState("");
+  const [bookable, setBookable] = useState({
+    title: "Online Career Counselling",
+    description: "Live online career counselling with an ADCI expert.",
+    instructor: "",
+    startsAt: "",
+    duration: "55",
+    recurrence: "weekly" as "once" | "weekly",
+    repeatUntil: "",
+    price: "",
+    gstRate: "18"
+  });
 
   async function refresh() {
     setLoading(true);
@@ -97,7 +114,7 @@ export default function AdminLiveSchedule({ notify, openAcademics }: {
       start.setDate(start.getDate() + 1);
       start.setHours(10, 0, 0, 0);
       const end = new Date(start.getTime() + 60 * 60 * 1000);
-      setProvider("google_meet");
+      setProvider("zoom");
       setMeetingUrl("");
       setInstructor("");
       setStartsAt(localDateTime(start.toISOString()));
@@ -108,6 +125,55 @@ export default function AdminLiveSchedule({ notify, openAcademics }: {
       setRepeatUntil(localDateTime(finalDay.toISOString()).slice(0, 10));
     }
     setError("");
+  }
+
+  function openBookableSeries() {
+    const start = new Date();
+    start.setDate(start.getDate() + 1);
+    start.setHours(10, 0, 0, 0);
+    const finalDate = new Date(start);
+    finalDate.setDate(finalDate.getDate() + 49);
+    setBookable((current) => ({
+      ...current,
+      startsAt: localDateTime(start.toISOString()),
+      repeatUntil: localDateTime(finalDate.toISOString()).slice(0, 10)
+    }));
+    setBookableOpen(true);
+    setError("");
+  }
+
+  async function createBookableSeries(event: React.FormEvent) {
+    event.preventDefault();
+    const start = new Date(bookable.startsAt);
+    if (!Number.isFinite(start.getTime())) return setError("Choose a valid start time.");
+    if (bookable.recurrence === "weekly" && !bookable.repeatUntil) return setError("Choose the final recurrence date.");
+    setSaving(true);
+    setError("");
+    try {
+      const result = await createAdciBookableLiveSeries({
+        title: bookable.title,
+        description: bookable.description,
+        instructor: bookable.instructor,
+        startsAt: start.toISOString(),
+        durationMinutes: Number(bookable.duration),
+        recurrence: bookable.recurrence,
+        repeatUntil: bookable.repeatUntil,
+        pricePaise: Math.round(Number(bookable.price) * 100),
+        gstRate: Number(bookable.gstRate)
+      });
+      notify(`${result.classes_created} paid private session${result.classes_created === 1 ? "" : "s"} published`);
+      setBookableOpen(false);
+      await refresh();
+    } catch (createError) {
+      setError(createError instanceof Error ? createError.message : "Unable to create paid sessions");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function copyPurchaseLink(offerId: string) {
+    await navigator.clipboard.writeText(`${window.location.origin}/?offer=${offerId}`);
+    notify("Purchase link copied");
   }
 
   async function save(event: React.FormEvent) {
@@ -194,8 +260,8 @@ export default function AdminLiveSchedule({ notify, openAcademics }: {
 
   return <div className="admin-content admin-live-workspace">
     <div className="admin-welcome admin-live-heading">
-      <div><h2>Live schedule</h2><p>Schedule external classrooms and monitor learner attendance.</p></div>
-      <div><select value={days} onChange={(event) => setDays(Number(event.target.value))}><option value="7">Next 7 days</option><option value="30">Next 30 days</option><option value="90">Next 90 days</option><option value="180">Next 6 months</option></select><button onClick={() => void refresh()}><RefreshCw className={loading ? "spin" : ""} /> Refresh</button><button className="primary" onClick={() => schedule?.unscheduled_lessons[0] ? openEditor(schedule.unscheduled_lessons[0]) : openAcademics()}><Plus /> {schedule?.unscheduled_lessons.length ? "Schedule class" : "Create live lesson"}</button></div>
+      <div><h2>Live schedule</h2><p>Create private LMS classrooms and monitor learner attendance.</p></div>
+      <div><select value={days} onChange={(event) => setDays(Number(event.target.value))}><option value="7">Next 7 days</option><option value="30">Next 30 days</option><option value="90">Next 90 days</option><option value="180">Next 6 months</option></select><button onClick={() => void refresh()}><RefreshCw className={loading ? "spin" : ""} /> Refresh</button><button onClick={openBookableSeries}><Plus /> Paid live session</button><button className="primary" onClick={() => schedule?.unscheduled_lessons[0] ? openEditor(schedule.unscheduled_lessons[0]) : openAcademics()}><Plus /> {schedule?.unscheduled_lessons.length ? "Schedule class" : "Create live lesson"}</button></div>
     </div>
     {error && <div className="course-error">{error}</div>}
 
@@ -222,25 +288,44 @@ export default function AdminLiveSchedule({ notify, openAcademics }: {
             <div className="live-date"><strong>{start.toLocaleDateString("en-IN", { day: "2-digit" })}</strong><span>{start.toLocaleDateString("en-IN", { month: "short" }).toUpperCase()}</span></div>
             <div className="live-provider"><Video /><span>{providerNames[liveClass.provider]}</span></div>
             <div className="live-admin-copy"><div><em>{liveClass.status}</em><span>{start.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}–{new Date(liveClass.ends_at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}</span></div><h3>{liveClass.lesson_title}</h3><p>{liveClass.course_title} · {liveClass.module_title} · {liveClass.instructor_name}</p></div>
-            <button className="attendance-button" onClick={() => void openAttendance(liveClass)}><UsersRound /><span><strong>{liveClass.attendance_count}</strong><small>{liveClass.total_joins} joins</small></span></button>
-            <div className="live-admin-actions"><button title="Open meeting link" onClick={() => window.open(liveClass.meeting_url, "_blank", "noopener,noreferrer")}><ExternalLink /></button><button title="Edit schedule" onClick={() => openEditor(liveClass)}><Pencil /></button><button className="delete" title="Remove schedule" disabled={saving} onClick={() => void remove(liveClass)}><Trash2 /></button></div>
+            <button className="attendance-button" title="Open authorised buyer list" onClick={() => void openAttendance(liveClass)}><UsersRound /><span><strong>{liveClass.attendance_count}</strong><small>{liveClass.total_joins} joins</small></span></button>
+            <div className="live-admin-actions">{liveClass.offer_id && <button title="Copy purchase link" onClick={() => void copyPurchaseLink(liveClass.offer_id as string)}><Copy /></button>}<button title={liveClass.provider === "agora" ? "Open classroom" : "Open meeting link"} onClick={() => liveClass.provider === "agora" ? setClassroomLessonId(liveClass.lesson_id) : window.open(liveClass.meeting_url, "_blank", "noopener,noreferrer")}>{liveClass.provider === "agora" ? <Video /> : <ExternalLink />}</button>{liveClass.provider !== "agora" && <button title="Edit schedule" onClick={() => openEditor(liveClass)}><Pencil /></button>}<button className="delete" title="Remove schedule" disabled={saving} onClick={() => void remove(liveClass)}><Trash2 /></button></div>
           </article>;
         })}
         {visibleClasses.length === 0 && <div className="report-empty"><CalendarDays /> No classes match this schedule filter.</div>}
       </div>}
     </section>
 
+    {bookableOpen && <div className="course-dialog-backdrop"><form className="lesson-content-editor live-admin-editor" onSubmit={createBookableSeries}>
+      <div className="course-dialog-head"><div><p className="eyebrow">PAID LIVE SESSIONS</p><h2>Create private live sessions</h2><span>Each date is sold separately and can use any day or time.</span></div><button type="button" onClick={() => setBookableOpen(false)}><X /></button></div>
+      <div className="content-editor-note"><ShieldCheck /><span><strong>Automatic LMS access</strong><small>The system creates a private classroom for each date. Paid learners are verified and admitted automatically—there is no public meeting link or lobby.</small></span></div>
+      <div className="live-class-grid">
+        <label className="wide"><span>Session title</span><input required minLength={3} value={bookable.title} onChange={(event) => setBookable({ ...bookable, title: event.target.value })} /></label>
+        <label className="wide"><span>Description</span><textarea rows={3} value={bookable.description} onChange={(event) => setBookable({ ...bookable, description: event.target.value })} /></label>
+        <label><span>Instructor</span><input required value={bookable.instructor} onChange={(event) => setBookable({ ...bookable, instructor: event.target.value })} /></label>
+        <label><span>First session</span><input required type="datetime-local" value={bookable.startsAt} onChange={(event) => setBookable({ ...bookable, startsAt: event.target.value })} /></label>
+        <label><span>Duration (minutes)</span><input required min="15" max="60" type="number" value={bookable.duration} onChange={(event) => setBookable({ ...bookable, duration: event.target.value })} /></label>
+        <label><span>Schedule</span><select value={bookable.recurrence} onChange={(event) => setBookable({ ...bookable, recurrence: event.target.value as "once" | "weekly" })}><option value="once">One session</option><option value="weekly">Repeat weekly</option></select></label>
+        {bookable.recurrence === "weekly" && <label><span>Repeat until</span><input required type="date" min={bookable.startsAt.slice(0, 10)} value={bookable.repeatUntil} onChange={(event) => setBookable({ ...bookable, repeatUntil: event.target.value })} /></label>}
+        <label><span>Price (INR)</span><input required min="1" step=".01" type="number" value={bookable.price} onChange={(event) => setBookable({ ...bookable, price: event.target.value })} /></label>
+        <label><span>GST rate (%)</span><input required min="0" max="100" step=".01" type="number" value={bookable.gstRate} onChange={(event) => setBookable({ ...bookable, gstRate: event.target.value })} /></label>
+      </div>
+      {error && <div className="course-error">{error}</div>}
+      <div className="course-dialog-actions"><button type="button" onClick={() => setBookableOpen(false)}>Cancel</button><button className="primary" disabled={saving}>{saving ? <LoaderCircle className="spin" /> : <Check />} Create and publish</button></div>
+    </form></div>}
+
     {editorLesson && <div className="course-dialog-backdrop"><form className="lesson-content-editor live-admin-editor" onSubmit={save}>
       <div className="course-dialog-head"><div><p className="eyebrow">LIVE CLASS SCHEDULER</p><h2>{editorLesson.lesson_title}</h2><span>{editorLesson.course_title} · {editorLesson.module_title}</span></div><button type="button" onClick={() => setEditorLesson(null)}><X /></button></div>
       <div className="content-editor-note"><Radio /><span><strong>Protected external classroom</strong><small>The meeting URL is returned only when an enrolled learner joins during the allowed window.</small></span></div>
-      <div className="live-class-grid"><label><span>Provider</span><select value={provider} onChange={(event) => setProvider(event.target.value as AdciLiveClass["provider"])}><option value="google_meet">Google Meet</option><option value="zoom">Zoom</option><option value="youtube_live">YouTube Live</option></select></label><label><span>Instructor</span><input required value={instructor} onChange={(event) => setInstructor(event.target.value)} placeholder="Instructor name" /></label><label className="wide"><span>HTTPS meeting or stream URL</span><input required type="url" value={meetingUrl} onChange={(event) => setMeetingUrl(event.target.value)} placeholder="https://…" /></label><label><span>Starts</span><input required type="datetime-local" value={startsAt} onChange={(event) => setStartsAt(event.target.value)} /></label><label><span>Ends</span><input required type="datetime-local" value={endsAt} onChange={(event) => setEndsAt(event.target.value)} /></label>{!("provider" in editorLesson) && <label><span>Schedule</span><select value={recurrence} onChange={(event) => setRecurrence(event.target.value as "once" | "daily")}><option value="once">One class</option><option value="daily">Repeat daily</option></select></label>}{!("provider" in editorLesson) && recurrence === "daily" && <label><span>Repeat until</span><input required type="date" min={startsAt.slice(0, 10)} value={repeatUntil} onChange={(event) => setRepeatUntil(event.target.value)} /></label>}</div>
+      <div className="live-class-grid"><label><span>Provider</span><select value={provider} onChange={(event) => setProvider(event.target.value as AdciLiveClass["provider"])}><option value="zoom">Zoom</option><option value="youtube_live">YouTube Live</option></select></label><label><span>Instructor</span><input required value={instructor} onChange={(event) => setInstructor(event.target.value)} placeholder="Instructor name" /></label><label className="wide"><span>HTTPS meeting or stream URL</span><input required type="url" value={meetingUrl} onChange={(event) => setMeetingUrl(event.target.value)} placeholder="https://…" /></label><label><span>Starts</span><input required type="datetime-local" value={startsAt} onChange={(event) => setStartsAt(event.target.value)} /></label><label><span>Ends</span><input required type="datetime-local" value={endsAt} onChange={(event) => setEndsAt(event.target.value)} /></label>{!("provider" in editorLesson) && <label><span>Schedule</span><select value={recurrence} onChange={(event) => setRecurrence(event.target.value as "once" | "daily")}><option value="once">One class</option><option value="daily">Repeat daily</option></select></label>}{!("provider" in editorLesson) && recurrence === "daily" && <label><span>Repeat until</span><input required type="date" min={startsAt.slice(0, 10)} value={repeatUntil} onChange={(event) => setRepeatUntil(event.target.value)} /></label>}</div>
       {error && <div className="course-error">{error}</div>}
       <div className="course-dialog-actions"><button type="button" onClick={() => setEditorLesson(null)}>Cancel</button><button className="primary" disabled={saving}>{saving ? <LoaderCircle className="spin" /> : <Check />} Save schedule</button></div>
     </form></div>}
 
     {attendanceClass && <div className="course-dialog-backdrop"><section className="attendance-dialog">
-      <div className="course-dialog-head"><div><p className="eyebrow">LIVE ATTENDANCE</p><h2>{attendanceClass.lesson_title}</h2><span>{attendanceClass.attendance_count} learner{attendanceClass.attendance_count === 1 ? "" : "s"} attended</span></div><button onClick={() => setAttendanceClass(null)}><X /></button></div>
-      {attendanceLoading ? <div className="cms-loading"><LoaderCircle className="spin" /> Loading attendance…</div> : <div className="attendance-list"><div className="attendance-head"><span>LEARNER</span><span>FIRST JOINED</span><span>LAST JOINED</span><span>JOINS</span></div>{attendees.map((attendee) => <article key={attendee.learner_id}><div><span>{attendee.full_name.split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toUpperCase()}</span><div><strong>{attendee.full_name}</strong><small>{attendee.email}</small></div></div><span>{new Date(attendee.joined_at).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}</span><span>{new Date(attendee.last_joined_at).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}</span><strong>{attendee.join_count}</strong></article>)}{attendees.length === 0 && <div className="report-empty"><UsersRound /> No learner has joined this class yet.</div>}</div>}
+      <div className="course-dialog-head"><div><p className="eyebrow">ENROLLED LEARNERS</p><h2>{attendanceClass.lesson_title}</h2><span>{attendees.length} learner{attendees.length === 1 ? "" : "s"} currently have access; admission is automatic.</span></div><button onClick={() => setAttendanceClass(null)}><X /></button></div>
+      {attendanceLoading ? <div className="cms-loading"><LoaderCircle className="spin" /> Loading access list…</div> : <div className="attendance-list"><div className="attendance-head"><span>LEARNER</span><span>FIRST JOINED</span><span>LAST JOINED</span><span>JOINS</span></div>{attendees.map((attendee) => <article key={attendee.learner_id}><div><span>{attendee.full_name.split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toUpperCase()}</span><div><strong>{attendee.full_name}</strong><small>{attendee.email}</small></div></div><span>{attendee.joined_at ? new Date(attendee.joined_at).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }) : "Not joined"}</span><span>{attendee.last_joined_at ? new Date(attendee.last_joined_at).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }) : "—"}</span><strong>{attendee.join_count}</strong></article>)}{attendees.length === 0 && <div className="report-empty"><UsersRound /> No authorised buyer has access to this session yet.</div>}</div>}
     </section></div>}
+    {classroomLessonId && <AgoraClassroom lessonId={classroomLessonId} close={() => setClassroomLessonId("")} notify={notify} />}
   </div>;
 }

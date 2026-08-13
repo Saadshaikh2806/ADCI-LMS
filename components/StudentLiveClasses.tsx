@@ -17,12 +17,13 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { getMyLiveClassWorkspace, type LearnerLiveClass } from "../lib/supabase/learning";
 import { getSupabaseBrowserClient } from "../lib/supabase/client";
+import AgoraClassroom from "./AgoraClassroom";
 
 type ScheduleFilter = "upcoming" | "live" | "past" | "attended" | "all";
 
 const providerNames = {
+  agora: "ADCI Live Classroom",
   zoom: "Zoom",
-  google_meet: "Google Meet",
   youtube_live: "YouTube Live"
 };
 
@@ -51,6 +52,7 @@ export default function StudentLiveClasses({
   const [classes, setClasses] = useState<LearnerLiveClass[]>([]);
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState("");
+  const [classroomLessonId, setClassroomLessonId] = useState("");
   const [error, setError] = useState("");
   const [filter, setFilter] = useState<ScheduleFilter>("upcoming");
   const [courseId, setCourseId] = useState("all");
@@ -101,6 +103,10 @@ export default function StudentLiveClasses({
   }, {}), [visible]);
 
   async function join(item: LearnerLiveClass) {
+    if (item.provider === "agora") {
+      setClassroomLessonId(item.lesson_id);
+      return;
+    }
     const popup = window.open("about:blank", "_blank");
     if (!popup) {
       setError("Your browser blocked the meeting tab. Allow pop-ups for this LMS and try again.");
@@ -173,5 +179,6 @@ export default function StudentLiveClasses({
         </section>)}</div>}
       </section>
     </div>
+    {classroomLessonId && <AgoraClassroom lessonId={classroomLessonId} close={() => { setClassroomLessonId(""); void refresh(); }} notify={notify} />}
   </div>;
 }

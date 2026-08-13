@@ -26,6 +26,7 @@ import {
 } from "../lib/supabase/learning";
 import { getSupabaseBrowserClient } from "../lib/supabase/client";
 import ContentProtection from "./ContentProtection";
+import AgoraClassroom from "./AgoraClassroom";
 import StudentQuizRunner from "./StudentQuizRunner";
 
 const lessonTypeNames: Record<LearningLesson["lesson_type"], string> = {
@@ -38,8 +39,8 @@ const lessonTypeNames: Record<LearningLesson["lesson_type"], string> = {
 };
 
 const liveProviderNames = {
+  agora: "ADCI Live Classroom",
   zoom: "Zoom",
-  google_meet: "Google Meet",
   youtube_live: "YouTube Live"
 };
 
@@ -66,6 +67,7 @@ export default function StudentCoursePlayer({
   const [assetLoading, setAssetLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [joining, setJoining] = useState(false);
+  const [classroomLessonId, setClassroomLessonId] = useState("");
   const [quizAssessmentId, setQuizAssessmentId] = useState("");
   const [watermark, setWatermark] = useState("AUTHORISED LEARNER");
   const [error, setError] = useState("");
@@ -184,6 +186,10 @@ export default function StudentCoursePlayer({
 
   async function joinLiveClass() {
     if (!selectedLesson?.live_class) return;
+    if (selectedLesson.live_class.provider === "agora") {
+      setClassroomLessonId(selectedLesson.id);
+      return;
+    }
     const popup = window.open("about:blank", "_blank");
     if (!popup) {
       setError("Your browser blocked the meeting tab. Allow pop-ups for this LMS and try again.");
@@ -294,5 +300,6 @@ export default function StudentCoursePlayer({
         }
       }}
     />}
+    {classroomLessonId && <AgoraClassroom lessonId={classroomLessonId} close={() => setClassroomLessonId("")} notify={notify} />}
   </div>;
 }

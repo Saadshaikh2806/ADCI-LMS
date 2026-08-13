@@ -111,6 +111,7 @@ function getSavedLearningState(userId?: string): SavedLearningState | null {
 }
 
 function getSavedLearnerDestination(userId?: string) {
+  if (typeof window !== "undefined" && new URLSearchParams(window.location.search).has("offer")) return "Programmes";
   const saved = getSavedLearningState(userId);
   return saved?.destination && learnerDestinations.has(saved.destination) ? saved.destination : "Overview";
 }

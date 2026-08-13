@@ -820,6 +820,32 @@ html[data-theme="dark"] .certificate-preview-shell { background:#263236!importan
 .live-lesson-time span small { margin-top:4px; color:#aebebd; font-size:13.5px; }
 .live-lesson-card .primary,.quiz-lesson-card .primary { margin-top:18px; }
 .live-lesson-card .primary:disabled,.quiz-lesson-card .primary:disabled { opacity:.58; cursor:not-allowed; }
+
+.agora-classroom-backdrop { position:fixed; inset:0; z-index:220; padding:18px; display:grid; place-items:center; background:#071416ef; backdrop-filter:blur(8px); }
+.agora-classroom { width:min(1280px,100%); height:min(820px,calc(100vh - 36px)); display:grid; grid-template-rows:auto 1fr auto; overflow:hidden; border:1px solid #29474c; border-radius:18px; color:#eef8f7; background:#10272b; box-shadow:0 30px 90px #0009; }
+.agora-classroom>header { min-height:70px; padding:12px 18px; display:flex; align-items:center; justify-content:space-between; gap:20px; border-bottom:1px solid #29474c; background:#132e33; }
+.agora-classroom>header>div,.agora-classroom>header>span { display:flex; align-items:center; gap:10px; }
+.agora-classroom>header svg { width:20px; color:#68d8b5; }
+.agora-classroom>header strong,.agora-classroom>header small { display:block; }
+.agora-classroom>header strong { font-size:14px; }.agora-classroom>header small { margin-top:2px; color:#9bb3b2; font-size:11.5px; }
+.agora-classroom>header>span { color:#b7cac8; font-size:12px; font-weight:800; }
+.agora-video-grid { min-height:0; padding:14px; display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); grid-auto-rows:minmax(230px,1fr); gap:12px; overflow:auto; }
+.agora-video-tile { position:relative; min-height:230px; overflow:hidden; border:1px solid #315157; border-radius:13px; background:#09191c; }
+.agora-video-tile>div { width:100%; height:100%; }.agora-video-tile>svg { position:absolute; inset:50% auto auto 50%; width:46px; height:46px; color:#789290; transform:translate(-50%,-50%); }
+.agora-video-tile>span { position:absolute; left:10px; bottom:10px; max-width:calc(100% - 20px); padding:5px 9px; overflow:hidden; border-radius:6px; color:white; background:#071416c9; font-size:11.5px; font-weight:800; text-overflow:ellipsis; white-space:nowrap; }
+.agora-waiting,.agora-classroom-state { display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; }
+.agora-waiting { min-height:230px; padding:30px; border:1px dashed #36585e; border-radius:13px; color:#9fb5b3; }.agora-waiting svg { width:34px; height:34px; }.agora-waiting strong { margin-top:10px; color:#dbe9e7; }.agora-waiting p { margin:5px 0 0; font-size:12px; }
+.agora-classroom-state { gap:10px; padding:30px; }.agora-classroom-state svg { width:34px; height:34px; color:#68d8b5; }.agora-classroom-state p { max-width:520px; margin:0; color:#b7cac8; }.agora-classroom-state button { height:38px; padding:0 18px; border:0; border-radius:8px; font-weight:800; cursor:pointer; }
+.agora-classroom-warning { margin:10px 14px 0; padding:9px 12px; border-radius:8px; color:#ffe0a8; background:#5e411c; font-size:12px; }
+.agora-classroom>footer { min-height:76px; display:flex; align-items:center; justify-content:center; gap:10px; border-top:1px solid #29474c; background:#132e33; }
+.agora-classroom>footer button { min-width:82px; height:48px; padding:0 13px; display:flex; align-items:center; justify-content:center; gap:7px; border:1px solid #36565b; border-radius:10px; color:#eaf4f3; background:#1d3a3f; font-weight:800; cursor:pointer; }.agora-classroom>footer button svg { width:18px; }.agora-classroom>footer button.off { color:#ffd6d3; background:#53302f; }.agora-classroom>footer button.leave { border-color:#a84542; background:#c54e49; }.agora-classroom>footer button:disabled { opacity:.45; cursor:not-allowed; }
+
+@media (max-width:700px) {
+  .agora-classroom-backdrop { padding:0; }.agora-classroom { width:100%; height:100dvh; border:0; border-radius:0; }
+  .agora-classroom>header { min-height:62px; padding:10px 12px; }.agora-classroom>header>span { display:none; }
+  .agora-video-grid { grid-template-columns:1fr; grid-auto-rows:minmax(210px,46vh); padding:8px; gap:8px; }
+  .agora-classroom>footer { min-height:68px; }.agora-classroom>footer button { min-width:62px; height:44px; }.agora-classroom>footer button span { display:none; }
+}
 .next-lesson-button { min-height:40px; margin-top:22px; padding:0 14px; display:flex; align-items:center; gap:8px; border:1px solid #dda148; border-radius:8px; color:#49351e; background:#efae4e; font-size:13px; font-weight:800; cursor:pointer; }
 .empty-curriculum { min-height:520px; display:flex; flex-direction:column; align-items:center; justify-content:center; color:var(--muted); text-align:center; }
 .empty-curriculum > svg { width:48px; height:48px; margin-bottom:13px; color:var(--amber-text); }

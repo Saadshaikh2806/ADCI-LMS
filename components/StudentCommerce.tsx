@@ -3,6 +3,7 @@
 import {
   ArrowRight,
   BookOpen,
+  CalendarDays,
   Check,
   CreditCard,
   FileText,
@@ -13,6 +14,7 @@ import {
   RefreshCw,
   ShieldCheck,
   ShoppingBag,
+  Video,
   X
 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -120,6 +122,11 @@ export default function StudentCommerce({
   }
 
   useEffect(() => { void refresh(); }, []);
+  useEffect(() => {
+    const offerId = new URLSearchParams(window.location.search).get("offer");
+    const requested = offerId && catalog.find((offer) => offer.offer_id === offerId && !offer.has_access);
+    if (requested) setSelected(requested);
+  }, [catalog]);
 
   async function pay() {
     if (!selected || paying) return;
@@ -147,7 +154,8 @@ export default function StudentCommerce({
         handler: async (result) => {
           try {
             await verifyCheckoutPayment(result);
-            notify("Payment verified. Course access is active.");
+            notify(selected.live_starts_at ? "Payment verified. Live session access is active." : "Payment verified. Course access is active.");
+            window.history.replaceState(null, "", window.location.pathname);
             setSelected(null);
             setTab("billing");
             await refresh();
@@ -185,10 +193,10 @@ export default function StudentCommerce({
           return <article key={offer.offer_id} className={offer.has_access ? "owned" : ""}>
             <div className="programme-art"><span>{offer.course_slug.slice(0, 8).toUpperCase()}</span><BookOpen /></div>
             <div className="programme-copy">
-              <div>{offer.has_access && <em><Check /> Enrolled</em>}<small>{offer.lesson_count} lessons</small></div>
+              <div>{offer.has_access && <em><Check /> Enrolled</em>}<small>{offer.live_starts_at ? <><Video /> 1 live session</> : `${offer.lesson_count} lessons`}</small></div>
               <h2>{offer.course_title}</h2>
               <p>{offer.offer_description || offer.course_description || "Structured ADCI learning with protected course access."}</p>
-              <ul><li><ShieldCheck /> Secure account access</li><li><FileText /> Learning records and assessments</li><li><LockKeyhole /> {offer.access_days ? `${offer.access_days} days access` : "Lifetime access"}</li></ul>
+              <ul>{offer.live_starts_at && <li><CalendarDays /> {new Date(offer.live_starts_at).toLocaleString("en-IN", { dateStyle: "full", timeStyle: "short" })}</li>}<li><ShieldCheck /> Secure account access</li><li><FileText /> {offer.live_starts_at ? "Private LMS video classroom" : "Learning records and assessments"}</li><li><LockKeyhole /> {offer.live_starts_at ? "Access to this session only" : offer.access_days ? `${offer.access_days} days access` : "Lifetime access"}</li></ul>
             </div>
             <footer>
               <div>{offer.compare_at_paise && <del>{money(offer.compare_at_paise)}</del>}<strong>{money(offer.price_paise)}</strong><small>+ {money(tax)} GST</small></div>

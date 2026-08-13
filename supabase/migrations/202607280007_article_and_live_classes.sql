@@ -7,7 +7,7 @@ create table if not exists public.adci_article_contents (
 
 create table if not exists public.adci_live_classes (
   lesson_id uuid primary key references public.adci_lessons on delete cascade,
-  provider text not null check (provider in ('zoom','google_meet','youtube_live')),
+  provider text not null check (provider in ('agora','zoom','youtube_live')),
   meeting_url text not null,
   instructor_name text not null,
   starts_at timestamptz not null,
@@ -99,7 +99,7 @@ begin
   if not public.adci_current_user_has_role(target_organization_id,
     array['content_author','academic_lead','branch_admin','super_admin']::public.adci_app_role[])
   then raise exception 'Live class administration permission required'; end if;
-  if class_provider not in ('zoom','google_meet','youtube_live') then raise exception 'Unsupported live provider'; end if;
+  if class_provider not in ('agora','zoom','youtube_live') then raise exception 'Unsupported live provider'; end if;
   if class_url !~ '^https://.+' then raise exception 'A valid HTTPS meeting URL is required'; end if;
   insert into public.adci_live_classes (
     lesson_id, provider, meeting_url, instructor_name, starts_at, ends_at, updated_by, updated_at

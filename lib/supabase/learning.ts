@@ -10,7 +10,7 @@ export type LearningAsset = {
 };
 
 export type LearningLiveClass = {
-  provider: "zoom" | "google_meet" | "youtube_live";
+  provider: "agora" | "zoom" | "youtube_live";
   instructor_name: string;
   starts_at: string;
   ends_at: string;
@@ -24,7 +24,7 @@ export type LearnerLiveClass = {
   course_id: string;
   course_title: string;
   module_title: string;
-  provider: "zoom" | "google_meet" | "youtube_live";
+  provider: "agora" | "zoom" | "youtube_live";
   instructor_name: string;
   starts_at: string;
   ends_at: string;

@@ -884,7 +884,7 @@ export async function saveAdciArticle(lessonId: string, body: string) {
 }
 
 export type AdciLiveClass = {
-  provider: "zoom" | "google_meet" | "youtube_live";
+  provider: "agora" | "zoom" | "youtube_live";
   meeting_url: string;
   instructor_name: string;
   starts_at: string;
@@ -936,10 +936,41 @@ export type AdciScheduledLiveClass = AdciLiveClass & {
   course_id: string;
   course_title: string;
   course_status: string;
+  offer_id: string | null;
   status: "live" | "scheduled" | "ended";
   attendance_count: number;
   total_joins: number;
 };
+
+export async function createAdciBookableLiveSeries(input: {
+  title: string;
+  description: string;
+  instructor: string;
+  startsAt: string;
+  durationMinutes: number;
+  recurrence: "once" | "weekly";
+  repeatUntil: string;
+  pricePaise: number;
+  gstRate: number;
+}) {
+  const supabase = getSupabaseBrowserClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+  const { data: sessionData } = await supabase.auth.getSession();
+  const accessToken = sessionData.session?.access_token;
+  if (!accessToken) throw new Error("Authentication required");
+
+  const response = await fetch("/api/live-sessions/create-series", {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${accessToken}`,
+      "content-type": "application/json"
+    },
+    body: JSON.stringify(input)
+  });
+  const result = await response.json() as { classes_created?: number; error?: string };
+  if (!response.ok) throw new Error(result.error || "Unable to create live sessions");
+  return result as { series_id: string; classes_created: number };
+}
 
 export type AdciUnscheduledLiveLesson = {
   lesson_id: string;
@@ -960,8 +991,8 @@ export type AdciLiveAttendee = {
   learner_id: string;
   full_name: string;
   email: string;
-  joined_at: string;
-  last_joined_at: string;
+  joined_at: string | null;
+  last_joined_at: string | null;
   join_count: number;
 };
 
