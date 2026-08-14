@@ -17,7 +17,7 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { getMyLiveClassWorkspace, type LearnerLiveClass } from "../lib/supabase/learning";
 import { getSupabaseBrowserClient } from "../lib/supabase/client";
-import AgoraClassroom from "./AgoraClassroom";
+import { openAgoraClassroom } from "./AgoraClassroom";
 
 type ScheduleFilter = "upcoming" | "live" | "past" | "attended" | "all";
 
@@ -52,7 +52,6 @@ export default function StudentLiveClasses({
   const [classes, setClasses] = useState<LearnerLiveClass[]>([]);
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState("");
-  const [classroomLessonId, setClassroomLessonId] = useState("");
   const [error, setError] = useState("");
   const [filter, setFilter] = useState<ScheduleFilter>("upcoming");
   const [courseId, setCourseId] = useState("all");
@@ -104,7 +103,7 @@ export default function StudentLiveClasses({
 
   async function join(item: LearnerLiveClass) {
     if (item.provider === "agora") {
-      setClassroomLessonId(item.lesson_id);
+      openAgoraClassroom(item.lesson_id);
       return;
     }
     const popup = window.open("about:blank", "_blank");
@@ -179,6 +178,5 @@ export default function StudentLiveClasses({
         </section>)}</div>}
       </section>
     </div>
-    {classroomLessonId && <AgoraClassroom lessonId={classroomLessonId} close={() => { setClassroomLessonId(""); void refresh(); }} notify={notify} />}
   </div>;
 }

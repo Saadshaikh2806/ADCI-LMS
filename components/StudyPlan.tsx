@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { getSupabaseBrowserClient } from "../lib/supabase/client";
+import { openAgoraClassroom } from "./AgoraClassroom";
 
 type StudyEvent = {
   id: string;
@@ -154,6 +155,10 @@ export default function StudyPlan({
 
   async function joinLiveClass(studyEvent: StudyEvent) {
     if (!studyEvent.lesson_id) return;
+    if (studyEvent.provider === "agora") {
+      openAgoraClassroom(studyEvent.lesson_id);
+      return;
+    }
     const popup = window.open("about:blank", "_blank");
     if (!popup) {
       setError("Your browser blocked the meeting tab. Allow pop-ups for this LMS and try again.");

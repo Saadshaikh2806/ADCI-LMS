@@ -31,7 +31,7 @@ import {
   type AdciScheduledLiveClass,
   type AdciUnscheduledLiveLesson
 } from "../lib/supabase/admin";
-import AgoraClassroom from "./AgoraClassroom";
+import { openAgoraClassroom } from "./AgoraClassroom";
 
 const providerNames = {
   agora: "ADCI Live Classroom",
@@ -67,7 +67,6 @@ export default function AdminLiveSchedule({ notify, openAcademics }: {
   const [attendees, setAttendees] = useState<AdciLiveAttendee[]>([]);
   const [attendanceLoading, setAttendanceLoading] = useState(false);
   const [bookableOpen, setBookableOpen] = useState(false);
-  const [classroomLessonId, setClassroomLessonId] = useState("");
   const [bookable, setBookable] = useState({
     title: "Online Career Counselling",
     description: "Live online career counselling with an ADCI expert.",
@@ -289,7 +288,7 @@ export default function AdminLiveSchedule({ notify, openAcademics }: {
             <div className="live-provider"><Video /><span>{providerNames[liveClass.provider]}</span></div>
             <div className="live-admin-copy"><div><em>{liveClass.status}</em><span>{start.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}–{new Date(liveClass.ends_at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}</span></div><h3>{liveClass.lesson_title}</h3><p>{liveClass.course_title} · {liveClass.module_title} · {liveClass.instructor_name}</p></div>
             <button className="attendance-button" title="Open authorised buyer list" onClick={() => void openAttendance(liveClass)}><UsersRound /><span><strong>{liveClass.attendance_count}</strong><small>{liveClass.total_joins} joins</small></span></button>
-            <div className="live-admin-actions">{liveClass.offer_id && <button title="Copy purchase link" onClick={() => void copyPurchaseLink(liveClass.offer_id as string)}><Copy /></button>}<button title={liveClass.provider === "agora" ? "Open classroom" : "Open meeting link"} onClick={() => liveClass.provider === "agora" ? setClassroomLessonId(liveClass.lesson_id) : window.open(liveClass.meeting_url, "_blank", "noopener,noreferrer")}>{liveClass.provider === "agora" ? <Video /> : <ExternalLink />}</button>{liveClass.provider !== "agora" && <button title="Edit schedule" onClick={() => openEditor(liveClass)}><Pencil /></button>}<button className="delete" title="Remove schedule" disabled={saving} onClick={() => void remove(liveClass)}><Trash2 /></button></div>
+            <div className="live-admin-actions">{liveClass.offer_id && <button title="Copy purchase link" onClick={() => void copyPurchaseLink(liveClass.offer_id as string)}><Copy /></button>}<button title={liveClass.provider === "agora" ? "Open classroom" : "Open meeting link"} onClick={() => liveClass.provider === "agora" ? openAgoraClassroom(liveClass.lesson_id) : window.open(liveClass.meeting_url, "_blank", "noopener,noreferrer")}>{liveClass.provider === "agora" ? <Video /> : <ExternalLink />}</button>{liveClass.provider !== "agora" && <button title="Edit schedule" onClick={() => openEditor(liveClass)}><Pencil /></button>}<button className="delete" title="Remove schedule" disabled={saving} onClick={() => void remove(liveClass)}><Trash2 /></button></div>
           </article>;
         })}
         {visibleClasses.length === 0 && <div className="report-empty"><CalendarDays /> No classes match this schedule filter.</div>}
@@ -326,6 +325,5 @@ export default function AdminLiveSchedule({ notify, openAcademics }: {
       <div className="course-dialog-head"><div><p className="eyebrow">ENROLLED LEARNERS</p><h2>{attendanceClass.lesson_title}</h2><span>{attendees.length} learner{attendees.length === 1 ? "" : "s"} currently have access; admission is automatic.</span></div><button onClick={() => setAttendanceClass(null)}><X /></button></div>
       {attendanceLoading ? <div className="cms-loading"><LoaderCircle className="spin" /> Loading access list…</div> : <div className="attendance-list"><div className="attendance-head"><span>LEARNER</span><span>FIRST JOINED</span><span>LAST JOINED</span><span>JOINS</span></div>{attendees.map((attendee) => <article key={attendee.learner_id}><div><span>{attendee.full_name.split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toUpperCase()}</span><div><strong>{attendee.full_name}</strong><small>{attendee.email}</small></div></div><span>{attendee.joined_at ? new Date(attendee.joined_at).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }) : "Not joined"}</span><span>{attendee.last_joined_at ? new Date(attendee.last_joined_at).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }) : "—"}</span><strong>{attendee.join_count}</strong></article>)}{attendees.length === 0 && <div className="report-empty"><UsersRound /> No authorised buyer has access to this session yet.</div>}</div>}
     </section></div>}
-    {classroomLessonId && <AgoraClassroom lessonId={classroomLessonId} close={() => setClassroomLessonId("")} notify={notify} />}
   </div>;
 }

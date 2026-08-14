@@ -3,7 +3,7 @@
 import { LoaderCircle, RefreshCw, Video } from "lucide-react";
 import { useEffect, useState } from "react";
 import { getSupabaseBrowserClient } from "../lib/supabase/client";
-import AgoraClassroom from "./AgoraClassroom";
+import { openAgoraClassroom } from "./AgoraClassroom";
 
 type LiveClass = {
   lesson_id: string;
@@ -28,7 +28,6 @@ export default function LiveClassSchedule({ notify }: { notify: (message: string
   const [classes, setClasses] = useState<LiveClass[]>([]);
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState("");
-  const [classroomLessonId, setClassroomLessonId] = useState("");
   const [error, setError] = useState("");
 
   async function refresh() {
@@ -45,7 +44,7 @@ export default function LiveClassSchedule({ notify }: { notify: (message: string
 
   async function join(liveClass: LiveClass) {
     if (liveClass.provider === "agora") {
-      setClassroomLessonId(liveClass.lesson_id);
+      openAgoraClassroom(liveClass.lesson_id);
       return;
     }
     const popup = window.open("about:blank", "_blank");
@@ -86,5 +85,5 @@ export default function LiveClassSchedule({ notify }: { notify: (message: string
       <div className="event-copy"><div><span>{providerNames[liveClass.provider]}</span>{liveClass.can_join && <em>LIVE</em>}</div><h4>{liveClass.lesson_title}</h4><p>{liveClass.instructor_name} · {liveClass.course_title}</p></div>
       <button disabled={!liveClass.can_join || joining === liveClass.lesson_id || ended} onClick={() => void join(liveClass)}>{joining === liveClass.lesson_id ? "Opening…" : ended ? (liveClass.has_attended ? "Attended" : "Ended") : liveClass.can_join ? "Join class" : start.toLocaleDateString("en-IN", { day: "2-digit", month: "short" })}</button>
     </article>;
-  })}</div>{classroomLessonId && <AgoraClassroom lessonId={classroomLessonId} close={() => { setClassroomLessonId(""); void refresh(); }} notify={notify} />}</>;
+  })}</div></>;
 }
