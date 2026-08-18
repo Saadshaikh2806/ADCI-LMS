@@ -131,6 +131,7 @@ const paidLiveRules = [
   [adminLiveSchedule, 'liveClass.provider === "agora"', "Agora-only live-session management"],
   [adminLiveSchedule, "Create live session", "Single live-session creation flow"],
   [agoraOnlyMigration, "adci_save_live_class", "Legacy external live-session RPC revocation"],
+  [agoraOnlyMigration, "to_regprocedure", "Partial-schema-safe legacy RPC revocation"],
   [agoraOnlyMigration, "from anon, authenticated", "Agora-only backend enforcement"],
   [studyPlan, 'studyEvent.provider === "agora"', "Study-plan private classroom entry"],
   [paidLiveRoute, '"message" in error', "Supabase live-session error reporting"],
