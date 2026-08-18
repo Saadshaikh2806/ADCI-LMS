@@ -103,8 +103,13 @@ const liveHardening = readFileSync(
   join(root, "supabase", "migrations", "202608180001_live_class_production_hardening.sql"),
   "utf8"
 );
+const agoraOnlyMigration = readFileSync(
+  join(root, "supabase", "migrations", "202608180002_agora_only_live_sessions.sql"),
+  "utf8"
+);
 const nextConfig = readFileSync(join(root, "next.config.ts"), "utf8");
 const classroom = readFileSync(join(root, "components", "AgoraClassroom.tsx"), "utf8");
+const adminLiveSchedule = readFileSync(join(root, "components", "AdminLiveSchedule.tsx"), "utf8");
 const studyPlan = readFileSync(join(root, "components", "StudyPlan.tsx"), "utf8");
 const paidLiveRules = [
   [paidLiveMigration, "sale_ends_at > now()", "Expired live-session checkout protection"],
@@ -123,6 +128,10 @@ const paidLiveRules = [
   [classroom, 'participant.isHost ? " · Host"', "Remote host identification"],
   [classroom, 'client.on("connection-state-change"', "Classroom reconnection status"],
   [classroom, 'client.on("user-joined"', "Device-independent participant presence"],
+  [adminLiveSchedule, 'liveClass.provider === "agora"', "Agora-only live-session management"],
+  [adminLiveSchedule, "Create live session", "Single live-session creation flow"],
+  [agoraOnlyMigration, "adci_save_live_class", "Legacy external live-session RPC revocation"],
+  [agoraOnlyMigration, "from anon, authenticated", "Agora-only backend enforcement"],
   [studyPlan, 'studyEvent.provider === "agora"', "Study-plan private classroom entry"],
   [paidLiveRoute, '"message" in error', "Supabase live-session error reporting"],
   [paidLiveRoute, 'recurrence?: "once" | "weekly"', "Configurable live-session recurrence"],
@@ -134,6 +143,9 @@ for (const [source, rule, label] of paidLiveRules) {
 }
 if (/saturday|extract\s*\(\s*isodow/i.test(paidLiveMigration)) {
   failures.push("Bookable live sessions must not hard-code a weekday");
+}
+if (/Paid live session|Create live lesson|<option value="zoom"|<option value="youtube_live"/.test(adminLiveSchedule)) {
+  failures.push("Live schedule must expose one Agora-only creation flow");
 }
 
 const { RtcRole, RtcTokenBuilder } = AgoraToken;

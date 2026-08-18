@@ -58,7 +58,7 @@ export async function POST(request: Request) {
     if (title.length < 3 || instructor.length < 2) throw new Error("Enter a session title and instructor");
     if (!Number.isFinite(firstStart.getTime()) || firstStart <= new Date()) throw new Error("Choose a future start time");
     if (!Number.isInteger(durationMinutes) || durationMinutes < 15 || durationMinutes > 60) {
-      throw new Error("Free embedded sessions must be between 15 and 60 minutes");
+      throw new Error("Agora sessions must be between 15 and 60 minutes");
     }
     if (!Number.isInteger(pricePaise) || pricePaise < 100) throw new Error("Price must be at least INR 1");
     if (!Number.isFinite(gstRate) || gstRate < 0 || gstRate > 100) throw new Error("GST must be between 0 and 100");

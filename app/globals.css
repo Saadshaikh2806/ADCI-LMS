@@ -1120,12 +1120,11 @@ html[data-theme="dark"] .certificate-preview-shell { background:#263236!importan
 .admin-live-heading button svg { width:15px; }
 .admin-live-heading button.primary { color:#49351e; border-color:#dda148; background:#efae4e; }
 .admin-live-heading button:disabled { opacity:.5; cursor:not-allowed; }
-.live-admin-metrics { margin:21px 0; display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+.live-admin-metrics { margin:21px 0; display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
 .live-admin-metrics article { min-height:126px; padding:15px; border:1px solid var(--line); border-radius:12px; background:var(--surface); }
 .live-admin-metrics article > div { width:34px; height:34px; display:grid; place-items:center; border-radius:9px; color:var(--blue-text); background:var(--blue-soft); }
 .live-admin-metrics article > div.is-live { color:var(--red-text); background:var(--red-soft); }
 .live-admin-metrics article > div.attendance { color:var(--green-text); background:var(--green-soft); }
-.live-admin-metrics article > div.unscheduled { color:var(--amber-text); background:var(--amber-soft); }
 .live-admin-metrics svg { width:17px; }
 .live-admin-metrics span { margin-top:13px; display:block; color:var(--muted); font-size:11px; font-weight:900; letter-spacing:.09em; }
 .live-admin-metrics strong { margin:3px 0; display:block; font:700 26px var(--font-display); }
@@ -1161,16 +1160,6 @@ html[data-theme="dark"] .certificate-preview-shell { background:#263236!importan
 .live-admin-actions button { width:31px; height:31px; display:grid; place-items:center; border:1px solid var(--line-soft); border-radius:7px; color:var(--text-secondary); background:var(--surface-soft); cursor:pointer; }
 .live-admin-actions button.delete { color:var(--red-text); border-color:#e1c6bd; background:var(--red-soft); }
 .live-admin-actions button svg { width:14px; }
-.unscheduled-live-list { padding:5px 16px 16px; }
-.unscheduled-live-list article { min-height:67px; padding:9px 5px; display:grid; grid-template-columns:1fr auto auto; align-items:center; gap:12px; border-bottom:1px solid var(--line-soft); }
-.unscheduled-live-list article > div { display:flex; align-items:center; gap:9px; }
-.unscheduled-live-list article > div > svg { width:32px; height:32px; padding:7px; border-radius:8px; color:var(--amber-text); background:var(--amber-soft); }
-.unscheduled-live-list strong,.unscheduled-live-list small { display:block; }
-.unscheduled-live-list strong { font-size:13.5px; }
-.unscheduled-live-list small { margin-top:3px; color:var(--muted); font-size:11px; }
-.unscheduled-live-list em { padding:4px 6px; border-radius:5px; color:var(--text-secondary); background:var(--neutral-soft); font:normal 800 11px var(--font-body); }
-.unscheduled-live-list button { height:32px; padding:0 9px; display:flex; align-items:center; gap:5px; border:1px solid #dda148; border-radius:7px; color:#49351e; background:#efae4e; font-size:11.5px; font-weight:800; cursor:pointer; }
-.unscheduled-live-list button svg { width:13px; }
 .live-admin-editor .course-dialog-head > div > span,.attendance-dialog .course-dialog-head > div > span { color:var(--muted); font-size:11.5px; }
 .attendance-dialog { width:min(900px,100%); max-height:calc(100vh - 45px); padding:24px; overflow:auto; border-radius:16px; background:var(--surface); box-shadow:0 28px 70px rgba(17,27,29,.3); }
 .attendance-head,.attendance-list article { min-width:680px; display:grid; grid-template-columns:minmax(240px,1fr) 160px 160px 50px; align-items:center; gap:10px; }
