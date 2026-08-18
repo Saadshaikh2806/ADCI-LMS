@@ -21,21 +21,38 @@ type ClassroomCredentials = {
 
 const ACTIVE_CLASSROOM_KEY = "adci-active-classroom";
 const OPEN_CLASSROOM_EVENT = "adci-open-classroom";
+const LESSON_ID_PATTERN = /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i;
 
 export function openAgoraClassroom(lessonId: string) {
-  window.sessionStorage.setItem(ACTIVE_CLASSROOM_KEY, lessonId);
+  if (!LESSON_ID_PATTERN.test(lessonId)) return;
   window.dispatchEvent(new CustomEvent(OPEN_CLASSROOM_EVENT, { detail: lessonId }));
 }
 
-export function PersistentAgoraClassroom({ notify }: { notify: (message: string) => void }) {
+export function PersistentAgoraClassroom({ notify, userId }: { notify: (message: string) => void; userId: string }) {
   const [lessonId, setLessonId] = useState("");
 
   useEffect(() => {
-    setLessonId(window.sessionStorage.getItem(ACTIVE_CLASSROOM_KEY) || "");
-    const open = (event: Event) => setLessonId((event as CustomEvent<string>).detail);
+    setLessonId("");
+    const savedClassroom = window.sessionStorage.getItem(ACTIVE_CLASSROOM_KEY);
+    if (savedClassroom) {
+      try {
+        const saved = JSON.parse(savedClassroom) as { userId?: string; lessonId?: string };
+        if (saved.userId === userId && saved.lessonId && LESSON_ID_PATTERN.test(saved.lessonId)) setLessonId(saved.lessonId);
+        else window.sessionStorage.removeItem(ACTIVE_CLASSROOM_KEY);
+      } catch {
+        window.sessionStorage.removeItem(ACTIVE_CLASSROOM_KEY);
+      }
+    }
+
+    const open = (event: Event) => {
+      const nextLessonId = (event as CustomEvent<string>).detail;
+      if (!userId || !LESSON_ID_PATTERN.test(nextLessonId)) return;
+      window.sessionStorage.setItem(ACTIVE_CLASSROOM_KEY, JSON.stringify({ userId, lessonId: nextLessonId }));
+      setLessonId(nextLessonId);
+    };
     window.addEventListener(OPEN_CLASSROOM_EVENT, open);
     return () => window.removeEventListener(OPEN_CLASSROOM_EVENT, open);
-  }, []);
+  }, [userId]);
 
   if (!lessonId) return null;
   return <AgoraClassroom lessonId={lessonId} notify={notify} close={() => {
@@ -44,20 +61,27 @@ export function PersistentAgoraClassroom({ notify }: { notify: (message: string)
   }} />;
 }
 
+function rtcIdentity(uid: string | number) {
+  const parts = String(uid).split(":");
+  if (parts.length >= 3 && (parts[1] === "host" || parts[1] === "learner")) {
+    return { name: parts.slice(2).join(":") || "Participant", isHost: parts[1] === "host" };
+  }
+  return { name: parts.length > 1 ? parts.slice(1).join(":") || "Participant" : "Participant", isHost: false };
+}
+
 function RemoteVideo({ user }: { user: IAgoraRTCRemoteUser }) {
   const element = useRef<HTMLDivElement>(null);
-  const uid = String(user.uid);
-  const participantName = uid.includes(":") ? uid.slice(uid.indexOf(":") + 1) : "Participant";
+  const participant = rtcIdentity(user.uid);
 
   useEffect(() => {
     if (element.current && user.hasVideo && user.videoTrack) user.videoTrack.play(element.current);
     return () => user.videoTrack?.stop();
   }, [user.hasVideo, user.videoTrack]);
 
-  return <article className="agora-video-tile">
+  return <article className={`agora-video-tile${participant.isHost ? " host" : ""}`}>
     <div ref={element} />
     {!user.hasVideo && <VideoOff />}
-    <span>{participantName}{!user.hasAudio ? " · Mic off" : ""}</span>
+    <span>{participant.name}{participant.isHost ? " · Host" : ""}{!user.hasAudio ? " · Mic off" : ""}</span>
   </article>;
 }
 
@@ -98,7 +122,13 @@ export default function AgoraClassroom({ lessonId, close, notify }: {
         client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
         clientRef.current = client;
         const showRemoteUser = (user: IAgoraRTCRemoteUser) => {
-          if (active) setRemoteUsers((current) => [...current.filter((item) => item.uid !== user.uid), user]);
+          if (active) setRemoteUsers((current) => {
+            const index = current.findIndex((item) => item.uid === user.uid);
+            if (index === -1) return [...current, user];
+            const next = [...current];
+            next[index] = user;
+            return next;
+          });
         };
         client.on("user-joined", showRemoteUser);
         client.on("user-published", async (user, mediaType) => {

@@ -834,6 +834,8 @@ html[data-theme="dark"] .certificate-preview-shell { background:#263236!importan
 .agora-video-tile { position:relative; min-height:230px; overflow:hidden; border:1px solid #315157; border-radius:13px; background:#09191c; }
 .agora-video-tile>div { width:100%; height:100%; }.agora-video-tile>svg { position:absolute; inset:50% auto auto 50%; width:46px; height:46px; color:#789290; transform:translate(-50%,-50%); }
 .agora-video-tile>span { position:absolute; left:10px; bottom:10px; max-width:calc(100% - 20px); padding:5px 9px; overflow:hidden; border-radius:6px; color:white; background:#071416c9; font-size:11.5px; font-weight:800; text-overflow:ellipsis; white-space:nowrap; }
+.agora-video-tile.host { border-color:#d7a34d; box-shadow:inset 0 0 0 1px #d7a34d55; }
+.agora-video-tile.host>span { color:#fff2d4; background:#5c4219e6; }
 .agora-waiting,.agora-classroom-state { display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; }
 .agora-waiting { min-height:230px; padding:30px; border:1px dashed #36585e; border-radius:13px; color:#9fb5b3; }.agora-waiting svg { width:34px; height:34px; }.agora-waiting strong { margin-top:10px; color:#dbe9e7; }.agora-waiting p { margin:5px 0 0; font-size:12px; }
 .agora-classroom-state { gap:10px; padding:30px; }.agora-classroom-state svg { width:34px; height:34px; color:#68d8b5; }.agora-classroom-state p { max-width:520px; margin:0; color:#b7cac8; }.agora-classroom-state button { height:38px; padding:0 18px; border:0; border-radius:8px; font-weight:800; cursor:pointer; }

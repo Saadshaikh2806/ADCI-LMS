@@ -99,6 +99,10 @@ const paidLiveMigration = readFileSync(
 );
 const paidLiveRoute = readFileSync(join(root, "app", "api", "live-sessions", "create-series", "route.ts"), "utf8");
 const liveTokenRoute = readFileSync(join(root, "app", "api", "live-sessions", "token", "route.ts"), "utf8");
+const liveHardening = readFileSync(
+  join(root, "supabase", "migrations", "202608180001_live_class_production_hardening.sql"),
+  "utf8"
+);
 const nextConfig = readFileSync(join(root, "next.config.ts"), "utf8");
 const classroom = readFileSync(join(root, "components", "AgoraClassroom.tsx"), "utf8");
 const studyPlan = readFileSync(join(root, "components", "StudyPlan.tsx"), "utf8");
@@ -111,14 +115,19 @@ const paidLiveRules = [
   [paidLiveMigration, "'provider', 'agora'", "Private Agora session provider"],
   [liveTokenRoute, "buildTokenWithUserAccount", "User-bound Agora token generation"],
   [liveTokenRoute, "participantName.replace", "Signed participant display names"],
+  [liveTokenRoute, 'access.is_staff ? "host" : "learner"', "Signed participant roles"],
   [nextConfig, "camera=(self)", "Browser camera permission"],
   [classroom, "Camera access was blocked or unavailable", "Camera permission feedback"],
   [classroom, "adci-active-classroom", "Refresh-safe classroom restoration"],
+  [classroom, "saved.userId === userId", "Account-scoped classroom restoration"],
+  [classroom, 'participant.isHost ? " · Host"', "Remote host identification"],
   [classroom, 'client.on("connection-state-change"', "Classroom reconnection status"],
   [classroom, 'client.on("user-joined"', "Device-independent participant presence"],
   [studyPlan, 'studyEvent.provider === "agora"', "Study-plan private classroom entry"],
   [paidLiveRoute, '"message" in error', "Supabase live-session error reporting"],
-  [paidLiveRoute, 'recurrence?: "once" | "weekly"', "Configurable live-session recurrence"]
+  [paidLiveRoute, 'recurrence?: "once" | "weekly"', "Configurable live-session recurrence"],
+  [liveHardening, "< now() - interval '2 minutes'", "Attendance refresh de-duplication"],
+  [liveHardening, "Paid live sessions cannot be removed after publication", "Paid-session deletion protection"]
 ];
 for (const [source, rule, label] of paidLiveRules) {
   if (!source.includes(rule)) failures.push(`${label} is missing`);
@@ -129,7 +138,7 @@ if (/saturday|extract\s*\(\s*isodow/i.test(paidLiveMigration)) {
 
 const { RtcRole, RtcTokenBuilder } = AgoraToken;
 const sampleAgoraToken = RtcTokenBuilder.buildTokenWithUserAccount(
-  "a".repeat(32), "b".repeat(32), "adci_test", "user", RtcRole.PUBLISHER, 60, 60
+  "a".repeat(32), "b".repeat(32), "adci_test", "00000000-0000-0000-0000-000000000000:host:Test Host", RtcRole.PUBLISHER, 60, 60
 );
 if (!sampleAgoraToken.startsWith("007")) failures.push("Agora token generation failed");
 

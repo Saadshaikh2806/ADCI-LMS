@@ -501,7 +501,7 @@ function LearningHub() {
       {notificationOpen && <NotificationCenter close={() => setNotificationOpen(false)} onUnreadChange={setNotificationCount} onOpenAction={openNotificationAction} />}
       {settingsOpen && <AccountSettings close={() => setSettingsOpen(false)} notify={notify} onMfaChanged={(enabled) => { if (!enabled) setAdminOpen(false); }} />}
       {helpOpen && <HelpCentre initialCategory={helpCategory} initialTicketId={helpTicketId || undefined} close={() => { setHelpOpen(false); setHelpCategory(undefined); setHelpTicketId(""); }} notify={notify} />}
-      <PersistentAgoraClassroom notify={notify} />
+      <PersistentAgoraClassroom notify={notify} userId={authSession?.user.id || ""} />
       {toast && <div className="toast"><Check size={17} />{toast}</div>}
     </main>
   );

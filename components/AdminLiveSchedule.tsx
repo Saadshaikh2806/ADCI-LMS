@@ -288,7 +288,18 @@ export default function AdminLiveSchedule({ notify, openAcademics }: {
             <div className="live-provider"><Video /><span>{providerNames[liveClass.provider]}</span></div>
             <div className="live-admin-copy"><div><em>{liveClass.status}</em><span>{start.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}–{new Date(liveClass.ends_at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}</span></div><h3>{liveClass.lesson_title}</h3><p>{liveClass.course_title} · {liveClass.module_title} · {liveClass.instructor_name}</p></div>
             <button className="attendance-button" title="Open authorised buyer list" onClick={() => void openAttendance(liveClass)}><UsersRound /><span><strong>{liveClass.attendance_count}</strong><small>{liveClass.total_joins} joins</small></span></button>
-            <div className="live-admin-actions">{liveClass.offer_id && <button title="Copy purchase link" onClick={() => void copyPurchaseLink(liveClass.offer_id as string)}><Copy /></button>}<button title={liveClass.provider === "agora" ? "Open classroom" : "Open meeting link"} onClick={() => liveClass.provider === "agora" ? openAgoraClassroom(liveClass.lesson_id) : window.open(liveClass.meeting_url, "_blank", "noopener,noreferrer")}>{liveClass.provider === "agora" ? <Video /> : <ExternalLink />}</button>{liveClass.provider !== "agora" && <button title="Edit schedule" onClick={() => openEditor(liveClass)}><Pencil /></button>}<button className="delete" title="Remove schedule" disabled={saving} onClick={() => void remove(liveClass)}><Trash2 /></button></div>
+            <div className="live-admin-actions">
+              {liveClass.offer_id && <button title="Copy purchase link" onClick={() => void copyPurchaseLink(liveClass.offer_id as string)}><Copy /></button>}
+              <button
+                title={liveClass.provider === "agora" && liveClass.status !== "live" ? "Classroom opens 15 minutes before the session" : liveClass.provider === "agora" ? "Open classroom" : "Open meeting link"}
+                disabled={liveClass.provider === "agora" && liveClass.status !== "live"}
+                onClick={() => liveClass.provider === "agora" ? openAgoraClassroom(liveClass.lesson_id) : window.open(liveClass.meeting_url, "_blank", "noopener,noreferrer")}
+              >
+                {liveClass.provider === "agora" ? <Video /> : <ExternalLink />}
+              </button>
+              {liveClass.provider !== "agora" && <button title="Edit schedule" onClick={() => openEditor(liveClass)}><Pencil /></button>}
+              {!liveClass.offer_id && <button className="delete" title="Remove schedule" disabled={saving} onClick={() => void remove(liveClass)}><Trash2 /></button>}
+            </div>
           </article>;
         })}
         {visibleClasses.length === 0 && <div className="report-empty"><CalendarDays /> No classes match this schedule filter.</div>}
