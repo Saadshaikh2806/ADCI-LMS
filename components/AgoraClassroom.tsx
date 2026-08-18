@@ -48,13 +48,14 @@ function RemoteVideo({ user }: { user: IAgoraRTCRemoteUser }) {
   const element = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (element.current && user.videoTrack) user.videoTrack.play(element.current);
+    if (element.current && user.hasVideo && user.videoTrack) user.videoTrack.play(element.current);
     return () => user.videoTrack?.stop();
-  }, [user, user.videoTrack]);
+  }, [user.hasVideo, user.videoTrack]);
 
   return <article className="agora-video-tile">
     <div ref={element} />
-    <span>Participant</span>
+    {!user.hasVideo && <VideoOff />}
+    <span>Participant{!user.hasAudio ? " · Mic off" : ""}</span>
   </article>;
 }
 
@@ -94,19 +95,17 @@ export default function AgoraClassroom({ lessonId, close, notify }: {
         if (!active) return;
         client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
         clientRef.current = client;
+        const showRemoteUser = (user: IAgoraRTCRemoteUser) => {
+          if (active) setRemoteUsers((current) => [...current.filter((item) => item.uid !== user.uid), user]);
+        };
+        client.on("user-joined", showRemoteUser);
         client.on("user-published", async (user, mediaType) => {
           if (!client) return;
           await client.subscribe(user, mediaType);
           if (mediaType === "audio") user.audioTrack?.play();
-          if (mediaType === "video" && active) {
-            setRemoteUsers((current) => [...current.filter((item) => item.uid !== user.uid), user]);
-          }
+          showRemoteUser(user);
         });
-        client.on("user-unpublished", (user, mediaType) => {
-          if (mediaType === "video" && active) {
-            setRemoteUsers((current) => current.filter((item) => item.uid !== user.uid));
-          }
-        });
+        client.on("user-unpublished", showRemoteUser);
         client.on("user-left", (user) => {
           if (active) setRemoteUsers((current) => current.filter((item) => item.uid !== user.uid));
         });

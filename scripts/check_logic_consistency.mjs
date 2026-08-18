@@ -114,6 +114,7 @@ const paidLiveRules = [
   [classroom, "Camera access was blocked or unavailable", "Camera permission feedback"],
   [classroom, "adci-active-classroom", "Refresh-safe classroom restoration"],
   [classroom, 'client.on("connection-state-change"', "Classroom reconnection status"],
+  [classroom, 'client.on("user-joined"', "Device-independent participant presence"],
   [studyPlan, 'studyEvent.provider === "agora"', "Study-plan private classroom entry"],
   [paidLiveRoute, '"message" in error', "Supabase live-session error reporting"],
   [paidLiveRoute, 'recurrence?: "once" | "weekly"', "Configurable live-session recurrence"]
