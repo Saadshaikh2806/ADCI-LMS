@@ -110,6 +110,7 @@ const paidLiveRules = [
   [paidLiveMigration, "adci_authorize_agora_join", "Server-side live-class access check"],
   [paidLiveMigration, "'provider', 'agora'", "Private Agora session provider"],
   [liveTokenRoute, "buildTokenWithUserAccount", "User-bound Agora token generation"],
+  [liveTokenRoute, "participantName.replace", "Signed participant display names"],
   [nextConfig, "camera=(self)", "Browser camera permission"],
   [classroom, "Camera access was blocked or unavailable", "Camera permission feedback"],
   [classroom, "adci-active-classroom", "Refresh-safe classroom restoration"],

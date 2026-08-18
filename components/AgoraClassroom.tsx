@@ -46,6 +46,8 @@ export function PersistentAgoraClassroom({ notify }: { notify: (message: string)
 
 function RemoteVideo({ user }: { user: IAgoraRTCRemoteUser }) {
   const element = useRef<HTMLDivElement>(null);
+  const uid = String(user.uid);
+  const participantName = uid.includes(":") ? uid.slice(uid.indexOf(":") + 1) : "Participant";
 
   useEffect(() => {
     if (element.current && user.hasVideo && user.videoTrack) user.videoTrack.play(element.current);
@@ -55,7 +57,7 @@ function RemoteVideo({ user }: { user: IAgoraRTCRemoteUser }) {
   return <article className="agora-video-tile">
     <div ref={element} />
     {!user.hasVideo && <VideoOff />}
-    <span>Participant{!user.hasAudio ? " · Mic off" : ""}</span>
+    <span>{participantName}{!user.hasAudio ? " · Mic off" : ""}</span>
   </article>;
 }
 

@@ -28,11 +28,13 @@ export async function POST(request: Request) {
     const appCertificate = requireServerEnvironment("AGORA_APP_CERTIFICATE");
     const secondsUntilEnd = Math.ceil((new Date(access.ends_at).getTime() - Date.now()) / 1000);
     const expiresIn = Math.max(60, Math.min(7200, secondsUntilEnd + 300));
+    const participantName = access.participant_name || user.email?.split("@")[0] || "ADCI learner";
+    const rtcUid = `${user.id}:${participantName.replace(/[:\r\n]/g, " ").trim().slice(0, 48)}`;
     const token = RtcTokenBuilder.buildTokenWithUserAccount(
       appId,
       appCertificate,
       access.channel,
-      user.id,
+      rtcUid,
       RtcRole.PUBLISHER,
       expiresIn,
       expiresIn
@@ -42,8 +44,8 @@ export async function POST(request: Request) {
       appId,
       token,
       channel: access.channel,
-      uid: user.id,
-      name: access.participant_name || user.email || "ADCI learner",
+      uid: rtcUid,
+      name: participantName,
       isStaff: access.is_staff
     }, { headers: { "cache-control": "private, no-store" } });
   } catch (error) {
