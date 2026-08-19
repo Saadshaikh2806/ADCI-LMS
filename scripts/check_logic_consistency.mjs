@@ -108,6 +108,7 @@ const agoraOnlyMigration = readFileSync(
   "utf8"
 );
 const nextConfig = readFileSync(join(root, "next.config.ts"), "utf8");
+const globalStyles = readFileSync(join(root, "app", "globals.css"), "utf8");
 const classroom = readFileSync(join(root, "components", "AgoraClassroom.tsx"), "utf8");
 const adminLiveSchedule = readFileSync(join(root, "components", "AdminLiveSchedule.tsx"), "utf8");
 const studyPlan = readFileSync(join(root, "components", "StudyPlan.tsx"), "utf8");
@@ -128,11 +129,15 @@ const paidLiveRules = [
   [classroom, 'participant.isHost ? " · Host"', "Remote host identification"],
   [classroom, 'client.on("connection-state-change"', "Classroom reconnection status"],
   [classroom, 'client.on("user-joined"', "Device-independent participant presence"],
+  [classroom, 'reason !== "ServerTimeOut"', "Weak-network participant recovery grace period"],
+  [classroom, 'client.on("token-privilege-will-expire"', "Agora token renewal before expiry"],
+  [classroom, 'client.on("token-privilege-did-expire"', "Agora expired-token reconnection"],
   [classroom, 'fit: "contain"', "Uncropped classroom video rendering"],
   [classroom, "pageSizeForViewport", "Responsive participant pagination"],
   [classroom, "agora-focus-layout", "Participant focus navigation"],
   [classroom, "agora-participants-panel", "Meeting participant drawer"],
   [classroom, "setRemoteVideoStreamType", "Multi-participant stream optimization"],
+  [globalStyles, ".agora-fullscreen-control { display:none!important; }", "Redundant mobile fullscreen control removal"],
   [adminLiveSchedule, 'liveClass.provider === "agora"', "Agora-only live-session management"],
   [adminLiveSchedule, "Create live session", "Single live-session creation flow"],
   [agoraOnlyMigration, "adci_save_live_class", "Legacy external live-session RPC revocation"],

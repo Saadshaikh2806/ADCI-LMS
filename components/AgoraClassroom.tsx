@@ -19,6 +19,7 @@ type MeetingParticipant = {
 const ACTIVE_CLASSROOM_KEY = "adci-active-classroom";
 const OPEN_CLASSROOM_EVENT = "adci-open-classroom";
 const LESSON_ID_PATTERN = /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i;
+const REMOTE_RECONNECT_GRACE_MS = 15_000;
 
 export function openAgoraClassroom(lessonId: string) {
   if (!LESSON_ID_PATTERN.test(lessonId)) return;
@@ -169,6 +170,24 @@ export default function AgoraClassroom({ lessonId, close, notify }: { lessonId: 
   useEffect(() => {
     let active = true;
     let client: IAgoraRTCClient | null = null;
+    let renewal: Promise<void> | null = null;
+    const remoteRemovalTimers = new Map<string, number>();
+
+    async function requestCredentials() {
+      const supabase = getSupabaseBrowserClient();
+      if (!supabase) throw new Error("The LMS connection is unavailable");
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error("Please sign in again to enter this classroom");
+
+      const response = await fetch("/api/live-sessions/token", {
+        method: "POST",
+        headers: { authorization: `Bearer ${session.access_token}`, "content-type": "application/json" },
+        body: JSON.stringify({ lessonId })
+      });
+      const result = await response.json() as ClassroomCredentials & { error?: string };
+      if (!response.ok) throw new Error(result.error || "Unable to enter the private classroom");
+      return result;
+    }
 
     async function connect() {
       try {
@@ -176,7 +195,20 @@ export default function AgoraClassroom({ lessonId, close, notify }: { lessonId: 
         if (!active) return;
         client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
         clientRef.current = client;
-        const showRemoteUser = (user: IAgoraRTCRemoteUser) => {
+        const cancelRemoteRemoval = (uid: string | number) => {
+          const key = String(uid);
+          const timer = remoteRemovalTimers.get(key);
+          if (timer !== undefined) window.clearTimeout(timer);
+          remoteRemovalTimers.delete(key);
+        };
+        const removeRemoteUser = (user: IAgoraRTCRemoteUser) => {
+          cancelRemoteRemoval(user.uid);
+          if (!active) return;
+          setRemoteUsers((current) => current.filter((item) => item.uid !== user.uid));
+          setActiveSpeakerUid((current) => current === String(user.uid) ? "" : current);
+        };
+        const showRemoteUser = (user: IAgoraRTCRemoteUser, recovered = false) => {
+          if (recovered) cancelRemoteRemoval(user.uid);
           if (active) setRemoteUsers((current) => {
             const index = current.findIndex((item) => item.uid === user.uid);
             if (index === -1) return [...current, user];
@@ -185,18 +217,19 @@ export default function AgoraClassroom({ lessonId, close, notify }: { lessonId: 
             return next;
           });
         };
-        client.on("user-joined", showRemoteUser);
+        client.on("user-joined", (user) => showRemoteUser(user, true));
         client.on("user-published", async (user, mediaType) => {
           if (!client) return;
           await client.subscribe(user, mediaType);
           if (mediaType === "audio") user.audioTrack?.play();
-          showRemoteUser(user);
+          showRemoteUser(user, true);
         });
-        client.on("user-unpublished", showRemoteUser);
-        client.on("user-left", (user) => {
+        client.on("user-unpublished", (user) => showRemoteUser(user));
+        client.on("user-left", (user, reason) => {
           if (!active) return;
-          setRemoteUsers((current) => current.filter((item) => item.uid !== user.uid));
-          setActiveSpeakerUid((current) => current === String(user.uid) ? "" : current);
+          if (reason !== "ServerTimeOut") return removeRemoteUser(user);
+          cancelRemoteRemoval(user.uid);
+          remoteRemovalTimers.set(String(user.uid), window.setTimeout(() => removeRemoteUser(user), REMOTE_RECONNECT_GRACE_MS));
         });
         client.on("volume-indicator", (volumes) => {
           if (!active) return;
@@ -207,19 +240,32 @@ export default function AgoraClassroom({ lessonId, close, notify }: { lessonId: 
           if (!active) return;
           setConnectionState(currentState === "CONNECTED" ? "Connected" : currentState === "RECONNECTING" ? "Reconnecting" : currentState === "DISCONNECTED" ? "Disconnected" : "Connecting");
         });
+        const renewAccess = (rejoin: boolean) => {
+          if (renewal) return renewal;
+          renewal = (async () => {
+            const result = await requestCredentials();
+            if (!active || !client) return;
+            if (rejoin) {
+              await client.join(result.appId, result.channel, result.token, result.uid);
+              const localTracks = [microphoneRef.current, cameraRef.current].filter(Boolean) as Array<IMicrophoneAudioTrack | ICameraVideoTrack>;
+              if (localTracks.length) await client.publish(localTracks);
+            } else {
+              await client.renewToken(result.token);
+            }
+            if (active) {
+              setCredentials(result);
+              setConnectionState("Connected");
+              setError("");
+            }
+          })().catch((renewError) => {
+            if (active) setError(renewError instanceof Error ? renewError.message : "Unable to renew classroom access");
+          }).finally(() => { renewal = null; });
+          return renewal;
+        };
+        client.on("token-privilege-will-expire", () => { void renewAccess(false); });
+        client.on("token-privilege-did-expire", () => { void renewAccess(true); });
 
-        const supabase = getSupabaseBrowserClient();
-        if (!supabase) throw new Error("The LMS connection is unavailable");
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session?.access_token) throw new Error("Please sign in again to enter this classroom");
-
-        const response = await fetch("/api/live-sessions/token", {
-          method: "POST",
-          headers: { authorization: `Bearer ${session.access_token}`, "content-type": "application/json" },
-          body: JSON.stringify({ lessonId })
-        });
-        const result = await response.json() as ClassroomCredentials & { error?: string };
-        if (!response.ok) throw new Error(result.error || "Unable to enter the private classroom");
+        const result = await requestCredentials();
 
         await client.join(result.appId, result.channel, result.token, result.uid);
         client.enableAudioVolumeIndicator();
@@ -248,6 +294,8 @@ export default function AgoraClassroom({ lessonId, close, notify }: { lessonId: 
     void connect();
     return () => {
       active = false;
+      remoteRemovalTimers.forEach((timer) => window.clearTimeout(timer));
+      remoteRemovalTimers.clear();
       microphoneRef.current?.close();
       cameraRef.current?.close();
       if (client) void client.leave();
@@ -424,7 +472,7 @@ export default function AgoraClassroom({ lessonId, close, notify }: { lessonId: 
           <div className="agora-meeting-tools">
             <button aria-label={`Switch to ${layout === "grid" ? "focus" : "grid"} view`} title={`Switch to ${layout === "grid" ? "focus" : "grid"} view`} aria-pressed={layout === "focus"} onClick={toggleLayout}><LayoutGrid /><span>{layout === "grid" ? "Focus" : "Grid"}</span></button>
             <button aria-label="Show participants" title="Show participants" aria-pressed={participantsOpen} onClick={() => setParticipantsOpen((open) => !open)}><Users /><span>People</span></button>
-            <button aria-label={fullscreen ? "Exit fullscreen" : "Enter fullscreen"} title={fullscreen ? "Exit fullscreen" : "Enter fullscreen"} onClick={() => void toggleFullscreen()}>{fullscreen ? <Minimize2 /> : <Maximize2 />}<span>Full screen</span></button>
+            <button className="agora-fullscreen-control" aria-label={fullscreen ? "Exit fullscreen" : "Enter fullscreen"} title={fullscreen ? "Exit fullscreen" : "Enter fullscreen"} onClick={() => void toggleFullscreen()}>{fullscreen ? <Minimize2 /> : <Maximize2 />}<span>Full screen</span></button>
           </div>
         </footer>
       </>}
