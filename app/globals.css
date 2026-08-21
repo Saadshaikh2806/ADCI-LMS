@@ -1207,6 +1207,7 @@ html[data-theme="dark"] .certificate-preview-shell { background:#263236!importan
 @media (max-width: 760px) {
   .admin-live-heading > div:last-child { width:100%; display:grid; grid-template-columns:1fr 1fr; }
   .admin-live-heading select { grid-column:1/-1; }
+  .admin-live-heading button.primary { grid-column:1/-1; justify-content:center; }
   .live-admin-metrics { grid-template-columns:1fr 1fr; gap:8px; }
   .live-admin-toolbar { align-items:flex-start; }
   .live-admin-toolbar > span { display:none; }
@@ -3033,4 +3034,115 @@ html[data-theme="dark"] .learner-onboarding {
 .community-filters form button:hover {
   color:var(--amber-text);
   background:var(--amber-soft);
+}
+
+/* Secure Zoom Live access gate. Zoom owns the meeting UI after admission. */
+.zoom-live-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(4, 20, 24, .78);
+  backdrop-filter: blur(12px);
+}
+
+.zoom-live-gate {
+  width: min(100%, 520px);
+  max-height: calc(100dvh - 32px);
+  overflow: auto;
+  padding: 28px;
+  border: 1px solid rgba(82, 205, 183, .3);
+  border-radius: 24px;
+  background: var(--surface, #fff);
+  color: var(--ink, #102a2d);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, .28);
+  text-align: center;
+}
+
+.zoom-live-gate > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: -4px -4px 24px;
+  text-align: left;
+}
+
+.zoom-live-gate > header > div { display: flex; align-items: center; gap: 12px; }
+.zoom-live-gate > header svg { color: #1f9d86; }
+.zoom-live-gate > header span { display: grid; }
+.zoom-live-gate > header strong { font: 700 16px var(--font-display); }
+.zoom-live-gate > header small { color: var(--muted, #647477); }
+.zoom-live-gate > header button {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border: 0;
+  border-radius: 12px;
+  background: var(--surface-soft, #edf4f3);
+  color: inherit;
+}
+
+.zoom-live-shield {
+  display: grid;
+  width: 66px;
+  height: 66px;
+  margin: 0 auto 18px;
+  place-items: center;
+  border-radius: 22px;
+  background: rgba(31, 157, 134, .13);
+  color: #16826f;
+}
+.zoom-live-shield svg { width: 30px; height: 30px; }
+.zoom-live-gate h2 { margin: 5px 0 10px; font: 750 clamp(24px, 5vw, 32px) var(--font-display); }
+.zoom-live-gate > p:not(.eyebrow) { margin: 0 auto 22px; max-width: 430px; color: var(--muted, #647477); line-height: 1.55; }
+
+.zoom-personal-code {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px 14px;
+  align-items: center;
+  margin: 20px 0;
+  padding: 16px;
+  border: 1px solid rgba(31, 157, 134, .25);
+  border-radius: 16px;
+  background: rgba(31, 157, 134, .07);
+  text-align: left;
+}
+.zoom-personal-code span { grid-column: 1 / -1; color: var(--muted, #647477); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; }
+.zoom-personal-code strong { font: 800 25px/1 var(--font-display); letter-spacing: .12em; }
+.zoom-personal-code button { display: flex; align-items: center; gap: 6px; border: 0; background: transparent; color: #16826f; font-weight: 750; }
+.zoom-personal-code button svg { width: 17px; }
+
+.zoom-live-gate > label { display: grid; gap: 8px; text-align: left; font-weight: 700; }
+.zoom-live-gate > label > div { display: flex; align-items: center; gap: 10px; padding: 0 14px; border: 1px solid var(--line, #d9e3e1); border-radius: 14px; background: var(--surface, #fff); }
+.zoom-live-gate > label svg { width: 19px; color: var(--muted, #647477); }
+.zoom-live-gate input { width: 100%; padding: 14px 0; border: 0; outline: 0; background: transparent; color: inherit; font: 750 18px var(--font-display); letter-spacing: .08em; }
+
+.zoom-live-join {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  margin-top: 16px;
+  padding: 14px 18px;
+  border: 0;
+  border-radius: 14px;
+  background: #16826f;
+  color: #fff;
+  font-weight: 800;
+}
+.zoom-live-join:disabled { opacity: .48; cursor: not-allowed; }
+.zoom-live-note { display: block; margin-top: 14px; color: var(--muted, #647477); }
+.zoom-live-state { display: grid; min-height: 280px; place-items: center; align-content: center; gap: 10px; color: var(--muted, #647477); }
+.zoom-live-state svg { width: 30px; height: 30px; color: #16826f; }
+.zoom-live-state p { margin: 0; }
+
+@media (max-width: 600px) {
+  .zoom-live-backdrop { align-items: end; padding: 0; }
+  .zoom-live-gate { width: 100%; max-height: 96dvh; padding: 22px 18px calc(22px + env(safe-area-inset-bottom)); border-radius: 24px 24px 0 0; }
+  .zoom-personal-code strong { font-size: 22px; }
 }

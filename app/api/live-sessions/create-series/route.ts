@@ -1,8 +1,10 @@
 import { requireServerUser } from "../../../../lib/supabase/server";
+import { createZoomMeeting, createZoomPasscode, deleteZoomMeeting } from "../../../../lib/zoom/server";
 
 export const runtime = "nodejs";
 
 type SeriesRequest = {
+  provider?: "agora" | "zoom";
   title?: string;
   description?: string;
   instructor?: string;
@@ -45,6 +47,7 @@ function buildStarts(first: Date, recurrence: SeriesRequest["recurrence"], repea
 }
 
 export async function POST(request: Request) {
+  const createdZoomMeetings: string[] = [];
   try {
     const { userClient } = await requireServerUser(request);
     const body = await request.json() as SeriesRequest;
@@ -54,11 +57,14 @@ export async function POST(request: Request) {
     const durationMinutes = Number(body.durationMinutes);
     const pricePaise = Number(body.pricePaise);
     const gstRate = Number(body.gstRate);
+    if (body.provider && body.provider !== "agora" && body.provider !== "zoom") throw new Error("Choose Agora Live or Zoom Live");
+    const provider = body.provider === "zoom" ? "zoom" : "agora";
 
     if (title.length < 3 || instructor.length < 2) throw new Error("Enter a session title and instructor");
     if (!Number.isFinite(firstStart.getTime()) || firstStart <= new Date()) throw new Error("Choose a future start time");
-    if (!Number.isInteger(durationMinutes) || durationMinutes < 15 || durationMinutes > 60) {
-      throw new Error("Agora sessions must be between 15 and 60 minutes");
+    const maximumDuration = provider === "zoom" ? 480 : 60;
+    if (!Number.isInteger(durationMinutes) || durationMinutes < 15 || durationMinutes > maximumDuration) {
+      throw new Error(`${provider === "zoom" ? "Zoom Live" : "Agora Live"} sessions must be between 15 and ${maximumDuration} minutes`);
     }
     if (!Number.isInteger(pricePaise) || pricePaise < 100) throw new Error("Price must be at least INR 1");
     if (!Number.isFinite(gstRate) || gstRate < 0 || gstRate > 100) throw new Error("GST must be between 0 and 100");
@@ -67,10 +73,30 @@ export async function POST(request: Request) {
     if (permissionError) throw permissionError;
 
     const starts = buildStarts(firstStart, body.recurrence, body.repeatUntil);
-    const occurrences = starts.map((start) => ({
+    let occurrences: Array<{
+      starts_at: string;
+      ends_at: string;
+      meeting_number?: string;
+      meeting_passcode?: string;
+    }> = starts.map((start) => ({
       starts_at: start.toISOString(),
       ends_at: new Date(start.getTime() + durationMinutes * 60000).toISOString()
     }));
+
+    if (provider === "zoom") {
+      const zoomOccurrences: typeof occurrences = [];
+      for (const occurrence of occurrences) {
+        const meeting = await createZoomMeeting({
+          topic: title,
+          startTime: occurrence.starts_at,
+          durationMinutes,
+          passcode: createZoomPasscode()
+        });
+        createdZoomMeetings.push(meeting.meetingNumber);
+        zoomOccurrences.push({ ...occurrence, meeting_number: meeting.meetingNumber, meeting_passcode: meeting.passcode });
+      }
+      occurrences = zoomOccurrences;
+    }
 
     const { data, error } = await userClient.rpc("adci_create_bookable_live_series", {
       session_title: title,
@@ -78,11 +104,13 @@ export async function POST(request: Request) {
       session_instructor: instructor,
       session_price_paise: pricePaise,
       session_gst_rate: gstRate,
-      session_occurrences: occurrences
+      session_occurrences: occurrences,
+      session_provider: provider
     });
     if (error) throw error;
     return Response.json(data);
   } catch (error) {
+    await Promise.all(createdZoomMeetings.map(deleteZoomMeeting));
     return Response.json({ error: errorMessage(error) }, { status: 400 });
   }
 }

@@ -18,12 +18,13 @@ import { useEffect, useMemo, useState } from "react";
 import { getMyLiveClassWorkspace, type LearnerLiveClass } from "../lib/supabase/learning";
 import { getSupabaseBrowserClient } from "../lib/supabase/client";
 import { openAgoraClassroom } from "./AgoraClassroom";
+import { openZoomLive } from "./ZoomLive";
 
 type ScheduleFilter = "upcoming" | "live" | "past" | "attended" | "all";
 
 const providerNames = {
   agora: "ADCI Live Classroom",
-  zoom: "Zoom",
+  zoom: "Zoom Live",
   youtube_live: "YouTube Live"
 };
 
@@ -104,6 +105,10 @@ export default function StudentLiveClasses({
   async function join(item: LearnerLiveClass) {
     if (item.provider === "agora") {
       openAgoraClassroom(item.lesson_id);
+      return;
+    }
+    if (item.provider === "zoom") {
+      openZoomLive(item.lesson_id);
       return;
     }
     const popup = window.open("about:blank", "_blank");

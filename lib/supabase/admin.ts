@@ -943,6 +943,7 @@ export type AdciScheduledLiveClass = AdciLiveClass & {
 };
 
 export async function createAdciBookableLiveSeries(input: {
+  provider: "agora" | "zoom";
   title: string;
   description: string;
   instructor: string;

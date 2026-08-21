@@ -112,6 +112,13 @@ const globalStyles = readFileSync(join(root, "app", "globals.css"), "utf8");
 const classroom = readFileSync(join(root, "components", "AgoraClassroom.tsx"), "utf8");
 const adminLiveSchedule = readFileSync(join(root, "components", "AdminLiveSchedule.tsx"), "utf8");
 const studyPlan = readFileSync(join(root, "components", "StudyPlan.tsx"), "utf8");
+const zoomMigration = readFileSync(
+  join(root, "supabase", "migrations", "202608210001_zoom_live_sessions.sql"),
+  "utf8"
+);
+const zoomRoute = readFileSync(join(root, "app", "api", "live-sessions", "zoom", "route.ts"), "utf8");
+const zoomServer = readFileSync(join(root, "lib", "zoom", "server.ts"), "utf8");
+const zoomLive = readFileSync(join(root, "components", "ZoomLive.tsx"), "utf8");
 const paidLiveRules = [
   [paidLiveMigration, "sale_ends_at > now()", "Expired live-session checkout protection"],
   [paidLiveMigration, "adci_create_bookable_live_series", "Per-session entitlement creation"],
@@ -138,25 +145,35 @@ const paidLiveRules = [
   [classroom, "agora-participants-panel", "Meeting participant drawer"],
   [classroom, "setRemoteVideoStreamType", "Multi-participant stream optimization"],
   [globalStyles, ".agora-fullscreen-control { display:none!important; }", "Redundant mobile fullscreen control removal"],
-  [adminLiveSchedule, 'liveClass.provider === "agora"', "Agora-only live-session management"],
-  [adminLiveSchedule, "Create live session", "Single live-session creation flow"],
+  [adminLiveSchedule, 'Zoom Live</button>', "Separate Zoom Live creation button"],
+  [adminLiveSchedule, 'openBookableSeries("agora")', "Separate Agora Live creation path"],
+  [adminLiveSchedule, 'openBookableSeries("zoom")', "Separate Zoom Live creation path"],
   [agoraOnlyMigration, "adci_save_live_class", "Legacy external live-session RPC revocation"],
   [agoraOnlyMigration, "to_regprocedure", "Partial-schema-safe legacy RPC revocation"],
   [agoraOnlyMigration, "from anon, authenticated", "Agora-only backend enforcement"],
   [studyPlan, 'studyEvent.provider === "agora"', "Study-plan private classroom entry"],
+  [studyPlan, 'studyEvent.provider === "zoom"', "Study-plan Zoom Live entry"],
   [paidLiveRoute, '"message" in error', "Supabase live-session error reporting"],
   [paidLiveRoute, 'recurrence?: "once" | "weekly"', "Configurable live-session recurrence"],
-  [liveHardening, "< now() - interval '2 minutes'", "Attendance refresh de-duplication"],
-  [liveHardening, "Paid live sessions cannot be removed after publication", "Paid-session deletion protection"]
+  [paidLiveRoute, 'provider?: "agora" | "zoom"', "Separate live-session provider selection"],
+  [zoomMigration, "< now() - interval '2 minutes'", "Zoom attendance refresh de-duplication"],
+  [zoomMigration, "adci_zoom_registrants enable row level security", "Private Zoom registrant storage"],
+  [zoomMigration, "adci_get_zoom_access", "Server-only paid Zoom access check"],
+  [zoomMigration, "enrolment.status in ('active','completed')", "Paid Zoom enrolment verification"],
+  [zoomMigration, "grant execute on function public.adci_get_zoom_access(uuid,uuid) to service_role", "Zoom secret RPC service-role boundary"],
+  [zoomRoute, "zoomCodesMatch", "Account-bound Zoom code verification"],
+  [zoomRoute, "registrant_token", "Unique Zoom registrant-token reuse"],
+  [zoomServer, "ZOOM_MEETING_SDK_CLIENT_SECRET", "Server-only Zoom Meeting SDK secret"],
+  [zoomServer, "approval_type: 1", "Public Zoom registration approval protection"],
+  [zoomServer, 'action: "approve"', "Automatic paid-learner Zoom approval"],
+  [zoomLive, "Enter your Zoom Live code", "Zoom Live personal-code screen"],
+  [zoomLive, "disableInvite: true", "Zoom invite control disabled"]
 ];
 for (const [source, rule, label] of paidLiveRules) {
   if (!source.includes(rule)) failures.push(`${label} is missing`);
 }
 if (/saturday|extract\s*\(\s*isodow/i.test(paidLiveMigration)) {
   failures.push("Bookable live sessions must not hard-code a weekday");
-}
-if (/Paid live session|Create live lesson|<option value="zoom"|<option value="youtube_live"/.test(adminLiveSchedule)) {
-  failures.push("Live schedule must expose one Agora-only creation flow");
 }
 
 const { RtcRole, RtcTokenBuilder } = AgoraToken;

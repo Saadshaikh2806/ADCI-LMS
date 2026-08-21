@@ -17,6 +17,7 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { getSupabaseBrowserClient } from "../lib/supabase/client";
 import { openAgoraClassroom } from "./AgoraClassroom";
+import { openZoomLive } from "./ZoomLive";
 
 type StudyEvent = {
   id: string;
@@ -157,6 +158,10 @@ export default function StudyPlan({
     if (!studyEvent.lesson_id) return;
     if (studyEvent.provider === "agora") {
       openAgoraClassroom(studyEvent.lesson_id);
+      return;
+    }
+    if (studyEvent.provider === "zoom") {
+      openZoomLive(studyEvent.lesson_id);
       return;
     }
     const popup = window.open("about:blank", "_blank");

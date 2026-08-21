@@ -26,7 +26,7 @@ export default function AdminLessonContentEditor({ lesson, close, notify, saved 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [body, setBody] = useState("");
-  const [provider, setProvider] = useState<AdciLiveClass["provider"]>("zoom");
+  const [provider, setProvider] = useState<AdciLiveClass["provider"]>("youtube_live");
   const [url, setUrl] = useState("");
   const [instructor, setInstructor] = useState("");
   const [startsAt, setStartsAt] = useState("");
@@ -48,6 +48,7 @@ export default function AdminLessonContentEditor({ lesson, close, notify, saved 
 
   async function save(event: React.FormEvent) {
     event.preventDefault(); setError("");
+    if (!isArticle && provider === "zoom") { close(); return; }
     const startDate = new Date(startsAt);
     const endDate = new Date(endsAt);
     if (!isArticle) {
@@ -101,11 +102,11 @@ export default function AdminLessonContentEditor({ lesson, close, notify, saved 
     {loading ? <div className="cms-loading"><LoaderCircle className="spin" /> Loading…</div> : isArticle ? <>
       <div className="content-editor-note"><FileText /><span><strong>Student reading content</strong><small>Use clear headings and short paragraphs. Content is stored as safe text.</small></span></div>
       <label><span>Article body</span><textarea required className="article-body-editor" value={body} onChange={(event) => setBody(event.target.value)} placeholder={"Introduction\n\nExplain the topic in clear sections…"} /></label>
-    </> : <>
-      <div className="content-editor-note"><Radio /><span><strong>External live classroom</strong><small>Students receive the meeting link through their protected course schedule.</small></span></div>
-      <div className="live-class-grid"><label><span>Provider</span><select value={provider} onChange={(event) => setProvider(event.target.value as AdciLiveClass["provider"])}><option value="zoom">Zoom</option><option value="youtube_live">YouTube Live</option></select></label><label><span>Instructor</span><input required value={instructor} onChange={(event) => setInstructor(event.target.value)} /></label><label className="wide"><span>HTTPS meeting or stream URL</span><input required type="url" value={url} onChange={(event) => setUrl(event.target.value)} placeholder="https://…" /></label><label><span>Starts</span><input required type="datetime-local" value={startsAt} onChange={(event) => setStartsAt(event.target.value)} /></label><label><span>Ends</span><input required type="datetime-local" value={endsAt} onChange={(event) => setEndsAt(event.target.value)} /></label>{canRepeat && <label><span>Schedule</span><select value={recurrence} onChange={(event) => setRecurrence(event.target.value as "once" | "daily")}><option value="once">One class</option><option value="daily">Repeat daily</option></select></label>}{canRepeat && recurrence === "daily" && <label><span>Repeat until</span><input required type="date" min={startsAt.slice(0, 10)} value={repeatUntil} onChange={(event) => setRepeatUntil(event.target.value)} /></label>}</div>
+    </> : provider === "zoom" ? <div className="content-editor-note"><Radio /><span><strong>Protected Zoom Live session</strong><small>Manage and open this paid session from Live schedule. Its meeting details cannot be edited or exposed here.</small></span></div> : <>
+      <div className="content-editor-note"><Radio /><span><strong>External YouTube stream</strong><small>Use the separate Zoom Live button in Live schedule for protected paid Zoom sessions.</small></span></div>
+      <div className="live-class-grid"><label><span>Provider</span><select value={provider} onChange={(event) => setProvider(event.target.value as AdciLiveClass["provider"])}><option value="youtube_live">YouTube Live</option></select></label><label><span>Instructor</span><input required value={instructor} onChange={(event) => setInstructor(event.target.value)} /></label><label className="wide"><span>HTTPS stream URL</span><input required type="url" value={url} onChange={(event) => setUrl(event.target.value)} placeholder="https://…" /></label><label><span>Starts</span><input required type="datetime-local" value={startsAt} onChange={(event) => setStartsAt(event.target.value)} /></label><label><span>Ends</span><input required type="datetime-local" value={endsAt} onChange={(event) => setEndsAt(event.target.value)} /></label>{canRepeat && <label><span>Schedule</span><select value={recurrence} onChange={(event) => setRecurrence(event.target.value as "once" | "daily")}><option value="once">One class</option><option value="daily">Repeat daily</option></select></label>}{canRepeat && recurrence === "daily" && <label><span>Repeat until</span><input required type="date" min={startsAt.slice(0, 10)} value={repeatUntil} onChange={(event) => setRepeatUntil(event.target.value)} /></label>}</div>
     </>}
     {error && <div className="course-error">{error}</div>}
-    <div className="course-dialog-actions"><button type="button" onClick={close}>Cancel</button><button className="primary" disabled={saving}><Save size={16} /> {saving ? "Saving…" : isArticle ? "Save article" : "Schedule class"}</button></div>
+    <div className="course-dialog-actions"><button type="button" onClick={close}>{!isArticle && provider === "zoom" ? "Close" : "Cancel"}</button>{(isArticle || provider !== "zoom") && <button className="primary" disabled={saving}><Save size={16} /> {saving ? "Saving…" : isArticle ? "Save article" : "Schedule class"}</button>}</div>
   </form></div>;
 }

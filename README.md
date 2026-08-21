@@ -31,4 +31,6 @@ The application uses the standard Next.js build: `pnpm build`. The public servic
 
 The Live schedule workspace creates one-time or weekly paid sessions on any selected day. Each occurrence becomes a separate one-lesson course and Razorpay offer, so a purchase unlocks only that date. Apply migration `202608120001_bookable_agora_series.sql`.
 
-Video runs inside the LMS with Agora. Create a free Agora project, enable its App Certificate, and set `AGORA_APP_ID` and `AGORA_APP_CERTIFICATE` in the server environment. The LMS creates a private channel for every session and issues a short-lived, user-bound token only after checking the learner's purchase and join time. There is no external meeting URL or lobby to manage.
+Agora Live and Zoom Live are separate choices. Agora runs inside the LMS using `AGORA_APP_ID` and `AGORA_APP_CERTIFICATE`.
+
+Zoom Live uses the paid Zoom host account while keeping meeting links private. Create a Server-to-Server OAuth app and a Meeting SDK app in the Zoom App Marketplace, add meeting read/write and user token permissions, then configure the six `ZOOM_*` values shown in `.env.example`. The LMS creates approval-required meetings, checks the exact paid enrolment, asks for an account-bound personal code, and automatically approves only that buyer's unique Zoom registrant token without exposing a join link. Apply `202608210001_zoom_live_sessions.sql` before enabling the Zoom Live button.

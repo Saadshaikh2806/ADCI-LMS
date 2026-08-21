@@ -1,2 +1,3 @@
 allowBuilds:
+  '@zoom/meetingsdk': true
   sharp: true

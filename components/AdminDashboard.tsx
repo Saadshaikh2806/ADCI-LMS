@@ -22,7 +22,7 @@ import { getAdciAdminDashboard, type AdciAdminDashboard } from "../lib/supabase/
 
 const providerNames: Record<string, string> = {
   agora: "ADCI Live Classroom",
-  zoom: "Zoom",
+  zoom: "Zoom Live",
   youtube_live: "YouTube Live"
 };
 
