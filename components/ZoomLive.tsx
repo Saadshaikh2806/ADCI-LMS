@@ -152,18 +152,22 @@ function ZoomLive({ lessonId, initialCode, notify, close, rememberCode }: {
         disableCallOut: true,
         defaultView: "gallery",
         meetingInfo: ["topic", "host", "participant"],
-        success: () => ZoomMtg.join({
-          meetingNumber: credentials.meetingNumber,
-          signature: credentials.signature,
-          userName: credentials.userName,
-          userEmail: credentials.userEmail,
-          passWord: credentials.password,
-          tk: credentials.tk,
-          zak: credentials.zak,
-          customerKey: lessonId,
-          success: () => finish(),
-          error: (joinError: unknown) => finish(`Zoom could not join this meeting. ${describeZoomError(joinError)}`)
-        }),
+        success: () => {
+          // Zoom can now wait indefinitely for the learner on its preview screen.
+          window.clearTimeout(timer);
+          ZoomMtg.join({
+            meetingNumber: credentials.meetingNumber,
+            signature: credentials.signature,
+            userName: credentials.userName,
+            userEmail: credentials.userEmail,
+            passWord: credentials.password,
+            tk: credentials.tk,
+            zak: credentials.zak,
+            customerKey: lessonId,
+            success: () => finish(),
+            error: (joinError: unknown) => finish(`Zoom could not join this meeting. ${describeZoomError(joinError)}`)
+          });
+        },
         error: (initError: unknown) => finish(`Zoom could not start in this browser. ${describeZoomError(initError)}`)
       });
     } catch (meetingError) {
