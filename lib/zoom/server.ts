@@ -135,10 +135,14 @@ export async function createZoomRegistrant(input: {
 }
 
 export async function deleteZoomRegistrant(meetingNumber: string, registrantId: string) {
-  await zoomRequest<void>(
-    `/meetings/${encodeURIComponent(meetingNumber)}/registrants/${encodeURIComponent(registrantId)}`,
-    { method: "DELETE" }
-  );
+  try {
+    await zoomRequest<void>(
+      `/meetings/${encodeURIComponent(meetingNumber)}/registrants/${encodeURIComponent(registrantId)}`,
+      { method: "DELETE" }
+    );
+  } catch {
+    // The stale registrant may belong to a meeting that no longer exists; re-registering is what matters.
+  }
 }
 
 export async function getZoomHostZak() {

@@ -17,7 +17,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <head>
         <script dangerouslySetInnerHTML={{ __html: `(function(){try{var saved=localStorage.getItem('adci-theme');var theme=saved==='dark'||saved==='light'?saved:(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.dataset.theme=theme;document.documentElement.style.colorScheme=theme}catch(e){document.documentElement.dataset.theme='light'}document.addEventListener('contextmenu',function(event){event.preventDefault()})})();` }} />
       </head>
-      <body className={`${dmSans.variable} ${manrope.variable}`}>{children}</body>
+      <body className={`${dmSans.variable} ${manrope.variable}`}>
+        {children}
+        <div id="zmmtg-root" style={{ display: "none" }} />
+      </body>
     </html>
   );
 }
