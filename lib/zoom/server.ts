@@ -80,7 +80,7 @@ export async function createZoomMeeting(input: {
       timezone: "Asia/Kolkata",
       password: input.passcode,
       settings: {
-        approval_type: 0,
+        approval_type: 1,
         registration_type: 1,
         join_before_host: false,
         waiting_room: false,
@@ -119,8 +119,21 @@ export async function createZoomRegistrant(input: {
       body: JSON.stringify({ email: input.email, first_name: firstName, last_name: lastName })
     }
   );
-  const registrantToken = registrant.join_url ? new URL(registrant.join_url).searchParams.get("tk") : null;
-  if (!registrantToken) throw new Error("Zoom did not issue a private participant token");
+  if (!registrant.registrant_id) throw new Error("Zoom did not return a participant registration ID");
+  // Creation can omit join_url on approval-required meetings. Approve only
+  // this paid learner, then fetch their current individual join credentials.
+  await zoomRequest<void>(`/meetings/${encodeURIComponent(input.meetingNumber)}/registrants/status`, {
+    method: "PUT",
+    body: JSON.stringify({
+      action: "approve",
+      registrants: [{ id: registrant.registrant_id, email: input.email }]
+    })
+  });
+  const approved = await zoomRequest<{ join_url?: string }>(
+    `/meetings/${encodeURIComponent(input.meetingNumber)}/registrants/${encodeURIComponent(registrant.registrant_id)}`
+  );
+  const registrantToken = approved.join_url ? new URL(approved.join_url).searchParams.get("tk") : null;
+  if (!registrantToken) throw new Error("Zoom approved your registration but did not return a participant token. Ask the administrator to check this meeting's registration settings.");
   return { registrantId: registrant.registrant_id, registrantToken };
 }
 
