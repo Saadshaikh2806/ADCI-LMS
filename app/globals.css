@@ -3103,28 +3103,6 @@ html[data-theme="dark"] .learner-onboarding {
 .zoom-live-gate h2 { margin: 5px 0 10px; font: 750 clamp(24px, 5vw, 32px) var(--font-display); }
 .zoom-live-gate > p:not(.eyebrow) { margin: 0 auto 22px; max-width: 430px; color: var(--muted, #647477); line-height: 1.55; }
 
-.zoom-personal-code {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 6px 14px;
-  align-items: center;
-  margin: 20px 0;
-  padding: 16px;
-  border: 1px solid rgba(31, 157, 134, .25);
-  border-radius: 16px;
-  background: rgba(31, 157, 134, .07);
-  text-align: left;
-}
-.zoom-personal-code span { grid-column: 1 / -1; color: var(--muted, #647477); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; }
-.zoom-personal-code strong { font: 800 25px/1 var(--font-display); letter-spacing: .12em; }
-.zoom-personal-code button { display: flex; align-items: center; gap: 6px; border: 0; background: transparent; color: #16826f; font-weight: 750; }
-.zoom-personal-code button svg { width: 17px; }
-
-.zoom-live-gate > label { display: grid; gap: 8px; text-align: left; font-weight: 700; }
-.zoom-live-gate > label > div { display: flex; align-items: center; gap: 10px; padding: 0 14px; border: 1px solid var(--line, #d9e3e1); border-radius: 14px; background: var(--surface, #fff); }
-.zoom-live-gate > label svg { width: 19px; color: var(--muted, #647477); }
-.zoom-live-gate input { width: 100%; padding: 14px 0; border: 0; outline: 0; background: transparent; color: inherit; font: 750 18px var(--font-display); letter-spacing: .08em; }
-
 .zoom-live-join {
   display: flex;
   width: 100%;
@@ -3148,5 +3126,4 @@ html[data-theme="dark"] .learner-onboarding {
 @media (max-width: 600px) {
   .zoom-live-backdrop { align-items: end; padding: 0; }
   .zoom-live-gate { width: 100%; max-height: 96dvh; padding: 22px 18px calc(22px + env(safe-area-inset-bottom)); border-radius: 24px 24px 0 0; }
-  .zoom-personal-code strong { font-size: 22px; }
 }

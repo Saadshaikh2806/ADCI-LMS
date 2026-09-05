@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
+import { createHmac, randomBytes } from "node:crypto";
 import { requireServerEnvironment } from "../supabase/server";
 
 const ZOOM_API = "https://api.zoom.us/v2";
@@ -177,21 +177,4 @@ export function createMeetingSdkSignature(meetingNumber: string, role: 0 | 1) {
   }));
   const signature = createHmac("sha256", sdkClientSecret).update(`${header}.${payload}`).digest("base64url");
   return { sdkKey: sdkClientId, signature: `${header}.${payload}.${signature}` };
-}
-
-export function personalZoomCode(userId: string, lessonId: string) {
-  const { sdkClientSecret } = zoomConfiguration();
-  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  const digest = createHmac("sha256", sdkClientSecret)
-    .update(`adci-zoom-code:${lessonId}:${userId}`)
-    .digest();
-  const code = Array.from(digest.subarray(0, 8), (byte) => alphabet[byte % alphabet.length]).join("");
-  return `${code.slice(0, 4)}-${code.slice(4)}`;
-}
-
-export function zoomCodesMatch(actual: string, expected: string) {
-  const normalize = (value: string) => value.toUpperCase().replace(/[^A-Z0-9]/g, "");
-  const left = Buffer.from(normalize(actual));
-  const right = Buffer.from(normalize(expected));
-  return left.length === right.length && timingSafeEqual(left, right);
 }

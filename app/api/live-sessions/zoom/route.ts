@@ -3,9 +3,7 @@ import {
   createMeetingSdkSignature,
   createZoomRegistrant,
   deleteZoomRegistrant,
-  getZoomHostZak,
-  personalZoomCode,
-  zoomCodesMatch
+  getZoomHostZak
 } from "../../../../lib/zoom/server";
 
 export const runtime = "nodejs";
@@ -30,7 +28,7 @@ function errorMessage(error: unknown) {
 export async function POST(request: Request) {
   try {
     const { user, service } = await requireServerUser(request);
-    const body = await request.json() as { lessonId?: string; code?: string };
+    const body = await request.json() as { lessonId?: string };
     if (!body.lessonId?.match(/^[0-9a-f-]{36}$/i)) throw new Error("Choose a valid Zoom Live session");
 
     const { data, error } = await service.rpc("adci_get_zoom_access", {
@@ -39,15 +37,7 @@ export async function POST(request: Request) {
     });
     if (error) throw error;
     const access = data as ZoomAccess;
-    const expectedCode = personalZoomCode(user.id, body.lessonId);
-
-    if (!access.is_staff && !body.code) {
-      return Response.json({ requiresCode: true, personalCode: expectedCode });
-    }
     if (!access.can_join) throw new Error("Zoom Live opens 15 minutes before the session");
-    if (!access.is_staff && !zoomCodesMatch(body.code || "", expectedCode)) {
-      throw new Error("That personal meeting code is incorrect");
-    }
 
     let registrantToken: string | undefined;
     let zak: string | undefined;
@@ -94,7 +84,6 @@ export async function POST(request: Request) {
 
     const sdk = createMeetingSdkSignature(access.meeting_number, access.is_staff ? 1 : 0);
     return Response.json({
-      requiresCode: false,
       ...sdk,
       meetingNumber: access.meeting_number,
       password: access.meeting_passcode,

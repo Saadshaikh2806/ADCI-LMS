@@ -161,12 +161,12 @@ const paidLiveRules = [
   [zoomMigration, "adci_get_zoom_access", "Server-only paid Zoom access check"],
   [zoomMigration, "enrolment.status in ('active','completed')", "Paid Zoom enrolment verification"],
   [zoomMigration, "grant execute on function public.adci_get_zoom_access(uuid,uuid) to service_role", "Zoom secret RPC service-role boundary"],
-  [zoomRoute, "zoomCodesMatch", "Account-bound Zoom code verification"],
+  [zoomRoute, 'target_user_id: user.id', "Account-bound Zoom access verification"],
   [zoomRoute, "registrant_token", "Unique Zoom registrant-token reuse"],
   [zoomServer, "ZOOM_MEETING_SDK_CLIENT_SECRET", "Server-only Zoom Meeting SDK secret"],
   [zoomServer, "approval_type: 1", "Public Zoom registration approval protection"],
   [zoomServer, 'action: "approve"', "Automatic paid-learner Zoom approval"],
-  [zoomLive, "Enter your Zoom Live code", "Zoom Live personal-code screen"],
+  [zoomLive, "Join your Zoom Live session", "Direct Zoom Live entry screen"],
   [zoomLive, "disableInvite: true", "Zoom invite control disabled"]
 ];
 for (const [source, rule, label] of paidLiveRules) {
