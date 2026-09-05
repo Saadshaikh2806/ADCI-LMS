@@ -80,7 +80,7 @@ export async function createZoomMeeting(input: {
       timezone: "Asia/Kolkata",
       password: input.passcode,
       settings: {
-        approval_type: 1,
+        approval_type: 0,
         registration_type: 1,
         join_before_host: false,
         waiting_room: false,
@@ -119,17 +119,7 @@ export async function createZoomRegistrant(input: {
       body: JSON.stringify({ email: input.email, first_name: firstName, last_name: lastName })
     }
   );
-  await zoomRequest<void>(`/meetings/${encodeURIComponent(input.meetingNumber)}/registrants/status`, {
-    method: "PUT",
-    body: JSON.stringify({
-      action: "approve",
-      registrants: [{ id: registrant.id, email: input.email }]
-    })
-  });
-  const approved = registrant.join_url ? registrant : await zoomRequest<ZoomRegistrant>(
-    `/meetings/${encodeURIComponent(input.meetingNumber)}/registrants/${encodeURIComponent(registrant.id)}`
-  );
-  const registrantToken = approved.join_url ? new URL(approved.join_url).searchParams.get("tk") : null;
+  const registrantToken = registrant.join_url ? new URL(registrant.join_url).searchParams.get("tk") : null;
   if (!registrantToken) throw new Error("Zoom did not issue a private participant token");
   return { registrantId: registrant.id, registrantToken };
 }
