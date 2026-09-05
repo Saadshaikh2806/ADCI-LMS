@@ -22,6 +22,13 @@ type ZoomCredentials = {
 
 type CodePrompt = { requiresCode: true; personalCode: string };
 
+function describeZoomError(error: unknown) {
+  if (!error || typeof error !== "object") return String(error ?? "No reason reported");
+  const { errorCode, errorMessage, message, reason, result } = error as Record<string, unknown>;
+  const detail = [errorMessage, message, reason, result].find((value) => typeof value === "string");
+  return [errorCode, detail].filter(Boolean).join(" · ") || JSON.stringify(error);
+}
+
 export function openZoomLive(lessonId: string) {
   if (LESSON_ID_PATTERN.test(lessonId)) {
     window.dispatchEvent(new CustomEvent(OPEN_ZOOM_EVENT, { detail: lessonId }));
@@ -116,11 +123,26 @@ function ZoomLive({ lessonId, initialCode, notify, close, rememberCode }: {
     started.current = true;
     setJoining(true);
     setError("");
+    const root = document.getElementById("zmmtg-root");
+    let settled = false;
+    const finish = (message?: string) => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timer);
+      setJoining(false);
+      if (!message) return;
+      started.current = false;
+      setError(message);
+      if (root) root.style.display = "none";
+    };
+    const timer = window.setTimeout(
+      () => finish("Zoom did not respond. Check the browser console for the Zoom SDK error and try again."),
+      45000
+    );
     try {
       const { ZoomMtg } = await import("@zoom/meetingsdk");
       ZoomMtg.preLoadWasm();
       ZoomMtg.prepareWebSDK();
-      const root = document.getElementById("zmmtg-root");
       if (root) root.style.display = "block";
       ZoomMtg.init({
         leaveUrl: `${window.location.origin}${window.location.pathname}?zoomLeft=1`,
@@ -139,25 +161,13 @@ function ZoomLive({ lessonId, initialCode, notify, close, rememberCode }: {
           tk: credentials.tk,
           zak: credentials.zak,
           customerKey: lessonId,
-          success: () => setJoining(false),
-          error: (joinError: unknown) => {
-            started.current = false;
-            setJoining(false);
-            setError(typeof joinError === "object" ? "Zoom could not join this meeting. Please try again." : String(joinError));
-            if (root) root.style.display = "none";
-          }
+          success: () => finish(),
+          error: (joinError: unknown) => finish(`Zoom could not join this meeting. ${describeZoomError(joinError)}`)
         }),
-        error: () => {
-          started.current = false;
-          setJoining(false);
-          setError("Zoom could not start in this browser. Please update the browser and try again.");
-          if (root) root.style.display = "none";
-        }
+        error: (initError: unknown) => finish(`Zoom could not start in this browser. ${describeZoomError(initError)}`)
       });
     } catch (meetingError) {
-      started.current = false;
-      setJoining(false);
-      setError(meetingError instanceof Error ? meetingError.message : "Zoom Live could not start");
+      finish(meetingError instanceof Error ? meetingError.message : "Zoom Live could not start");
     }
   }, [lessonId]);
 
