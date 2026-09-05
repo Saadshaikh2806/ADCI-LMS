@@ -1013,10 +1013,20 @@ export async function getAdciLiveAttendance(lessonId: string) {
   return (data ?? []) as AdciLiveAttendee[];
 }
 
-export async function deleteAdciLiveSchedule(lessonId: string) {
+export async function getAdciLiveDeleteDetails(lessonId: string) {
   const supabase = getSupabaseBrowserClient();
   if (!supabase) throw new Error("Supabase is not configured");
-  const { error } = await supabase.rpc("adci_admin_delete_live_schedule", { target_lesson_id: lessonId });
+  const { data, error } = await supabase.rpc("adci_admin_live_delete_details", { target_lesson_id: lessonId });
+  if (error) throw error;
+  return data as { purchased_learners: number };
+}
+
+export async function deleteAdciLiveSchedule(lessonId: string, purchasedLearners: number) {
+  const supabase = getSupabaseBrowserClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+  const { error } = await supabase.rpc("adci_admin_delete_live_schedule", {
+    target_lesson_id: lessonId, confirmed_purchased_learners: purchasedLearners
+  });
   if (error) throw error;
 }
 

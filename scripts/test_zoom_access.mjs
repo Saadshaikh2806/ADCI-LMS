@@ -106,4 +106,37 @@ for (const role of ['anon','authenticated']) {
   }
 }
 console.log('PASS: Zoom payments, complimentary grants, MFA, role boundaries, expiry and RPC permissions');
+// Exercise deletion against real SQL, including stale purchase confirmation.
+await db.exec(`
+  alter table public.adci_live_classes add column series_id uuid;
+  alter table public.adci_lessons add column title text default 'Test live', add column status text default 'published';
+  alter table public.adci_courses add column status text default 'published';
+  alter table public.adci_course_offers add column active boolean default true;
+  alter table public.adci_orders add column paid_at timestamptz;
+`);
+await db.exec(readFileSync('supabase/migrations/202609050002_live_class_deletion.sql', 'utf8'));
+const preview = () => query(`select public.adci_admin_live_delete_details('${id(12)}') as details`);
+const remove = count => db.query(`select public.adci_admin_delete_live_schedule($1::uuid,$2::integer)`, [id(12), count]);
+await actor('student');
+await assert.rejects(preview, /permission required/, 'student cannot inspect buyers');
+await assert.rejects(() => remove(1), /permission required/, 'student cannot delete');
+await actor('super_admin', 'aal1');
+await assert.rejects(() => remove(1), /permission required/, 'deletion requires MFA');
+await actor('super_admin');
+assert.equal((await preview())[0].details.purchased_learners, 1);
+await assert.rejects(() => db.query(`select public.adci_admin_delete_live_schedule('${id(12)}')`), /confirmation/, 'old endpoint cannot bypass confirmation');
+await assert.rejects(() => remove(null), /Purchases changed/, 'confirmation required');
+await assert.rejects(() => remove(0), /Purchases changed/, 'stale count denied');
+await db.exec(`update public.adci_orders set status='refunded'`);
+assert.equal((await preview())[0].details.purchased_learners, 1, 'refunded buyer still shown');
+await db.exec(`insert into public.adci_orders values ('${id(32)}','${id(1)}','${id(30)}','paid','second_payment',100,now())`);
+assert.equal((await preview())[0].details.purchased_learners, 1, 'repeat purchases count learner once');
+await remove(1);
+assert.equal((await query(`select count(*)::int as n from public.adci_live_classes`))[0].n, 0);
+assert.equal((await query(`select count(*)::int as n from public.adci_orders`))[0].n, 2, 'orders retained');
+assert.equal((await query(`select count(*)::int as n from public.adci_enrolments`))[0].n, 1, 'enrolments retained');
+assert.equal((await query(`select active from public.adci_course_offers`))[0].active, false, 'removed standalone session cannot be sold');
+assert.equal((await query(`select status from public.adci_lessons`))[0].status, 'retired');
+await assert.rejects(() => db.query(`select public.adci_get_zoom_access('${id(12)}','${id(2)}')`), /unavailable/, 'deleted class denies fresh joins');
+console.log('PASS: purchase-aware deletion, MFA, stale confirmations, refunds, retained records and admission');
 await db.close();

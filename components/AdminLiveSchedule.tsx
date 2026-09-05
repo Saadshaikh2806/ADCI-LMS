@@ -9,6 +9,7 @@ import {
   Radio,
   RefreshCw,
   ShieldCheck,
+  Trash2,
   UsersRound,
   Video,
   X
@@ -16,6 +17,8 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import {
   createAdciBookableLiveSeries,
+  deleteAdciLiveSchedule,
+  getAdciLiveDeleteDetails,
   getAdciAdminLiveSchedule,
   getAdciLiveAttendance,
   type AdciLiveAttendee,
@@ -36,7 +39,13 @@ export default function AdminLiveSchedule({ notify }: {
 }) {
   const [schedule, setSchedule] = useState<AdciLiveSchedule | null>(null);
   const [days, setDays] = useState(30);
-  const [filter, setFilter] = useState<"all" | "scheduled" | "live" | "ended">("all");
+  const [filter, setFilter] = useState<"upcoming" | "all" | "scheduled" | "live" | "ended">("upcoming");
+  const [now, setNow] = useState(Date.now());
+  const [deleteClass, setDeleteClass] = useState<AdciScheduledLiveClass | null>(null);
+  const [deleteDetails, setDeleteDetails] = useState<{ purchased_learners: number } | null>(null);
+  const [deleteError, setDeleteError] = useState("");
+  const [deleting, setDeleting] = useState(false);
+  const [deleteAcknowledged, setDeleteAcknowledged] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -70,10 +79,29 @@ export default function AdminLiveSchedule({ notify }: {
   }
 
   useEffect(() => { void refresh(); }, [days]);
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 30000);
+    return () => window.clearInterval(timer);
+  }, []);
+  useEffect(() => {
+    let cancelled = false;
+    setDeleteDetails(null);
+    setDeleteError("");
+    setDeleteAcknowledged(false);
+    if (deleteClass) void getAdciLiveDeleteDetails(deleteClass.lesson_id)
+      .then((details) => { if (!cancelled) setDeleteDetails(details); })
+      .catch((failure) => { if (!cancelled) setDeleteError(failure instanceof Error ? failure.message : "Unable to verify purchases. Close and try again."); });
+    return () => { cancelled = true; };
+  }, [deleteClass]);
 
-  const allClasses = useMemo(() => schedule?.classes ?? [], [schedule]);
+  const allClasses = useMemo(() => (schedule?.classes ?? []).map((item) => ({
+    ...item,
+    status: (now > new Date(item.ends_at).getTime() ? "ended" :
+      now >= new Date(item.starts_at).getTime() - 15 * 60000 ? "live" : "scheduled") as AdciScheduledLiveClass["status"]
+  })), [schedule, now]);
   const visibleClasses = useMemo(
-    () => allClasses.filter((liveClass) => filter === "all" || filter === liveClass.status),
+    () => allClasses.filter((liveClass) => filter === "all" ||
+      (filter === "upcoming" ? liveClass.status !== "ended" : filter === liveClass.status)),
     [allClasses, filter]
   );
   const liveSummary = useMemo(
@@ -156,6 +184,24 @@ export default function AdminLiveSchedule({ notify }: {
     else window.open(liveClass.meeting_url, "_blank", "noopener,noreferrer");
   }
 
+  async function confirmDelete() {
+    if (!deleteClass || !deleteDetails || deleting || !deleteAcknowledged) return;
+    setDeleting(true);
+    setDeleteError("");
+    try {
+      await deleteAdciLiveSchedule(deleteClass.lesson_id, deleteDetails.purchased_learners);
+      setSchedule((current) => current ? { ...current, classes: current.classes.filter((item) => item.lesson_id !== deleteClass.lesson_id) } : current);
+      setDeleteClass(null);
+      notify("Live class deleted from the LMS. Payment and attendance records retained.");
+      await refresh();
+    } catch (failure) {
+      setDeleteError(failure instanceof Error ? failure.message : "Deletion failed. Close and reopen to check purchases again.");
+      setDeleteDetails(null);
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   if (loading && !schedule) return <div className="admin-report-state"><LoaderCircle className="spin" /><span>Loading live timetable…</span></div>;
   if (error && !schedule) return <div className="admin-report-state error"><Radio /><h2>Schedule unavailable</h2><p>{error}</p><button onClick={() => void refresh()}><RefreshCw /> Retry</button></div>;
 
@@ -174,7 +220,7 @@ export default function AdminLiveSchedule({ notify }: {
 
     <section className="live-schedule-card">
       <div className="live-admin-toolbar">
-        <div>{(["all", "scheduled", "live", "ended"] as const).map((item) => <button key={item} className={filter === item ? "active" : ""} onClick={() => setFilter(item)}>{item === "all" ? "All classes" : item[0].toUpperCase() + item.slice(1)}</button>)}</div>
+        <div>{(["upcoming", "scheduled", "live", "ended", "all"] as const).map((item) => <button key={item} className={filter === item ? "active" : ""} onClick={() => setFilter(item)}>{item === "all" ? "All classes" : item[0].toUpperCase() + item.slice(1)}</button>)}</div>
         <span>{visibleClasses.length} result{visibleClasses.length === 1 ? "" : "s"}</span>
       </div>
 
@@ -189,12 +235,27 @@ export default function AdminLiveSchedule({ notify }: {
             <div className="live-admin-actions">
               {liveClass.offer_id && <button title="Copy purchase link" onClick={() => void copyPurchaseLink(liveClass.offer_id as string)}><Copy /></button>}
               <button title={liveClass.status !== "live" ? "Classroom opens 15 minutes before the session" : "Open classroom"} disabled={liveClass.status !== "live"} onClick={() => openScheduledClass(liveClass)}><Video /></button>
+              <button className="delete" title="Delete class" aria-label={`Delete ${liveClass.lesson_title}`} onClick={() => setDeleteClass(liveClass)}><Trash2 /></button>
             </div>
           </article>;
         })}
         {visibleClasses.length === 0 && <div className="report-empty"><CalendarDays /> No classes match this schedule filter.</div>}
       </div>
     </section>
+
+    {deleteClass && <div className="course-dialog-backdrop"><section className="lesson-content-editor live-admin-editor" role="dialog" aria-modal="true" aria-labelledby="delete-live-title">
+      <div className="course-dialog-head"><div><p className="eyebrow">DELETE LIVE CLASS</p><h2 id="delete-live-title">{deleteClass.lesson_title}</h2><span>{new Date(deleteClass.starts_at).toLocaleString("en-IN")} – {new Date(deleteClass.ends_at).toLocaleTimeString("en-IN")}</span></div><button disabled={deleting} aria-label="Close delete confirmation" onClick={() => setDeleteClass(null)}><X /></button></div>
+      {!deleteDetails && !deleteError && <p><LoaderCircle className="spin" /> Checking purchases…</p>}
+      {deleteDetails && <>
+        <p><strong>{deleteDetails.purchased_learners} learner{deleteDetails.purchased_learners === 1 ? " has" : "s have"} purchased access to this class or its course (including refunded purchases).</strong></p>
+        <p>This removes this session from the LMS and prevents new LMS joins. Other dates in the series are kept. Payment, invoice and attendance records are preserved.</p>
+        {deleteDetails.purchased_learners > 0 && <div className="course-error">These learners will lose access to this class. Deleting it will not issue refunds. Arrange refunds or a replacement separately.</div>}
+        {deleteClass.provider === "zoom" && <p>The meeting in Zoom itself must be cancelled separately if you also want to invalidate previously issued Zoom links.</p>}
+        <label><input type="checkbox" checked={deleteAcknowledged} disabled={deleting} onChange={(event) => setDeleteAcknowledged(event.target.checked)} /> I understand and want to delete this class.</label>
+      </>}
+      {deleteError && <div className="course-error" role="alert">{deleteError}</div>}
+      <div className="course-dialog-actions"><button disabled={deleting} onClick={() => setDeleteClass(null)}>Cancel</button><button className="primary" disabled={deleting || !deleteDetails || !deleteAcknowledged} onClick={() => void confirmDelete()}>{deleting ? <LoaderCircle className="spin" /> : <Trash2 />} {deleting ? "Deleting…" : "Delete class"}</button></div>
+    </section></div>}
 
     {bookableOpen && <div className="course-dialog-backdrop"><form className="lesson-content-editor live-admin-editor" onSubmit={createBookableSeries}>
       <div className="course-dialog-head"><div><p className="eyebrow">{bookableProvider === "zoom" ? "ZOOM LIVE" : "AGORA LIVE"}</p><h2>Create {bookableProvider === "zoom" ? "Zoom Live" : "Agora Live"}</h2><span>Each date is sold separately and can use any day or time.</span></div><button type="button" onClick={() => setBookableOpen(false)}><X /></button></div>
