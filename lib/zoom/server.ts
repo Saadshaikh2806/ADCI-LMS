@@ -11,7 +11,7 @@ type ZoomMeeting = {
 };
 
 type ZoomRegistrant = {
-  id: string;
+  registrant_id: string;
   join_url?: string;
 };
 
@@ -121,7 +121,7 @@ export async function createZoomRegistrant(input: {
   );
   const registrantToken = registrant.join_url ? new URL(registrant.join_url).searchParams.get("tk") : null;
   if (!registrantToken) throw new Error("Zoom did not issue a private participant token");
-  return { registrantId: registrant.id, registrantToken };
+  return { registrantId: registrant.registrant_id, registrantToken };
 }
 
 export async function deleteZoomRegistrant(meetingNumber: string, registrantId: string) {
