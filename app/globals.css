@@ -3037,6 +3037,10 @@ html[data-theme="dark"] .learner-onboarding {
 }
 
 /* Secure Zoom Live access gate. Zoom owns the meeting UI after admission. */
+#zmmtg-root {
+  z-index: 9999;
+}
+
 .zoom-live-backdrop {
   position: fixed;
   inset: 0;

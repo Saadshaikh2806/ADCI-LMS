@@ -10,6 +10,15 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  webpack(config, { webpack }) {
+    // Zoom 6.2 embeds a React 18 renderer; the LMS continues using React 19.
+    config.plugins.push(new webpack.NormalModuleReplacementPlugin(/^react$/, (resource: { context: string; request: string }) => {
+      if (/[\\/]@zoom[\\/]meetingsdk[\\/]/.test(resource.context)) {
+        resource.request = require.resolve("react-zoom");
+      }
+    }));
+    return config;
+  },
   async headers() {
     return [{ source: "/(.*)", headers: securityHeaders }];
   }
