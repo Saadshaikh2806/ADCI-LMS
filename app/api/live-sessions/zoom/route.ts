@@ -14,6 +14,7 @@ type ZoomAccess = {
   participant_name: string;
   participant_email: string;
   is_staff: boolean;
+  organization_id: string;
   starts_at: string;
   ends_at: string;
   can_join: boolean;
@@ -27,7 +28,7 @@ function errorMessage(error: unknown) {
 
 export async function POST(request: Request) {
   try {
-    const { user, service } = await requireServerUser(request);
+    const { user, userClient, service } = await requireServerUser(request);
     const body = await request.json() as { lessonId?: string };
     if (!body.lessonId?.match(/^[0-9a-f-]{36}$/i)) throw new Error("Choose a valid Zoom Live session");
 
@@ -42,6 +43,11 @@ export async function POST(request: Request) {
     let registrantToken: string | undefined;
     let zak: string | undefined;
     if (access.is_staff) {
+      const { data: mayHost, error: hostError } = await userClient.rpc("adci_current_user_has_role", {
+        requested_org: access.organization_id,
+        allowed_roles: ["instructor", "content_author", "academic_lead", "branch_admin", "super_admin"]
+      });
+      if (hostError || !mayHost) throw new Error("Verify your staff account with two-factor authentication before hosting");
       zak = await getZoomHostZak();
     } else {
       const { data: existing, error: registrantError } = await service

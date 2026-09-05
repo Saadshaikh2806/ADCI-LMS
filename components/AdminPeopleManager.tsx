@@ -29,7 +29,7 @@ export default function AdminPeopleManager({ notify, currentRoles }: { notify: (
   const [error, setError] = useState("");
   const [enrolmentPerson, setEnrolmentPerson] = useState<AdciPerson | null>(null);
   const canManageRoles = currentRoles.includes("super_admin");
-  const canManageEnrolments = canManageRoles || currentRoles.includes("branch_admin");
+  const canManageEnrolments = canManageRoles;
 
   async function refresh() {
     setLoading(true);
@@ -121,7 +121,7 @@ export default function AdminPeopleManager({ notify, currentRoles }: { notify: (
         </div>
       </section>
 
-      <div className="workflow-note"><ShieldCheck size={20} /><div><strong>{canManageRoles ? "Super-admin protected" : "Read-only role access"}</strong><p>{canManageRoles ? "Role changes are validated inside PostgreSQL, recorded in the audit log, and cannot remove the final active super administrator." : canManageEnrolments ? "Branch administrators can manage course enrolments. Only a super administrator can change account roles or access." : "Support staff can view account details for assistance. Role and course-access changes remain restricted."}</p></div></div>
+      <div className="workflow-note"><ShieldCheck size={20} /><div><strong>{canManageRoles ? "Super-admin protected" : "Read-only account access"}</strong><p>{canManageRoles ? "Only super administrators can grant complimentary course access or change account roles. Changes are recorded in the audit log, and the final active super administrator cannot be removed." : "You can view account details for assistance. Only a super administrator can change roles, account activation or course access."}</p></div></div>
       {enrolmentPerson && <AdminEnrolmentManager person={enrolmentPerson} close={() => setEnrolmentPerson(null)} notify={notify} />}
     </div>
   );

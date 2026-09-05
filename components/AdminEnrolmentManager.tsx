@@ -42,7 +42,7 @@ export default function AdminEnrolmentManager({ person, close, notify }: {
 
   return <div className="course-dialog-backdrop"><div className="enrolment-dialog">
     <div className="course-dialog-head"><div><p className="eyebrow">COURSE ACCESS</p><h2>{person.full_name || person.email}</h2></div><button onClick={close}><X /></button></div>
-    <p className="enrolment-intro">Assign courses, control access status, and optionally set an expiry date.</p>
+    <p className="enrolment-intro">Grant complimentary course access, control its status, and optionally set an expiry date. Activating access records your super-admin approval, including permission to join Zoom sessions in that course.</p>
     {loading ? <div className="cms-loading"><LoaderCircle className="spin" /> Loading courses…</div> : <div className="enrolment-list">
       {courses.map((course) => <EnrolmentRow key={course.course_id} course={course} saving={saving === course.course_id} update={update} />)}
       {courses.length === 0 && <div className="cms-empty"><BookOpen /><h3>No courses available</h3><p>Publish or create an academic course first.</p></div>}
