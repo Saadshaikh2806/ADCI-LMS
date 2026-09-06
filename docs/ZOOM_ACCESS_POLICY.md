@@ -46,3 +46,22 @@ node scripts/test_zoom_access.mjs
 It covers denied grant roles, inactive super admins, missing MFA, explicit grants,
 legacy grants, captured/failed/refunded payments, mismatched learners/courses,
 expiry/cancellation, host roles and service-only function permissions.
+
+## Live whiteboard
+
+Zoom Live sessions carry a collaborative whiteboard, layered over the meeting UI
+and toggled per participant. It runs entirely on the existing stack: strokes are
+relayed over a Supabase Realtime broadcast channel whose name is HMAC'd with the
+service-role key, and `app/api/live-sessions/whiteboard` reuses
+`adci_get_zoom_access` so only a host or a paid, in-window learner can read or
+persist the board. Hosts draw and clear by default; learners are view-only until
+a host enables "Students can draw". The board snapshot lives in
+`public.adci_live_whiteboards`, reachable only through `service_role`.
+
+Apply `supabase/migrations/202609060002_live_whiteboard.sql` in the production
+Supabase SQL editor **before** deploying this change. No new environment
+variables are required. Realtime broadcast needs no project setting because the
+channel is not a private (RLS) channel.
+
+`node scripts/check_whiteboard_logic.mjs` verifies the stroke reducer converges,
+the scene stays bounded, and the route keeps its host/learner write boundaries.

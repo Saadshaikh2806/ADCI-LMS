@@ -3,6 +3,7 @@
 import { Check, LoaderCircle, LockKeyhole, Video, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getSupabaseBrowserClient } from "../lib/supabase/client";
+import LiveWhiteboard from "./LiveWhiteboard";
 
 const ACTIVE_ZOOM_KEY = "adci-active-zoom-live";
 const OPEN_ZOOM_EVENT = "adci-open-zoom-live";
@@ -81,6 +82,7 @@ function ZoomLive({ lessonId, close }: {
   close: () => void;
 }) {
   const [joining, setJoining] = useState(false);
+  const [joined, setJoined] = useState(false);
   const [error, setError] = useState("");
   const started = useRef(false);
 
@@ -112,7 +114,10 @@ function ZoomLive({ lessonId, close }: {
       settled = true;
       window.clearTimeout(timer);
       setJoining(false);
-      if (!message) return;
+      if (!message) {
+        setJoined(true);
+        return;
+      }
       started.current = false;
       setError(message);
       if (root) root.style.display = "none";
@@ -169,7 +174,9 @@ function ZoomLive({ lessonId, close }: {
     }
   }
 
-  return <div className="zoom-live-backdrop" role="dialog" aria-modal="true" aria-label="Zoom Live">
+  return <>
+    {joined && <LiveWhiteboard lessonId={lessonId} />}
+    <div className="zoom-live-backdrop" role="dialog" aria-modal="true" aria-label="Zoom Live">
     <section className="zoom-live-gate">
       <header><div><Video /><span><strong>Zoom Live</strong><small>Private paid live session</small></span></div><button aria-label="Close Zoom Live" disabled={joining} onClick={close}><X /></button></header>
       {joining ? <div className="zoom-live-state"><LoaderCircle className="spin" /><strong>Starting Zoom Live…</strong><p>Verifying your session access securely.</p></div> : <>
@@ -182,5 +189,6 @@ function ZoomLive({ lessonId, close }: {
         <small className="zoom-live-note">The meeting link and Zoom participant token are never displayed or shared.</small>
       </>}
     </section>
-  </div>;
+    </div>
+  </>;
 }
