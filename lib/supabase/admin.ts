@@ -469,7 +469,7 @@ export async function listAdciCourses() {
   return (data ?? []).filter((course) => {
     const lessons = course.adci_modules.flatMap((module) => module.adci_lessons);
     if (lessons.length !== 1 || lessons[0].lesson_type !== "live") return true;
-    return !lessons[0].adci_live_classes.some((liveClass) =>
+    return !lessons[0].adci_live_classes?.some((liveClass) =>
       liveClass.series_id && course.slug.endsWith(`-${liveClass.series_id.replaceAll("-", "").slice(0, 8)}`)
     );
   }).map(({ adci_modules: _modules, ...course }) => course) as AdciCourse[];
