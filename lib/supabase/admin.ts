@@ -459,11 +459,20 @@ export async function listAdciCourses() {
 
   const { data, error } = await supabase
     .from("adci_courses")
-    .select("id,title,slug,description,status,updated_at")
+    .select("id,title,slug,description,status,updated_at,adci_modules(adci_lessons(lesson_type,adci_live_classes(series_id)))")
     .order("updated_at", { ascending: false });
 
   if (error) throw error;
-  return (data ?? []) as AdciCourse[];
+  // Bookable sessions use a generated course slug ending in their series ID.
+  // A series ID alone is insufficient: regular courses also support recurring
+  // live lessons and must remain editable in Academics.
+  return (data ?? []).filter((course) => {
+    const lessons = course.adci_modules.flatMap((module) => module.adci_lessons);
+    if (lessons.length !== 1 || lessons[0].lesson_type !== "live") return true;
+    return !lessons[0].adci_live_classes.some((liveClass) =>
+      liveClass.series_id && course.slug.endsWith(`-${liveClass.series_id.replaceAll("-", "").slice(0, 8)}`)
+    );
+  }).map(({ adci_modules: _modules, ...course }) => course) as AdciCourse[];
 }
 
 export async function getAdciCourseEditor(courseId: string) {
