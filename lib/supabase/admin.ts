@@ -467,10 +467,14 @@ export async function listAdciCourses() {
   // A series ID alone is insufficient: regular courses also support recurring
   // live lessons and must remain editable in Academics.
   return (data ?? []).filter((course) => {
-    const lessons = course.adci_modules.flatMap((module) => module.adci_lessons);
+    const lessons = (course.adci_modules ?? []).flatMap((module) => module.adci_lessons ?? []);
     if (lessons.length !== 1 || lessons[0].lesson_type !== "live") return true;
-    return !lessons[0].adci_live_classes?.some((liveClass) =>
-      liveClass.series_id && course.slug.endsWith(`-${liveClass.series_id.replaceAll("-", "").slice(0, 8)}`)
+    // adci_live_classes.lesson_id is a PK, so PostgREST embeds it as a single
+    // object (or null); older callers treat it as an array. Normalise both.
+    const liveClass = lessons[0].adci_live_classes;
+    const liveClasses = Array.isArray(liveClass) ? liveClass : liveClass ? [liveClass] : [];
+    return !liveClasses.some((entry) =>
+      entry.series_id && course.slug.endsWith(`-${entry.series_id.replaceAll("-", "").slice(0, 8)}`)
     );
   }).map(({ adci_modules: _modules, ...course }) => course) as AdciCourse[];
 }
