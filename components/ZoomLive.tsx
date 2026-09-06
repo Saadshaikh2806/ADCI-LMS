@@ -132,6 +132,14 @@ function ZoomLive({ lessonId, close }: {
         leaveOnPageUnload: true,
         disableInvite: true,
         disableCallOut: true,
+        // Trim features that the embedded Web Meeting SDK does not support or that
+        // do not belong in a paid class. Whiteboard / AI Companion / Notes / Apps
+        // have no init flag; they are hidden with CSS in app/globals.css and are
+        // best switched off at the Zoom account level.
+        disableRecord: true,
+        disableReport: true,
+        disableZoomPhone: true,
+        disablePictureInPicture: true,
         defaultView: "gallery",
         meetingInfo: ["topic", "host", "participant"],
         success: () => {
