@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { DM_Sans, Manrope } from "next/font/google";
+import Script from "next/script";
 import "@zoom/meetingsdk/dist/ui/zoom-meetingsdk.css";
 import "./globals.css";
 
@@ -15,7 +16,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: `(function(){try{var saved=localStorage.getItem('adci-theme');var theme=saved==='dark'||saved==='light'?saved:(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.dataset.theme=theme;document.documentElement.style.colorScheme=theme}catch(e){document.documentElement.dataset.theme='light'}document.addEventListener('contextmenu',function(event){event.preventDefault()})})();` }} />
+        <Script src="/theme-init.js" strategy="beforeInteractive" />
       </head>
       <body className={`${dmSans.variable} ${manrope.variable}`}>
         {children}

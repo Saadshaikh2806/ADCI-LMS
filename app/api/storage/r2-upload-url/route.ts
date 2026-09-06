@@ -2,6 +2,7 @@ import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { requireServerUser } from "../../../../lib/supabase/server";
 import { getR2BucketName, getR2Client } from "../../../../lib/r2/client";
+import { apiErrorHeaders, apiErrorStatus, enforceApiRateLimit } from "../../../../lib/security/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -33,7 +34,8 @@ function errorResponse(error: unknown, status = 400) {
 
 export async function POST(request: Request) {
   try {
-    const { userClient } = await requireServerUser(request);
+    const { user, userClient, service } = await requireServerUser(request);
+    await enforceApiRateLimit(service, user.id, "r2-upload", 100, 3600);
     const body = await request.json() as {
       lessonId?: string;
       fileName?: string;
@@ -76,6 +78,6 @@ export async function POST(request: Request) {
 
     return Response.json({ uploadUrl, objectPath }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
-    return errorResponse(error);
+    return Response.json({ error: error instanceof Error ? error.message : "Unable to prepare upload" }, { status: apiErrorStatus(error), headers: apiErrorHeaders(error) });
   }
 }

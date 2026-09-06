@@ -35,6 +35,9 @@ function getSmtpTransporter() {
     maxMessages: 100,
     rateDelta: 1000,
     rateLimit: 4,
+    connectionTimeout: 10_000,
+    greetingTimeout: 10_000,
+    socketTimeout: 30_000,
     tls: { rejectUnauthorized: true }
   });
   return smtpTransporter;

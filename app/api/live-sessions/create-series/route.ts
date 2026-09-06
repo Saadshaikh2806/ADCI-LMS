@@ -1,5 +1,6 @@
 import { requireServerUser } from "../../../../lib/supabase/server";
 import { createZoomMeeting, createZoomPasscode, deleteZoomMeeting } from "../../../../lib/zoom/server";
+import { apiErrorHeaders, apiErrorStatus, enforceApiRateLimit } from "../../../../lib/security/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -49,7 +50,8 @@ function buildStarts(first: Date, recurrence: SeriesRequest["recurrence"], repea
 export async function POST(request: Request) {
   const createdZoomMeetings: string[] = [];
   try {
-    const { userClient } = await requireServerUser(request);
+    const { user, userClient, service } = await requireServerUser(request);
+    await enforceApiRateLimit(service, user.id, "live-series-create", 10, 3600);
     const body = await request.json() as SeriesRequest;
     const title = body.title?.trim() || "";
     const instructor = body.instructor?.trim() || "";
@@ -111,6 +113,6 @@ export async function POST(request: Request) {
     return Response.json(data);
   } catch (error) {
     await Promise.all(createdZoomMeetings.map(deleteZoomMeeting));
-    return Response.json({ error: errorMessage(error) }, { status: 400 });
+    return Response.json({ error: errorMessage(error) }, { status: apiErrorStatus(error), headers: apiErrorHeaders(error) });
   }
 }

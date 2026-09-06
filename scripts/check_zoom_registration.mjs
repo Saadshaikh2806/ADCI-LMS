@@ -13,7 +13,7 @@ async function scenario(created, approved, approvalFails = false) {
   const calls = [];
   const exports = {};
   runInNewContext(compiled, {
-    exports, Buffer, URL, URLSearchParams,
+    exports, AbortSignal, Buffer, URL, URLSearchParams,
     require: (name) => name === "server-only" ? {} : name === "../supabase/server"
       ? { requireServerEnvironment: () => "test-only" } : require(name),
     fetch: async (url, init) => {

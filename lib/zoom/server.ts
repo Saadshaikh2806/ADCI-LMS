@@ -35,6 +35,7 @@ async function zoomAccessToken() {
       "Content-Type": "application/x-www-form-urlencoded"
     },
     body: new URLSearchParams({ grant_type: "account_credentials", account_id: config.accountId }),
+    signal: AbortSignal.timeout(15_000),
     cache: "no-store"
   });
   const result = await response.json() as { access_token?: string; message?: string };
@@ -51,7 +52,8 @@ async function zoomRequest<T>(path: string, init: RequestInit = {}) {
       "Content-Type": "application/json",
       ...init.headers
     },
-    cache: "no-store"
+    cache: "no-store",
+    signal: AbortSignal.timeout(20_000)
   });
   if (response.status === 204) return undefined as T;
   const result = await response.json() as T & { message?: string };

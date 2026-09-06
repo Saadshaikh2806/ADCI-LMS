@@ -13,7 +13,7 @@ Local environment files are ignored by Git. Never commit the Supabase service-ro
 
 ## Database
 
-Run the SQL files in `supabase/migrations` in filename order. Existing projects only need migrations they have not already applied. The final readiness batch is `202608010003` through `202608010009`.
+Use the Supabase CLI to apply the ordered SQL files in `supabase/migrations`. The current migration head is `202609060001_production_readiness.sql`; CI proves that the complete chain applies to an empty local project.
 
 ## Video storage
 
@@ -25,7 +25,7 @@ Before uploading large lecture catalogs, use `scripts/bulk_optimize_videos.py` t
 
 ## Production
 
-The application uses the standard Next.js build: `pnpm build`. The public service check is available at `/api/health`. See `docs/PRODUCTION_RELEASE.md` for the complete release checklist.
+Run `pnpm verify`, `pnpm audit:production` and `pnpm test:e2e` before release. The public readiness check is available at `/api/health`. See `docs/PRODUCTION_RELEASE.md` for deployment gates and `docs/OPERATIONS_RUNBOOK.md` for backup, monitoring, rollback and incident procedures.
 
 ## Paid private live sessions
 

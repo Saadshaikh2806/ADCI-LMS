@@ -1,5 +1,6 @@
 import AgoraToken from "agora-token";
 import { requireServerEnvironment, requireServerUser } from "../../../../lib/supabase/server";
+import { apiErrorHeaders, apiErrorStatus, enforceApiRateLimit } from "../../../../lib/security/rate-limit";
 
 const { RtcRole, RtcTokenBuilder } = AgoraToken;
 
@@ -14,7 +15,8 @@ type JoinAuthorization = {
 
 export async function POST(request: Request) {
   try {
-    const { user, userClient } = await requireServerUser(request);
+    const { user, userClient, service } = await requireServerUser(request);
+    await enforceApiRateLimit(service, user.id, "agora-token", 60, 300);
     const { lessonId } = await request.json() as { lessonId?: string };
     if (!lessonId?.match(/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i)) throw new Error("A valid live lesson is required");
 
@@ -53,7 +55,7 @@ export async function POST(request: Request) {
     const message = error instanceof Error ? error.message : "Unable to enter the private classroom";
     return Response.json(
       { error: message },
-      { status: message.includes("not configured") ? 503 : 403, headers: { "cache-control": "private, no-store" } }
+      { status: apiErrorStatus(error, message.includes("not configured") ? 503 : 403), headers: { ...apiErrorHeaders(error), "cache-control": "private, no-store" } }
     );
   }
 }

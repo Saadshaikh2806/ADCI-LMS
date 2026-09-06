@@ -2,6 +2,7 @@ import "server-only";
 
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
+import { apiErrorHeaders, apiErrorStatus } from "../security/rate-limit";
 
 const RAZORPAY_API = "https://api.razorpay.com/v1";
 
@@ -61,7 +62,8 @@ export async function callRazorpay<T>(
       "Content-Type": "application/json"
     },
     body: options.body ? JSON.stringify(options.body) : undefined,
-    cache: "no-store"
+    cache: "no-store",
+    signal: AbortSignal.timeout(20_000)
   });
   const payload = await response.json().catch(() => ({})) as Record<string, unknown>;
   if (!response.ok) {
@@ -91,5 +93,5 @@ export function signaturesMatch(received: string, expected: string) {
 
 export function paymentErrorResponse(error: unknown, status = 400) {
   const message = error instanceof Error ? error.message : "Unable to process payment";
-  return Response.json({ error: message }, { status });
+  return Response.json({ error: message }, { status: apiErrorStatus(error, status), headers: apiErrorHeaders(error) });
 }

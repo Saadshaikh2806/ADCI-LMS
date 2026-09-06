@@ -1,72 +1,70 @@
 # ADCI LMS production release checklist
 
-Use this checklist after the complete feature batch has been pushed. It keeps database changes, secrets and final testing in one controlled release.
+The current schema ends at `202609060001_production_readiness.sql`. Release the application and database from the same reviewed commit; never paste only part of a migration into production.
 
-## 1. Apply pending database changes
+## 1. Automated release gates
 
-Open the Supabase SQL Editor for the ADCI project and run each file once, in this order:
+Run the same commands enforced by CI:
 
-1. `202608010003_quiz_attempt_hardening.sql`
-2. `202608010004_unified_learning_search.sql`
-3. `202608010005_learner_live_class_workspace.sql`
-4. `202608010006_learner_assessment_centre.sql`
-5. `202608010007_support_ticketing.sql`
-6. `202608010008_unified_event_notifications.sql`
-7. `202608010009_r2_video_storage.sql`
-8. `202608020001_harden_r2_asset_access.sql`
-9. `202608020002_fix_r2_lesson_playback.sql`
+```text
+pnpm install --frozen-lockfile
+pnpm verify
+pnpm audit:production
+pnpm exec playwright install chromium
+pnpm test:e2e
+```
 
-If some are already applied, start from the first unapplied file. Do not rename tables or paste only part of a function; run each whole file.
+CI also starts an empty local Supabase stack and applies every file in `supabase/migrations`. A release is blocked unless the application, migration and CodeQL jobs pass.
 
-## 2. Confirm Supabase settings
+## 2. Apply database migrations
 
-- Authentication email confirmation is enabled.
-- Site URL is `https://lms.adcionline.com`.
-- Redirect URLs include `https://lms.adcionline.com/**` and the localhost URL used for development.
-- SMTP sender and reply-to addresses are configured and deliver outside spam.
-- The first administrator has an active `super_admin` membership.
-- Storage buckets and policies from the lesson-assets migration are present.
+Link the official Supabase CLI to the production project, inspect the exact pending set and apply it from the release commit:
 
-## 3. Confirm hosting environment variables
+```text
+supabase link --project-ref <production-project-ref>
+supabase db push --dry-run
+supabase db push
+```
 
-Copy every variable named in `.env.example` into the production hosting project. Production must use server-only values for the Supabase service-role key, Razorpay secrets, SMTP password, cron secret and R2 credentials. Do not prefix those values with `NEXT_PUBLIC_`.
+Confirm the Supabase migration history ends at `202609060001`. Never rename an applied migration. Before pushing, verify a current database restore point as described in `OPERATIONS_RUNBOOK.md`.
 
-Before deploying, create the R2 bucket and an API token (Object Read & Write scope, restricted to that bucket) in the Cloudflare dashboard — this is a manual step, not covered by any migration or script here. Set `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` and `R2_BUCKET_NAME` from that token.
+## 3. Production configuration
 
-Add this CORS policy to the R2 bucket. Replace or extend the origins if the production or local address changes:
+Copy every variable in `.env.example` into the production Vercel project. Use production-only server secrets for Supabase service access, Razorpay, SMTP, cron, R2, Agora and Zoom. Ensure no server secret begins with `NEXT_PUBLIC_`.
+
+- Supabase email confirmation is enabled; Site URL is `https://lms.adcionline.com`; redirect allow-list contains only approved production and development origins.
+- Create the first `super_admin`, enroll MFA, then confirm the initial-admin bootstrap cannot be claimed by another account.
+- Configure Razorpay live keys and webhook `https://lms.adcionline.com/api/payments/webhook`; subscribe to captured-payment and refund events.
+- Configure SMTP with aligned SPF, DKIM and DMARC.
+- Configure the Vercel cron with a high-entropy `CRON_SECRET`.
+- Configure Zoom Server-to-Server OAuth and Meeting SDK credentials, and Agora App ID/certificate.
+
+Create a private R2 bucket with an Object Read & Write token restricted to that bucket. Do not attach a public custom domain. Apply this CORS policy:
 
 ```json
 [
   {
-    "AllowedOrigins": [
-      "https://lms.adcionline.com",
-      "http://localhost:3000"
-    ],
+    "AllowedOrigins": ["https://lms.adcionline.com"],
     "AllowedMethods": ["GET", "PUT", "HEAD"],
-    "AllowedHeaders": ["Content-Type", "Range"],
+    "AllowedHeaders": ["Content-Type", "Content-Length", "Range"],
     "ExposeHeaders": ["ETag", "Accept-Ranges", "Content-Length", "Content-Range"],
     "MaxAgeSeconds": 3600
   }
 ]
 ```
 
-The application accepts MP4/WebM videos up to 2 GB, MP3/M4A/WAV/OGG audio up to 250 MB, and PDF files up to 50 MB. Keep the bucket private; do not connect a public custom domain to it.
+## 4. Staging acceptance
 
-After changing environment values, redeploy the latest `main` branch and confirm `/api/health` returns `{"status":"ok"}`.
+Use separate learner, instructor, finance/support and super-administrator accounts against staging copies of every provider.
 
-## 4. Final end-to-end acceptance test
+- Learner: confirm email, sign in, recover password, edit profile, purchase, receive receipt, consume every lesson type, submit quiz/assignment, join Agora and Zoom sessions, download and publicly verify a certificate, use community/support, then sign out.
+- Staff: enforce MFA, test each role boundary, create/publish/retire content, schedule/delete paid live sessions, grade work, answer support, moderate community content, manage enrolments/refunds and inspect audit/report data.
+- Failure paths: declined/duplicate payment, duplicate/refund webhook, expired enrolment/session, upload too large or wrong type, unavailable provider, retrying email, expired quiz, refresh during assessment and rollback after a failed live-series creation.
+- Devices and access: keyboard-only navigation, visible focus, screen-reader labels, 200% zoom, reduced motion, phone/tablet/desktop layouts and current Chrome/Edge/Safari/Firefox.
+- Load: test expected concurrent logins, lesson playback URL generation, live-class joins, quiz submission and notification dispatch without using production learner data.
 
-Create separate learner, instructor and administrator test accounts.
+## 5. Go-live and observation
 
-- Learner: confirm email, sign in, update profile, enrol/purchase, play every lesson type, submit a quiz, submit an assignment, join a live class, download a certificate, create a support ticket and sign out.
-- Instructor: schedule a live class, create content, publish an assessment, grade an assignment, answer a support or community item, and confirm only authorised admin sections appear.
-- Administrator: manage people and enrolments, publish a course and announcement, process commerce actions, review reports/audit activity, and test MFA on a fresh login.
-- Notifications: confirm announcement, support reply, assignment grade, assessment publication and live-class reminder badges; check each deep link and preference switch.
-- Recovery: test password reset, expired session handling, refresh while a quiz is active, missing-page screen and failed-network screen.
-- Responsive: repeat the main learner and admin flows on phone width and desktop width.
+Enable Supabase backups/PITR, R2 versioning, a Vercel log drain and external monitoring before promotion. `/api/health` must return HTTP 200 with both checks `ok`. Promote the tested immutable Vercel deployment, place one live Razorpay purchase/refund with an authorised account, verify email delivery, and observe the dashboards for at least 30 minutes.
 
-## 5. External service reminders
-
-- Razorpay: replace test keys with live keys only after the final test order/refund cycle, register the production webhook URL, and verify its signing secret.
-- SMTP: keep SPF, DKIM and DMARC aligned with the sender domain when moving away from Gmail.
-- Monitoring: configure an external uptime check for `/api/health` and review Vercel function errors after release.
+Record the release commit, migration head, Vercel deployment, test evidence, restore point, approver and rollback target. Follow `OPERATIONS_RUNBOOK.md` for incidents and rollback.

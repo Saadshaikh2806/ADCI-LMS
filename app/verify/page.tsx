@@ -2,7 +2,9 @@
 
 import { ArrowLeft, Award, Check, LoaderCircle, Search, ShieldAlert, ShieldCheck } from "lucide-react";
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import AdciLogo from "../../components/AdciLogo";
+import LegalFooter from "../../components/LegalFooter";
 import { verifyCertificate, type CertificateVerification } from "../../lib/supabase/certificates";
 
 export default function VerifyCertificatePage() {
@@ -35,7 +37,7 @@ export default function VerifyCertificatePage() {
   }, []);
 
   return <main className="verification-page">
-    <header><a href="/"><ArrowLeft /> Learning Hub</a><div><i className="verification-brand-logo"><AdciLogo decorative /></i><span><strong>ADCI</strong><small>Anees Defence Career Institute</small></span></div><span><ShieldCheck /> Secure verification</span></header>
+    <header><Link href="/"><ArrowLeft /> Learning Hub</Link><div><i className="verification-brand-logo"><AdciLogo decorative /></i><span><strong>ADCI</strong><small>Anees Defence Career Institute</small></span></div><span><ShieldCheck /> Secure verification</span></header>
     <section className="verification-shell">
       <div className="verification-intro"><span><Award /></span><p className="eyebrow">DIGITAL CREDENTIALS</p><h1>Verify an ADCI certificate</h1><p>Enter the certificate number or verification code exactly as it appears on the credential.</p></div>
       <form onSubmit={(event) => { event.preventDefault(); void verify(); }}><div><Search /><input value={code} onChange={(event) => setCode(event.target.value)} placeholder="ADCI-2026-XXXXXXXXXX" aria-label="Certificate number or verification code" /></div><button disabled={loading || !code.trim()}>{loading ? <LoaderCircle className="spin" /> : <ShieldCheck />} Verify certificate</button></form>
@@ -47,6 +49,7 @@ export default function VerifyCertificatePage() {
         <dl><div><dt>Learner</dt><dd>{result.learner_name}</dd></div><div><dt>Course</dt><dd>{result.course_title}</dd></div><div><dt>Certificate number</dt><dd>{result.certificate_number}</dd></div><div><dt>Issued</dt><dd>{result.issued_at ? new Date(result.issued_at).toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" }) : "—"}</dd></div><div><dt>Completion</dt><dd>{result.completion_percent}%</dd></div><div><dt>Issued by</dt><dd>{result.organization_name}</dd></div></dl>
       </section>}
       <footer><ShieldCheck /><span><strong>Privacy-safe verification</strong><small>Only credential details required for validation are displayed.</small></span></footer>
+      <LegalFooter />
     </section>
   </main>;
 }

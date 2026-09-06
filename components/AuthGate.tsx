@@ -7,6 +7,7 @@ import { getSupabaseBrowserClient, isSupabaseConfigured } from "../lib/supabase/
 import MfaChallengeDialog from "./MfaChallengeDialog";
 import ThemeToggle from "./ThemeToggle";
 import AdciLogo from "./AdciLogo";
+import LegalFooter from "./LegalFooter";
 
 type Mode = "login" | "register" | "recovery";
 const AuthSessionContext = createContext<Session | null>(null);
@@ -240,6 +241,7 @@ export default function AuthGate({ children }: { children: ReactNode }) {
 
           {mode === "login" && <button type="button" className="auth-link" onClick={() => { setMode("recovery"); setMessage(""); }}>Forgot your password?</button>}
           <div className="auth-switch">{mode === "login" ? "New to ADCI?" : "Already have an account?"}<button type="button" onClick={() => { setMode(mode === "login" ? "register" : "login"); setMessage(""); }}>{mode === "login" ? "Create an account" : "Sign in"}</button></div>
+          <LegalFooter />
         </form>
       </section>
     </main>

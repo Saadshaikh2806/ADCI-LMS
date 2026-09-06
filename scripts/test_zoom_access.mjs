@@ -1,9 +1,6 @@
-// Run with PGlite installed in the ignored test workspace:
-// npm install --prefix tmp/access-tests --no-audit --no-fund @electric-sql/pglite
-// node scripts/test_zoom_access.mjs
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { PGlite } from '../tmp/access-tests/node_modules/@electric-sql/pglite/dist/index.js';
+import { PGlite } from '@electric-sql/pglite';
 
 const db = new PGlite();
 const id = n => `00000000-0000-0000-0000-${String(n).padStart(12, '0')}`;

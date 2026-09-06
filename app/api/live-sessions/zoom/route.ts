@@ -5,6 +5,7 @@ import {
   deleteZoomRegistrant,
   getZoomHostZak
 } from "../../../../lib/zoom/server";
+import { apiErrorHeaders, apiErrorStatus, enforceApiRateLimit } from "../../../../lib/security/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -29,6 +30,7 @@ function errorMessage(error: unknown) {
 export async function POST(request: Request) {
   try {
     const { user, userClient, service } = await requireServerUser(request);
+    await enforceApiRateLimit(service, user.id, "zoom-join", 20, 300);
     const body = await request.json() as { lessonId?: string };
     if (!body.lessonId?.match(/^[0-9a-f-]{36}$/i)) throw new Error("Choose a valid Zoom Live session");
 
@@ -99,6 +101,6 @@ export async function POST(request: Request) {
       zak
     });
   } catch (error) {
-    return Response.json({ error: errorMessage(error) }, { status: 400 });
+    return Response.json({ error: errorMessage(error) }, { status: apiErrorStatus(error), headers: apiErrorHeaders(error) });
   }
 }

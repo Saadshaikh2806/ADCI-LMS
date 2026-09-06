@@ -1,6 +1,11 @@
 .next
 node_modules
 tmp
+.playwright-cli
+test-results
+playwright-report
+blob-report
+supabase/.temp
 *.log
 .env
 .env*.local

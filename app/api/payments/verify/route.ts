@@ -6,6 +6,7 @@ import {
   signaturesMatch
 } from "../../../../lib/supabase/payment-server";
 import { dispatchPendingEmails } from "../../../../lib/email/delivery";
+import { enforceApiRateLimit } from "../../../../lib/security/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -32,6 +33,7 @@ type RazorpayPayment = {
 export async function POST(request: Request) {
   try {
     const { user, service } = await requireAuthenticatedPaymentRequest(request);
+    await enforceApiRateLimit(service, user.id, "payment-verify", 30, 600);
     const body = await request.json() as {
       razorpay_payment_id?: string;
       razorpay_order_id?: string;

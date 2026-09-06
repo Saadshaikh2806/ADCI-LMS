@@ -4,6 +4,7 @@ import {
   paymentErrorResponse,
   requireAuthenticatedPaymentRequest
 } from "../../../../lib/supabase/payment-server";
+import { enforceApiRateLimit } from "../../../../lib/security/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -30,6 +31,7 @@ export async function POST(request: Request) {
   let internalOrderId = "";
   try {
     const { user, userClient, service, environment } = await requireAuthenticatedPaymentRequest(request);
+    await enforceApiRateLimit(service, user.id, "payment-create", 10, 600);
     const body = await request.json() as {
       offerId?: string;
       billingName?: string;

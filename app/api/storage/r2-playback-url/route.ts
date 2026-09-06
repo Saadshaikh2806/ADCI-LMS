@@ -2,6 +2,7 @@ import { GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { requireServerUser } from "../../../../lib/supabase/server";
 import { getR2BucketName, getR2Client } from "../../../../lib/r2/client";
+import { apiErrorHeaders, apiErrorStatus, enforceApiRateLimit } from "../../../../lib/security/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -15,6 +16,7 @@ function errorResponse(error: unknown, status = 400) {
 export async function POST(request: Request) {
   try {
     const { user, service } = await requireServerUser(request);
+    await enforceApiRateLimit(service, user.id, "r2-playback", 300, 600);
     const body = await request.json() as { lessonId?: string; objectPath?: string };
 
     if (!body.lessonId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(body.lessonId) || !body.objectPath || body.objectPath.length > 500) {
@@ -61,6 +63,6 @@ export async function POST(request: Request) {
 
     return Response.json({ signedUrl }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
-    return errorResponse(error);
+    return Response.json({ error: error instanceof Error ? error.message : "Unable to open this video" }, { status: apiErrorStatus(error), headers: apiErrorHeaders(error) });
   }
 }
