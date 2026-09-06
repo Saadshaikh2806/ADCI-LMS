@@ -6,14 +6,16 @@ const contentSecurityPolicy = [
   "object-src 'none'",
   "frame-ancestors 'self'",
   "form-action 'self' https://api.razorpay.com https://*.razorpay.com",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://checkout.razorpay.com https://source.zoom.us https://*.zoom.us",
-  "style-src 'self' 'unsafe-inline' https://source.zoom.us https://*.zoom.us",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://checkout.razorpay.com https://source.zoom.us https://zoom.us https://*.zoom.us",
+  "style-src 'self' 'unsafe-inline' https://source.zoom.us https://zoom.us https://*.zoom.us",
   "img-src 'self' data: blob: https:",
-  "font-src 'self' data: https://source.zoom.us https://*.zoom.us",
+  "font-src 'self' data: https://source.zoom.us https://zoom.us https://*.zoom.us",
   "media-src 'self' blob: https:",
   "worker-src 'self' blob:",
-  "frame-src 'self' https://api.razorpay.com https://*.razorpay.com https://*.zoom.us",
-  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.r2.cloudflarestorage.com https://api.razorpay.com https://*.razorpay.com https://*.zoom.us wss://*.zoom.us https://*.agora.io wss://*.agora.io https://*.agoralab.co wss://*.agoralab.co",
+  "frame-src 'self' https://api.razorpay.com https://*.razorpay.com https://zoom.us https://*.zoom.us",
+  // The Zoom Web Meeting SDK calls the apex host (https://zoom.us/api/v1/wc/*) as
+  // well as its subdomains, and streams source maps from its CloudFront bucket.
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.r2.cloudflarestorage.com https://api.razorpay.com https://*.razorpay.com https://zoom.us https://*.zoom.us wss://zoom.us wss://*.zoom.us https://d1cdksi819e9z7.cloudfront.net https://*.agora.io wss://*.agora.io https://*.agoralab.co wss://*.agoralab.co",
   "manifest-src 'self'",
   "block-all-mixed-content"
 ].join("; ");
