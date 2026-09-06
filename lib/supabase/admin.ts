@@ -453,31 +453,25 @@ export function hasAcademicAdminRole(memberships: AdciMembership[]) {
   return memberships.some((membership) => adminRoles.has(membership.role));
 }
 
-type LiveSessionProbeLesson = { lesson_type?: string | null; adci_live_classes?: unknown };
+type LiveSessionProbeLesson = { lesson_type?: string | null };
 type LiveSessionProbeModule = { adci_lessons?: LiveSessionProbeLesson[] | null };
 type LiveSessionProbeCourse = { slug: string; adci_modules?: LiveSessionProbeModule[] | null };
 
-// A bookable live session is stored as a standalone course: exactly one "live"
-// lesson whose live-class row carries a series_id, and a generated slug ending
-// in the first 8 hex chars of that series_id (see adci_create_bookable_live_series).
-// These are created and managed from the Live Classes tab, so they must never
-// show up or open in Academics. A series_id alone is not enough — regular
-// courses also support recurring live lessons and must stay editable — hence
-// the slug check.
+// adci_create_bookable_live_series generates one standalone course per session
+// occurrence with a slug of "<title>-<YYYY-MM-DD>-<first 8 hex of the series id>".
+// These are created and managed entirely from the Live Classes tab and must
+// never appear or open in Academics. Their adci_live_classes rows (and the
+// series_id on them) get pruned once the session passes or a purchase is
+// cancelled, so the slug is the only durable signal. Course slugs created any
+// other way come from the title alone and never carry a trailing date + hex id.
+const BOOKABLE_LIVE_SESSION_SLUG = /-\d{4}-\d{2}-\d{2}-[0-9a-f]{8}$/;
+
 function isBookableLiveSessionCourse(course: LiveSessionProbeCourse) {
+  if (!BOOKABLE_LIVE_SESSION_SLUG.test(course.slug)) return false;
+  // Guard against a real course that happens to reuse that slug shape: if it
+  // carries any non-live lesson it is genuine content and stays in Academics.
   const lessons = (course.adci_modules ?? []).flatMap((module) => module.adci_lessons ?? []);
-  if (lessons.length !== 1 || lessons[0].lesson_type !== "live") return false;
-  // adci_live_classes.lesson_id is a PK, so PostgREST embeds it as a single
-  // object (or null); some callers select it as an array. Normalise both.
-  const embedded = lessons[0].adci_live_classes;
-  const liveClasses = (Array.isArray(embedded) ? embedded : embedded ? [embedded] : []) as Array<{
-    series_id?: string | null;
-  }>;
-  return liveClasses.some(
-    (entry) =>
-      typeof entry.series_id === "string" &&
-      course.slug.endsWith(`-${entry.series_id.replaceAll("-", "").slice(0, 8)}`)
-  );
+  return lessons.every((lesson) => lesson.lesson_type === "live");
 }
 
 export async function listAdciCourses() {
@@ -486,7 +480,7 @@ export async function listAdciCourses() {
 
   const { data, error } = await supabase
     .from("adci_courses")
-    .select("id,title,slug,description,status,updated_at,adci_modules(adci_lessons(lesson_type,adci_live_classes(series_id)))")
+    .select("id,title,slug,description,status,updated_at,adci_modules(adci_lessons(lesson_type))")
     .order("updated_at", { ascending: false });
 
   if (error) throw error;
@@ -501,7 +495,7 @@ export async function getAdciCourseEditor(courseId: string) {
 
   const { data, error } = await supabase
     .from("adci_courses")
-    .select("id,title,slug,description,status,updated_at,adci_modules(id,title,position,adci_lessons(id,title,lesson_type,position,duration_seconds,status,adci_lesson_assets(id,asset_type,storage_provider,original_name,size_bytes,object_path),adci_video_assets(storage_provider,object_path),adci_live_classes(series_id,provider,meeting_url,instructor_name,starts_at,ends_at)))")
+    .select("id,title,slug,description,status,updated_at,adci_modules(id,title,position,adci_lessons(id,title,lesson_type,position,duration_seconds,status,adci_lesson_assets(id,asset_type,storage_provider,original_name,size_bytes,object_path),adci_video_assets(storage_provider,object_path),adci_live_classes(provider,meeting_url,instructor_name,starts_at,ends_at)))")
     .eq("id", courseId)
     .order("position", { referencedTable: "adci_modules", ascending: true })
     .order("position", { referencedTable: "adci_modules.adci_lessons", ascending: true })
