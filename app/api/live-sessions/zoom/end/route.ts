@@ -1,5 +1,5 @@
 import { requireServerUser } from "../../../../../lib/supabase/server";
-import { endZoomMeeting } from "../../../../../lib/zoom/server";
+import { deleteZoomMeeting, endZoomMeeting } from "../../../../../lib/zoom/server";
 import { apiErrorHeaders, apiErrorStatus, enforceApiRateLimit } from "../../../../../lib/security/rate-limit";
 
 export const runtime = "nodejs";
@@ -19,7 +19,7 @@ export async function POST(request: Request) {
   try {
     const { user, service } = await requireServerUser(request);
     await enforceApiRateLimit(service, user.id, "zoom-end", 20, 300);
-    const body = (await request.json()) as { lessonId?: string };
+    const body = (await request.json()) as { lessonId?: string; alsoDelete?: boolean };
     if (!body.lessonId?.match(/^[0-9a-f-]{36}$/i)) throw new Error("Choose a valid Zoom Live session");
 
     const { data, error } = await service.rpc("adci_get_zoom_access", {
@@ -31,6 +31,10 @@ export async function POST(request: Request) {
     if (!access.is_staff) throw new Error("Only staff can end a Zoom Live session");
 
     await endZoomMeeting(access.meeting_number);
+    // On delete, also remove the scheduled meeting from the Zoom account so
+    // retired classes do not pile up there. Call this before the LMS delete RPC,
+    // which drops the row that holds the meeting number.
+    if (body.alsoDelete) await deleteZoomMeeting(access.meeting_number);
     return Response.json({ ok: true }, { headers: { "cache-control": "private, no-store" } });
   } catch (error) {
     const message = errorMessage(error);
