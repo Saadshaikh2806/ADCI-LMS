@@ -106,6 +106,21 @@ export async function deleteZoomMeeting(meetingNumber: string) {
   }
 }
 
+// The whole platform hosts through one Zoom user, so that user can only run one
+// meeting at a time. Force-ending a stale session frees the host to start the
+// next one (SDK error 3000 otherwise). A meeting that is not running returns a
+// 400 that is safe to ignore.
+export async function endZoomMeeting(meetingNumber: string) {
+  try {
+    await zoomRequest<void>(`/meetings/${encodeURIComponent(meetingNumber)}/status`, {
+      method: "PUT",
+      body: JSON.stringify({ action: "end" })
+    });
+  } catch {
+    // Already ended / never started — nothing to do.
+  }
+}
+
 export async function createZoomRegistrant(input: {
   meetingNumber: string;
   fullName: string;

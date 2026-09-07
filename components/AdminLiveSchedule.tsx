@@ -12,6 +12,7 @@ import {
   Trash2,
   UsersRound,
   Video,
+  VideoOff,
   X
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -25,6 +26,7 @@ import {
   type AdciLiveSchedule,
   type AdciScheduledLiveClass
 } from "../lib/supabase/admin";
+import { getSupabaseBrowserClient } from "../lib/supabase/client";
 import { openAgoraClassroom } from "./AgoraClassroom";
 import { openZoomLive } from "./ZoomLive";
 
@@ -184,6 +186,28 @@ export default function AdminLiveSchedule({ notify }: {
     else window.open(liveClass.meeting_url, "_blank", "noopener,noreferrer");
   }
 
+  async function endZoomSession(liveClass: AdciScheduledLiveClass) {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase) return;
+    if (!window.confirm(`End the Zoom meeting for "${liveClass.lesson_title}" now? Anyone still in it is disconnected. Use this to clear a stuck session before starting again.`)) return;
+    setError("");
+    try {
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+      if (!token) throw new Error("Sign in again to manage Zoom Live");
+      const response = await fetch("/api/live-sessions/zoom/end", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ lessonId: liveClass.lesson_id })
+      });
+      const result = await response.json() as { error?: string };
+      if (!response.ok) throw new Error(result.error || "Could not end the Zoom meeting");
+      notify("Zoom meeting ended. You can start it fresh now.");
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : "Could not end the Zoom meeting");
+    }
+  }
+
   async function confirmDelete() {
     if (!deleteClass || !deleteDetails || deleting || !deleteAcknowledged) return;
     setDeleting(true);
@@ -235,6 +259,7 @@ export default function AdminLiveSchedule({ notify }: {
             <div className="live-admin-actions">
               {liveClass.offer_id && <button title="Copy purchase link" onClick={() => void copyPurchaseLink(liveClass.offer_id as string)}><Copy /></button>}
               <button title={liveClass.status !== "live" ? "Classroom opens 15 minutes before the session" : "Open classroom"} disabled={liveClass.status !== "live"} onClick={() => openScheduledClass(liveClass)}><Video /></button>
+              {liveClass.provider === "zoom" && <button title="End the Zoom meeting now (clears a stuck session)" aria-label={`End Zoom meeting for ${liveClass.lesson_title}`} onClick={() => void endZoomSession(liveClass)}><VideoOff /></button>}
               <button className="delete" title="Delete class" aria-label={`Delete ${liveClass.lesson_title}`} onClick={() => setDeleteClass(liveClass)}><Trash2 /></button>
             </div>
           </article>;
