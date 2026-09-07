@@ -3,6 +3,7 @@ import {
   createMeetingSdkSignature,
   createZoomRegistrant,
   deleteZoomRegistrant,
+  getZoomHostLiveMeeting,
   getZoomHostZak
 } from "../../../../lib/zoom/server";
 import { apiErrorHeaders, apiErrorStatus, enforceApiRateLimit } from "../../../../lib/security/rate-limit";
@@ -50,6 +51,33 @@ export async function POST(request: Request) {
         allowed_roles: ["instructor", "content_author", "academic_lead", "branch_admin", "super_admin"]
       });
       if (hostError || !mayHost) throw new Error("Verify your staff account with two-factor authentication before hosting");
+
+      // The whole platform hosts through one Zoom user, which can run one meeting
+      // at a time. If a different class is already live, name it rather than
+      // letting the SDK fail later with error 3000.
+      const liveMeeting = await getZoomHostLiveMeeting();
+      if (liveMeeting && liveMeeting.id !== String(access.meeting_number)) {
+        let liveName = liveMeeting.topic;
+        const { data: liveClass } = await service
+          .from("adci_live_classes")
+          .select("lesson_id")
+          .eq("zoom_meeting_number", liveMeeting.id)
+          .maybeSingle();
+        if (liveClass?.lesson_id) {
+          const { data: lesson } = await service
+            .from("adci_lessons")
+            .select("title")
+            .eq("id", liveClass.lesson_id)
+            .maybeSingle();
+          if (lesson?.title) liveName = lesson.title;
+        }
+        throw new Error(
+          liveName
+            ? `"${liveName}" is live on Zoom right now. The account hosts one class at a time — end it (Live schedule → End Zoom meeting) before starting this one.`
+            : "Another meeting is already running on the Zoom host account. End it before starting this one."
+        );
+      }
+
       zak = await getZoomHostZak();
     } else {
       const { data: existing, error: registrantError } = await service

@@ -174,6 +174,23 @@ export async function getZoomHostZak() {
   return result.token;
 }
 
+// The shared host user can run one meeting at a time. Returns the meeting it is
+// currently hosting, if any, so a second start can be refused with a clear
+// message instead of the SDK's opaque error 3000. Never throws — a failed probe
+// must not block a legitimate join.
+export async function getZoomHostLiveMeeting() {
+  try {
+    const { hostUserId } = zoomConfiguration();
+    const result = await zoomRequest<{ meetings?: Array<{ id: number; topic?: string }> }>(
+      `/users/${encodeURIComponent(hostUserId)}/meetings?type=live&page_size=30`
+    );
+    const meeting = result.meetings?.[0];
+    return meeting ? { id: String(meeting.id), topic: meeting.topic ?? "" } : null;
+  } catch {
+    return null;
+  }
+}
+
 function base64Url(value: string | Buffer) {
   return Buffer.from(value).toString("base64url");
 }
