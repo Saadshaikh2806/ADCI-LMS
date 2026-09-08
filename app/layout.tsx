@@ -3,6 +3,7 @@ import { DM_Sans, Manrope } from "next/font/google";
 import Script from "next/script";
 import "@zoom/meetingsdk/dist/ui/zoom-meetingsdk.css";
 import "./globals.css";
+import PullToRefresh from "../components/PullToRefresh";
 
 const dmSans = DM_Sans({ subsets: ["latin"], variable: "--font-body" });
 const manrope = Manrope({ subsets: ["latin"], variable: "--font-display" });
@@ -19,6 +20,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <Script src="/theme-init.js" strategy="beforeInteractive" />
       </head>
       <body className={`${dmSans.variable} ${manrope.variable}`}>
+        <PullToRefresh />
         {children}
         <div id="zmmtg-root" style={{ display: "none" }} />
       </body>

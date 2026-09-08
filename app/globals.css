@@ -3189,3 +3189,34 @@ html[data-theme="dark"] .learner-onboarding {
 .bulk-enrolment-apply select, .bulk-enrolment-apply input { height:36px; padding:0 9px; border:1px solid var(--line-soft); border-radius:8px; background:var(--field); font-size:12.5px; }
 .bulk-enrolment-apply button.primary { height:36px; padding:0 15px; margin-left:auto; display:inline-flex; align-items:center; gap:7px; border:1px solid #dda148; border-radius:8px; background:#efae4e; color:#3d301f; font-size:12.5px; font-weight:800; cursor:pointer; }
 .bulk-enrolment-apply button.primary:disabled { opacity:.5; cursor:default; }
+
+/* Custom pull-to-refresh affordance; the app's fixed panes block the native one. */
+.pull-refresh-indicator {
+  position:fixed;
+  top:8px;
+  left:50%;
+  z-index:500;
+  pointer-events:none;
+  will-change:transform;
+}
+
+.pull-refresh-indicator > span {
+  width:38px;
+  height:38px;
+  display:grid;
+  place-items:center;
+  border:1px solid var(--line-soft);
+  border-radius:50%;
+  color:var(--text-secondary);
+  background:var(--surface);
+  box-shadow:0 8px 22px var(--shadow-color);
+  transition:color .15s ease, border-color .15s ease;
+}
+
+.pull-refresh-indicator > span.ready { border-color:#eaa94f; color:var(--amber-text); }
+
+.pull-refresh-indicator svg { width:18px; height:18px; }
+
+.pull-refresh-indicator > span.spinning svg { animation:pull-refresh-spin .8s linear infinite; }
+
+@keyframes pull-refresh-spin { to { transform:rotate(360deg); } }
