@@ -5,7 +5,6 @@ import {
   Check,
   Copy,
   LoaderCircle,
-  Plus,
   Radio,
   RefreshCw,
   ShieldCheck,
@@ -27,7 +26,6 @@ import {
   type AdciScheduledLiveClass
 } from "../lib/supabase/admin";
 import { getSupabaseBrowserClient } from "../lib/supabase/client";
-import { openAgoraClassroom } from "./AgoraClassroom";
 import { openZoomLive } from "./ZoomLive";
 
 function localDateTime(iso?: string) {
@@ -57,7 +55,6 @@ export default function AdminLiveSchedule({ notify }: {
   const [attendees, setAttendees] = useState<AdciLiveAttendee[]>([]);
   const [attendanceLoading, setAttendanceLoading] = useState(false);
   const [bookableOpen, setBookableOpen] = useState(false);
-  const [bookableProvider, setBookableProvider] = useState<"agora" | "zoom">("agora");
   const [bookable, setBookable] = useState({
     title: "Online Career Counselling",
     description: "Live online career counselling with an ADCI expert.",
@@ -124,7 +121,7 @@ export default function AdminLiveSchedule({ notify }: {
     [allClasses]
   );
 
-  function openBookableSeries(provider: "agora" | "zoom") {
+  function openBookableSeries() {
     const start = new Date();
     start.setDate(start.getDate() + 1);
     start.setHours(10, 0, 0, 0);
@@ -132,11 +129,10 @@ export default function AdminLiveSchedule({ notify }: {
     finalDate.setDate(finalDate.getDate() + 49);
     setBookable((current) => ({
       ...current,
-      duration: provider === "zoom" ? "60" : "55",
+      duration: "60",
       startsAt: localDateTime(start.toISOString()),
       repeatUntil: localDateTime(finalDate.toISOString()).slice(0, 10)
     }));
-    setBookableProvider(provider);
     setBookableOpen(true);
     setError("");
   }
@@ -150,7 +146,6 @@ export default function AdminLiveSchedule({ notify }: {
     setError("");
     try {
       const result = await createAdciBookableLiveSeries({
-        provider: bookableProvider,
         title: bookable.title,
         description: bookable.description,
         instructor: bookable.instructor,
@@ -161,7 +156,7 @@ export default function AdminLiveSchedule({ notify }: {
         pricePaise: Math.round(Number(bookable.price) * 100),
         gstRate: Number(bookable.gstRate)
       });
-      notify(`${result.classes_created} private ${bookableProvider === "zoom" ? "Zoom Live" : "Agora Live"} session${result.classes_created === 1 ? "" : "s"} published`);
+      notify(`${result.classes_created} private Zoom Live session${result.classes_created === 1 ? "" : "s"} published`);
       setBookableOpen(false);
       await refresh();
     } catch (createError) {
@@ -190,8 +185,7 @@ export default function AdminLiveSchedule({ notify }: {
   }
 
   function openScheduledClass(liveClass: AdciScheduledLiveClass) {
-    if (liveClass.provider === "agora") openAgoraClassroom(liveClass.lesson_id);
-    else if (liveClass.provider === "zoom") openZoomLive(liveClass.lesson_id);
+    if (liveClass.provider === "zoom") openZoomLive(liveClass.lesson_id);
     else window.open(liveClass.meeting_url, "_blank", "noopener,noreferrer");
   }
 
@@ -270,7 +264,7 @@ export default function AdminLiveSchedule({ notify }: {
   return <div className="admin-content admin-live-workspace">
     <div className="admin-welcome admin-live-heading">
       <div><h2>Live schedule</h2><p>Create private LMS classrooms and monitor learner attendance.</p></div>
-      <div><select value={days} onChange={(event) => setDays(Number(event.target.value))}><option value="7">Next 7 days</option><option value="30">Next 30 days</option><option value="90">Next 90 days</option><option value="180">Next 6 months</option></select><button onClick={() => void refresh()}><RefreshCw className={loading ? "spin" : ""} /> Refresh</button><button onClick={() => openBookableSeries("agora")}><Plus /> Agora Live</button><button className="primary" onClick={() => openBookableSeries("zoom")}><Video /> Zoom Live</button></div>
+      <div><select value={days} onChange={(event) => setDays(Number(event.target.value))}><option value="7">Next 7 days</option><option value="30">Next 30 days</option><option value="90">Next 90 days</option><option value="180">Next 6 months</option></select><button onClick={() => void refresh()}><RefreshCw className={loading ? "spin" : ""} /> Refresh</button><button className="primary" onClick={() => openBookableSeries()}><Video /> Zoom Live</button></div>
     </div>
     {error && <div className="course-error">{error}</div>}
     {pendingZoom.length > 0 && <section className="course-error" aria-label="Pending Zoom removals">
@@ -284,7 +278,7 @@ export default function AdminLiveSchedule({ notify }: {
     </section>}
 
     <section className="live-admin-metrics">
-      <article><div><CalendarDays /></div><span>SCHEDULED</span><strong>{liveSummary.scheduled}</strong><p>Agora and Zoom Live sessions</p></article>
+      <article><div><CalendarDays /></div><span>SCHEDULED</span><strong>{liveSummary.scheduled}</strong><p>Zoom Live sessions</p></article>
       <article><div className="is-live"><Radio /></div><span>LIVE NOW</span><strong>{liveSummary.liveNow}</strong><p>Join window is open</p></article>
       <article><div className="attendance"><UsersRound /></div><span>ATTENDANCE</span><strong>{liveSummary.attendance}</strong><p>Unique session records</p></article>
     </section>
@@ -300,7 +294,7 @@ export default function AdminLiveSchedule({ notify }: {
           const start = new Date(liveClass.starts_at);
           return <article key={liveClass.lesson_id} className={liveClass.status}>
             <div className="live-date"><strong>{start.toLocaleDateString("en-IN", { day: "2-digit" })}</strong><span>{start.toLocaleDateString("en-IN", { month: "short" }).toUpperCase()}</span></div>
-            <div className="live-provider"><Video /><span>{liveClass.provider === "zoom" ? "Zoom Live" : liveClass.provider === "agora" ? "Agora Live" : "Live stream"}</span></div>
+            <div className="live-provider"><Video /><span>{liveClass.provider === "zoom" ? "Zoom Live" : "Live stream"}</span></div>
             <div className="live-admin-copy"><div><em>{liveClass.status}</em><span>{start.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}–{new Date(liveClass.ends_at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}</span></div><h3>{liveClass.lesson_title}</h3><p>{liveClass.course_title} · {liveClass.module_title} · {liveClass.instructor_name}</p></div>
             <button className="attendance-button" title="Open authorised buyer list" onClick={() => void openAttendance(liveClass)}><UsersRound /><span><strong>{liveClass.attendance_count}</strong><small>{liveClass.total_joins} joins</small></span></button>
             <div className="live-admin-actions">
@@ -330,14 +324,14 @@ export default function AdminLiveSchedule({ notify }: {
     </section></div>}
 
     {bookableOpen && <div className="course-dialog-backdrop"><form className="lesson-content-editor live-admin-editor" onSubmit={createBookableSeries}>
-      <div className="course-dialog-head"><div><p className="eyebrow">{bookableProvider === "zoom" ? "ZOOM LIVE" : "AGORA LIVE"}</p><h2>Create {bookableProvider === "zoom" ? "Zoom Live" : "Agora Live"}</h2><span>Each date is sold separately and can use any day or time.</span></div><button type="button" onClick={() => setBookableOpen(false)}><X /></button></div>
-      <div className="content-editor-note"><ShieldCheck /><span><strong>Automatic LMS access</strong><small>{bookableProvider === "zoom" ? "The LMS creates the Zoom meeting and gives every paid learner a different account-bound code. Meeting links stay hidden." : "The system creates a private Agora classroom for each date. Paid learners are verified and admitted automatically."}</small></span></div>
+      <div className="course-dialog-head"><div><p className="eyebrow">ZOOM LIVE</p><h2>Create Zoom Live</h2><span>Each date is sold separately and can use any day or time.</span></div><button type="button" onClick={() => setBookableOpen(false)}><X /></button></div>
+      <div className="content-editor-note"><ShieldCheck /><span><strong>Automatic LMS access</strong><small>The LMS creates the Zoom meeting and gives every paid learner a different account-bound code. Meeting links stay hidden.</small></span></div>
       <div className="live-class-grid">
         <label className="wide"><span>Session title</span><input required minLength={3} value={bookable.title} onChange={(event) => setBookable({ ...bookable, title: event.target.value })} /></label>
         <label className="wide"><span>Description</span><textarea rows={3} value={bookable.description} onChange={(event) => setBookable({ ...bookable, description: event.target.value })} /></label>
         <label><span>Instructor</span><input required value={bookable.instructor} onChange={(event) => setBookable({ ...bookable, instructor: event.target.value })} /></label>
         <label><span>First session</span><input required type="datetime-local" value={bookable.startsAt} onChange={(event) => setBookable({ ...bookable, startsAt: event.target.value })} /></label>
-        <label><span>Duration (minutes)</span><input required min="15" max={bookableProvider === "zoom" ? "480" : "60"} type="number" value={bookable.duration} onChange={(event) => setBookable({ ...bookable, duration: event.target.value })} /></label>
+        <label><span>Duration (minutes)</span><input required min="15" max="480" type="number" value={bookable.duration} onChange={(event) => setBookable({ ...bookable, duration: event.target.value })} /></label>
         <label><span>Schedule</span><select value={bookable.recurrence} onChange={(event) => setBookable({ ...bookable, recurrence: event.target.value as "once" | "weekly" })}><option value="once">One session</option><option value="weekly">Repeat weekly</option></select></label>
         {bookable.recurrence === "weekly" && <label><span>Repeat until</span><input required type="date" min={bookable.startsAt.slice(0, 10)} value={bookable.repeatUntil} onChange={(event) => setBookable({ ...bookable, repeatUntil: event.target.value })} /></label>}
         <label><span>Price (INR)</span><input required min="1" step=".01" type="number" value={bookable.price} onChange={(event) => setBookable({ ...bookable, price: event.target.value })} /></label>

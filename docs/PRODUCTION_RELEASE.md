@@ -42,14 +42,14 @@ Provider references: [Supabase session IDs](https://supabase.com/docs/guides/aut
 
 ## 3. Production configuration
 
-Copy every variable in `.env.example` into the production Vercel project. Use production-only server secrets for Supabase service access, Razorpay, SMTP, cron, R2, Agora and Zoom. Ensure no server secret begins with `NEXT_PUBLIC_`.
+Copy every variable in `.env.example` into the production Vercel project. Use production-only server secrets for Supabase service access, Razorpay, SMTP, cron, R2 and Zoom. Ensure no server secret begins with `NEXT_PUBLIC_`.
 
 - Supabase email confirmation is enabled; Site URL is `https://lms.adcionline.com`; redirect allow-list contains only approved production and development origins.
 - Create the first `super_admin`, enroll MFA, then confirm the initial-admin bootstrap cannot be claimed by another account.
 - Configure Razorpay live keys and webhook `https://lms.adcionline.com/api/payments/webhook`; subscribe to captured-payment and refund events.
 - Configure SMTP with aligned SPF, DKIM and DMARC.
 - Configure the Vercel cron with a high-entropy `CRON_SECRET`.
-- Configure Zoom Server-to-Server OAuth and Meeting SDK credentials, and Agora App ID/certificate.
+- Configure Zoom Server-to-Server OAuth and Meeting SDK credentials.
 
 Create a private R2 bucket with an Object Read & Write token restricted to that bucket. Do not attach a public custom domain. Apply this CORS policy:
 
@@ -69,7 +69,7 @@ Create a private R2 bucket with an Object Read & Write token restricted to that 
 
 Use separate learner, instructor, finance/support and super-administrator accounts against staging copies of every provider.
 
-- Learner: confirm email, sign in, recover password, edit profile, purchase, receive receipt, consume every lesson type, submit quiz/assignment, join Agora and Zoom sessions, download and publicly verify a certificate, use community/support, then sign out.
+- Learner: confirm email, sign in, recover password, edit profile, purchase, receive receipt, consume every lesson type, submit quiz/assignment, join a Zoom session, download and publicly verify a certificate, use community/support, then sign out.
 - Staff: enforce MFA, test each role boundary, create/publish/retire content, schedule/delete paid live sessions, grade work, answer support, moderate community content, manage enrolments/refunds and inspect audit/report data.
 - Failure paths: declined/duplicate payment, duplicate/refund webhook, expired enrolment/session, upload too large or wrong type, unavailable provider, retrying email, expired quiz, refresh during assessment and rollback after a failed live-series creation.
 - Devices and access: keyboard-only navigation, visible focus, screen-reader labels, 200% zoom, reduced motion, phone/tablet/desktop layouts and current Chrome/Edge/Safari/Firefox.

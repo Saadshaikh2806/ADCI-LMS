@@ -58,7 +58,6 @@ import AdciLogo from "../components/AdciLogo";
 import NotificationCenter from "../components/NotificationCenter";
 import GlobalLearningSearch from "../components/GlobalLearningSearch";
 import ThemeToggle from "../components/ThemeToggle";
-import { PersistentAgoraClassroom } from "../components/AgoraClassroom";
 import { PersistentZoomLive } from "../components/ZoomLive";
 import StudentQuizRunner from "../components/StudentQuizRunner";
 import LiveClassSchedule from "../components/LiveClassSchedule";
@@ -502,7 +501,6 @@ function LearningHub() {
       {notificationOpen && <NotificationCenter close={() => setNotificationOpen(false)} onUnreadChange={setNotificationCount} onOpenAction={openNotificationAction} />}
       {settingsOpen && <AccountSettings close={() => setSettingsOpen(false)} notify={notify} onMfaChanged={(enabled) => { if (!enabled) setAdminOpen(false); }} />}
       {helpOpen && <HelpCentre initialCategory={helpCategory} initialTicketId={helpTicketId || undefined} close={() => { setHelpOpen(false); setHelpCategory(undefined); setHelpTicketId(""); }} notify={notify} />}
-      <PersistentAgoraClassroom notify={notify} userId={authSession?.user.id || ""} />
       <PersistentZoomLive userId={authSession?.user.id || ""} />
       {toast && <div className="toast"><Check size={17} />{toast}</div>}
     </main>

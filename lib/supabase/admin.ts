@@ -910,7 +910,7 @@ export async function saveAdciArticle(lessonId: string, body: string) {
 }
 
 export type AdciLiveClass = {
-  provider: "agora" | "zoom" | "youtube_live";
+  provider: "zoom" | "youtube_live";
   meeting_url: string;
   instructor_name: string;
   starts_at: string;
@@ -969,7 +969,6 @@ export type AdciScheduledLiveClass = AdciLiveClass & {
 };
 
 export async function createAdciBookableLiveSeries(input: {
-  provider: "agora" | "zoom";
   title: string;
   description: string;
   instructor: string;

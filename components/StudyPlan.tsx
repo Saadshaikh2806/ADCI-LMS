@@ -16,7 +16,6 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { getSupabaseBrowserClient } from "../lib/supabase/client";
-import { openAgoraClassroom } from "./AgoraClassroom";
 import { openZoomLive } from "./ZoomLive";
 
 type StudyEvent = {
@@ -156,10 +155,6 @@ export default function StudyPlan({
 
   async function joinLiveClass(studyEvent: StudyEvent) {
     if (!studyEvent.lesson_id) return;
-    if (studyEvent.provider === "agora") {
-      openAgoraClassroom(studyEvent.lesson_id);
-      return;
-    }
     if (studyEvent.provider === "zoom") {
       openZoomLive(studyEvent.lesson_id);
       return;

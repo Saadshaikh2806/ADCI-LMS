@@ -31,6 +31,6 @@ Run `pnpm verify`, `pnpm audit:production` and `pnpm test:e2e` before release. T
 
 The Live schedule workspace creates one-time or weekly paid sessions on any selected day. Each occurrence becomes a separate one-lesson course and Razorpay offer, so a purchase unlocks only that date. Apply migration `202608120001_bookable_agora_series.sql`.
 
-Agora Live and Zoom Live are separate choices. Agora runs inside the LMS using `AGORA_APP_ID` and `AGORA_APP_CERTIFICATE`.
+Live sessions run on Zoom. Apply `202609080004_remove_agora_live.sql` to retire any legacy in-LMS (Agora) sessions.
 
 Zoom Live uses the paid Zoom host account while keeping meeting links private. Create a Server-to-Server OAuth app and a Meeting SDK app in the Zoom App Marketplace, add meeting read/write and user token permissions, then configure the six `ZOOM_*` values shown in `.env.example`. The LMS creates approval-required meetings, checks the signed-in account's exact paid enrolment, and automatically approves only that buyer's unique Zoom registrant token without exposing a join link. Apply `202608210001_zoom_live_sessions.sql` before enabling the Zoom Live button.

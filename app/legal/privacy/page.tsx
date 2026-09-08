@@ -10,7 +10,7 @@ export default function PrivacyPolicy() {
     <h2>Why we use it</h2>
     <p>Information is used to deliver courses and live classes, assess progress, issue credentials, process purchases, provide support, secure accounts, meet legal obligations and improve service reliability.</p>
     <h2>Service providers and transfers</h2>
-    <p>ADCI uses contracted providers including Supabase, Vercel, Cloudflare R2, Razorpay, Zoom, Agora and email-delivery services. They process only the information needed to provide their service and may operate infrastructure outside your state or country subject to applicable safeguards.</p>
+    <p>ADCI uses contracted providers including Supabase, Vercel, Cloudflare R2, Razorpay, Zoom and email-delivery services. They process only the information needed to provide their service and may operate infrastructure outside your state or country subject to applicable safeguards.</p>
     <h2>Retention and security</h2>
     <p>Learning and transaction records are retained while required for education, certification, accounting, dispute resolution and legal compliance. Operational logs and failed notification records are removed according to ADCI&apos;s retention schedule. Access is role-controlled; privileged accounts support multi-factor authentication.</p>
     <h2>Your choices</h2>

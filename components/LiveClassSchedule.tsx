@@ -3,7 +3,6 @@
 import { LoaderCircle, RefreshCw, Video } from "lucide-react";
 import { useEffect, useState } from "react";
 import { getSupabaseBrowserClient } from "../lib/supabase/client";
-import { openAgoraClassroom } from "./AgoraClassroom";
 import { openZoomLive } from "./ZoomLive";
 
 type LiveClass = {
@@ -11,7 +10,7 @@ type LiveClass = {
   lesson_title: string;
   course_title: string;
   module_title: string;
-  provider: "agora" | "zoom" | "youtube_live";
+  provider: "zoom" | "youtube_live";
   instructor_name: string;
   starts_at: string;
   ends_at: string;
@@ -20,7 +19,6 @@ type LiveClass = {
 };
 
 const providerNames = {
-  agora: "ADCI Live Classroom",
   zoom: "Zoom Live",
   youtube_live: "YouTube Live"
 };
@@ -44,10 +42,6 @@ export default function LiveClassSchedule({ notify }: { notify: (message: string
   useEffect(() => { void refresh(); }, []);
 
   async function join(liveClass: LiveClass) {
-    if (liveClass.provider === "agora") {
-      openAgoraClassroom(liveClass.lesson_id);
-      return;
-    }
     if (liveClass.provider === "zoom") {
       openZoomLive(liveClass.lesson_id);
       return;

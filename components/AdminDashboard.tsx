@@ -21,7 +21,6 @@ import { useEffect, useMemo, useState } from "react";
 import { getAdciAdminDashboard, type AdciAdminDashboard } from "../lib/supabase/admin";
 
 const providerNames: Record<string, string> = {
-  agora: "ADCI Live Classroom",
   zoom: "Zoom Live",
   youtube_live: "YouTube Live"
 };

@@ -15,7 +15,7 @@ const contentSecurityPolicy = [
   "frame-src 'self' https://api.razorpay.com https://*.razorpay.com https://zoom.us https://*.zoom.us",
   // The Zoom Web Meeting SDK calls the apex host (https://zoom.us/api/v1/wc/*) as
   // well as its subdomains, and streams source maps from its CloudFront bucket.
-  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.r2.cloudflarestorage.com https://api.razorpay.com https://*.razorpay.com https://zoom.us https://*.zoom.us wss://zoom.us wss://*.zoom.us https://d1cdksi819e9z7.cloudfront.net https://*.agora.io wss://*.agora.io https://*.agoralab.co wss://*.agoralab.co",
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.r2.cloudflarestorage.com https://api.razorpay.com https://*.razorpay.com https://zoom.us https://*.zoom.us wss://zoom.us wss://*.zoom.us https://d1cdksi819e9z7.cloudfront.net",
   "manifest-src 'self'",
   "block-all-mixed-content"
 ].join("; ");

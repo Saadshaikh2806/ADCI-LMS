@@ -14,8 +14,6 @@ export const productionEnvironmentVariables = [
   "EMAIL_FROM",
   "CRON_SECRET",
   "NEXT_PUBLIC_APP_URL",
-  "AGORA_APP_ID",
-  "AGORA_APP_CERTIFICATE",
   "ZOOM_ACCOUNT_ID",
   "ZOOM_API_CLIENT_ID",
   "ZOOM_API_CLIENT_SECRET",

@@ -26,7 +26,6 @@ import {
 } from "../lib/supabase/learning";
 import { getSupabaseBrowserClient } from "../lib/supabase/client";
 import ContentProtection from "./ContentProtection";
-import { openAgoraClassroom } from "./AgoraClassroom";
 import { openZoomLive } from "./ZoomLive";
 import StudentQuizRunner from "./StudentQuizRunner";
 
@@ -40,7 +39,6 @@ const lessonTypeNames: Record<LearningLesson["lesson_type"], string> = {
 };
 
 const liveProviderNames = {
-  agora: "ADCI Live Classroom",
   zoom: "Zoom Live",
   youtube_live: "YouTube Live"
 };
@@ -186,10 +184,6 @@ export default function StudentCoursePlayer({
 
   async function joinLiveClass() {
     if (!selectedLesson?.live_class) return;
-    if (selectedLesson.live_class.provider === "agora") {
-      openAgoraClassroom(selectedLesson.id);
-      return;
-    }
     if (selectedLesson.live_class.provider === "zoom") {
       openZoomLive(selectedLesson.id);
       return;
