@@ -12,6 +12,7 @@ Vercel logs include an `x-request-id` response header and structured JSON for un
 - Vercel cron `/api/notifications/dispatch` completed successfully.
 - `adci_email_deliveries` has no growing due/failed backlog.
 - `adci_payment_webhook_events` has no recurring `processing_error`.
+- Live schedule has no unresolved pending Zoom removals. Use its **Retry Zoom removal** control after correcting provider permissions or outages. The meeting ID is retained in `adci_zoom_cleanup` until cleanup succeeds.
 - Supabase database, auth and connection-pool usage remain below alert thresholds.
 
 ## Backup and restore
@@ -32,6 +33,8 @@ At least quarterly, restore the latest database backup into an isolated non-prod
 For an application-only incident, use Vercel Instant Rollback to the last known-good immutable deployment. Do not reverse a database migration by deleting tables or columns. Deploy a tested forward-fix migration unless the release owner has validated a dedicated down migration against a restored copy. Disable affected course offers or live-session creation when containment is safer than an immediate data change.
 
 ## Incident response
+
+For a Zoom cleanup backlog, run `node scripts/cleanup_orphan_zoom_meetings.mjs` to inspect approved pending removals, then add `--apply` to retry them. It paginates the complete queue, preserves failed items, and exits nonzero if any removal fails. Historical meetings absent from the LMS are not automatically classified as owned; review those manually in Zoom.
 
 For suspected credential exposure, disable the affected integration, rotate the secret at the provider, update the Vercel environment, redeploy, invalidate related sessions/tokens and review audit/provider logs. For payment discrepancies, preserve webhook and order records, suspend fulfilment only if necessary, and reconcile against Razorpay before modifying entitlements. Document timeline, user impact, containment, recovery and follow-up work.
 

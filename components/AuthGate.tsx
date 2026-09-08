@@ -1,9 +1,10 @@
 "use client";
 
 import { ArrowRight, Check, GraduationCap, LoaderCircle, LockKeyhole, Mail, ShieldCheck } from "lucide-react";
-import type { Session, SupabaseClient } from "@supabase/supabase-js";
+import type { Session } from "@supabase/supabase-js";
 import { createContext, type ReactNode, useContext, useEffect, useRef, useState } from "react";
 import { getSupabaseBrowserClient, isSupabaseConfigured } from "../lib/supabase/client";
+import { verifyActiveSession } from "../lib/supabase/session";
 import MfaChallengeDialog from "./MfaChallengeDialog";
 import ThemeToggle from "./ThemeToggle";
 import AdciLogo from "./AdciLogo";
@@ -14,72 +15,6 @@ const AuthSessionContext = createContext<Session | null>(null);
 
 export function useAuthSession() {
   return useContext(AuthSessionContext);
-}
-
-// One active browser per account. Each browser keeps a random device token; a
-// sign-in writes it to adci_active_sessions (overwriting any previous device),
-// and every other signed-in browser signs itself out once it sees the mismatch.
-const DEVICE_SESSION_KEY = "adci-device-session";
-const SIGNED_IN_ELSEWHERE = "You have been signed out because this account was opened on another device.";
-
-function readDeviceToken(create: boolean) {
-  try {
-    let token = window.localStorage.getItem(DEVICE_SESSION_KEY);
-    if (!token && create) {
-      token = crypto?.randomUUID?.() ?? `dev-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-      window.localStorage.setItem(DEVICE_SESSION_KEY, token);
-    }
-    return token;
-  } catch {
-    return null;
-  }
-}
-
-async function claimActiveSession(supabase: SupabaseClient, userId?: string) {
-  if (!userId) return;
-  const token = readDeviceToken(true);
-  if (!token) return;
-  try {
-    await supabase.from("adci_active_sessions").upsert({
-      user_id: userId,
-      session_token: token,
-      device_label: navigator.userAgent.slice(0, 160),
-      updated_at: new Date().toISOString()
-    });
-  } catch {
-    // Non-fatal — the ownership check still runs; worst case is two live sessions.
-  }
-}
-
-// Returns false only when this browser's token is definitely not the one on
-// record. Transient errors and missing rows resolve to "still owner" so nobody
-// is locked out by a hiccup. With claimIfUnset the current browser takes
-// ownership when nothing is recorded yet (first sign-in on this device).
-async function confirmActiveSession(supabase: SupabaseClient, userId: string, claimIfUnset: boolean) {
-  let stored = readDeviceToken(false);
-  let serverToken: string | null = null;
-  try {
-    const { data } = await supabase
-      .from("adci_active_sessions")
-      .select("session_token")
-      .eq("user_id", userId)
-      .maybeSingle();
-    serverToken = (data?.session_token as string | undefined) ?? null;
-  } catch {
-    return true;
-  }
-  if (!stored) {
-    if (!claimIfUnset) return true;
-    stored = readDeviceToken(true);
-    if (!stored) return true;
-    await claimActiveSession(supabase, userId);
-    return true;
-  }
-  if (!serverToken) {
-    if (claimIfUnset) await claimActiveSession(supabase, userId);
-    return true;
-  }
-  return stored === serverToken;
 }
 
 export default function AuthGate({ children }: { children: ReactNode }) {
@@ -168,12 +103,13 @@ export default function AuthGate({ children }: { children: ReactNode }) {
         return;
       }
 
-      const stillOwner = await confirmActiveSession(authClient, verifiedUser.id, true);
-      if (!stillOwner) {
+      try {
+        await verifyActiveSession(authClient, true);
+      } catch (sessionError) {
         await authClient.auth.signOut({ scope: "local" });
         if (active) {
           setSession(null);
-          setMessage(SIGNED_IN_ELSEWHERE);
+          setMessage(sessionError instanceof Error ? sessionError.message : "Unable to verify your session. Please sign in again.");
           setLoading(false);
         }
         return;
@@ -210,16 +146,18 @@ export default function AuthGate({ children }: { children: ReactNode }) {
     const supabase = getSupabaseBrowserClient();
     if (!supabase) return;
     const client = supabase;
-    const userId = session.user.id;
     let active = true;
 
     async function ensureStillOwner() {
-      if (!active || document.visibilityState === "hidden") return;
-      const stillOwner = await confirmActiveSession(client, userId, false);
-      if (!active || stillOwner) return;
-      await client.auth.signOut({ scope: "local" });
-      setSession(null);
-      setMessage(SIGNED_IN_ELSEWHERE);
+      if (!active) return;
+      try {
+        await verifyActiveSession(client);
+      } catch (sessionError) {
+        if (!active) return;
+        await client.auth.signOut({ scope: "local" });
+        setSession(null);
+        setMessage(sessionError instanceof Error ? sessionError.message : "Unable to verify your session. Please sign in again.");
+      }
     }
 
     const timer = window.setInterval(() => void ensureStillOwner(), 60000);
@@ -260,11 +198,9 @@ export default function AuthGate({ children }: { children: ReactNode }) {
         });
         if (error) throw error;
         if (!data.session) setMessage("Check your inbox to confirm your ADCI account.");
-        else await claimActiveSession(supabase, data.user?.id);
       } else {
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        await claimActiveSession(supabase, data.user?.id);
       }
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Unable to continue. Please try again.");
@@ -293,7 +229,15 @@ export default function AuthGate({ children }: { children: ReactNode }) {
       setLoading(false);
       return;
     }
-    await claimActiveSession(supabase, data.session.user.id);
+    try {
+      await verifyActiveSession(supabase, true);
+    } catch (error) {
+      await supabase.auth.signOut({ scope: "local" });
+      setSession(null);
+      setMessage(error instanceof Error ? error.message : "Unable to verify your session");
+      setLoading(false);
+      return;
+    }
     await claimInitialAdminOnce(data.session.user.id);
     setSession(data.session);
     setLoading(false);

@@ -32,9 +32,10 @@ await db.exec(`
   create table public.adci_audit_events(organization_id uuid, actor_id uuid, action text,
     entity_type text, entity_id uuid, new_values jsonb);
 `);
-// Exercise the application's real role/MFA check rather than a permissive stub.
+// Exercise the current role policy, including the later optional-MFA migration.
 const mfa = readFileSync('supabase/migrations/202608010001_admin_mfa_security.sql', 'utf8');
 await db.exec(mfa.slice(mfa.indexOf('create or replace function'), mfa.indexOf('create or replace function public.adci_record_security_event')));
+await db.exec(readFileSync('supabase/migrations/202608020004_optional_admin_mfa.sql', 'utf8'));
 await db.exec(readFileSync('supabase/migrations/202609050001_super_admin_complimentary_access.sql', 'utf8'));
 await db.exec(`
   insert into auth.users values ('${id(1)}','learner@example.test'),('${id(2)}','staff@example.test');
@@ -61,7 +62,7 @@ for (const role of ['student','instructor','content_author','academic_lead','bra
   await assert.rejects(grant, /Only a super administrator/, `${role} cannot grant access`);
 }
 await actor('super_admin', 'aal1');
-await assert.rejects(grant, /Only a super administrator/, 'MFA required for grant');
+await grant(); // MFA enrollment is optional; enrolled-account assurance is enforced by the session guard.
 await actor('super_admin');
 await db.exec(`update public.adci_memberships set active=false`);
 await assert.rejects(grant, /Only a super administrator/, 'inactive super admin denied');
@@ -102,7 +103,7 @@ for (const role of ['anon','authenticated']) {
     assert.equal(result[0].allowed, false, `${role} cannot invoke privileged admission RPC`);
   }
 }
-console.log('PASS: Zoom payments, complimentary grants, MFA, role boundaries, expiry and RPC permissions');
+console.log('PASS: Zoom payments, complimentary grants, current role policy, expiry and RPC permissions');
 // Exercise deletion against real SQL, including stale purchase confirmation.
 await db.exec(`
   alter table public.adci_live_classes add column series_id uuid;
@@ -112,28 +113,33 @@ await db.exec(`
   alter table public.adci_orders add column paid_at timestamptz;
 `);
 await db.exec(readFileSync('supabase/migrations/202609050002_live_class_deletion.sql', 'utf8'));
+await db.exec(`create table public.adci_organizations(id uuid primary key); insert into public.adci_organizations values ('${id(20)}')`);
+await db.exec(readFileSync('supabase/migrations/202609080001_zoom_cleanup.sql', 'utf8'));
 const preview = () => query(`select public.adci_admin_live_delete_details('${id(12)}') as details`);
 const remove = count => db.query(`select public.adci_admin_delete_live_schedule($1::uuid,$2::integer)`, [id(12), count]);
 await actor('student');
 await assert.rejects(preview, /permission required/, 'student cannot inspect buyers');
 await assert.rejects(() => remove(1), /permission required/, 'student cannot delete');
 await actor('super_admin', 'aal1');
-await assert.rejects(() => remove(1), /permission required/, 'deletion requires MFA');
+assert.equal((await preview())[0].details.purchased_learners, 1, 'current role policy permits optional MFA');
 await actor('super_admin');
 assert.equal((await preview())[0].details.purchased_learners, 1);
 await assert.rejects(() => db.query(`select public.adci_admin_delete_live_schedule('${id(12)}')`), /confirmation/, 'old endpoint cannot bypass confirmation');
 await assert.rejects(() => remove(null), /Purchases changed/, 'confirmation required');
 await assert.rejects(() => remove(0), /Purchases changed/, 'stale count denied');
+assert.equal((await query('select count(*)::int as n from public.adci_zoom_cleanup'))[0].n, 0, 'rejected deletion never queues Zoom cleanup');
 await db.exec(`update public.adci_orders set status='refunded'`);
 assert.equal((await preview())[0].details.purchased_learners, 1, 'refunded buyer still shown');
 await db.exec(`insert into public.adci_orders values ('${id(32)}','${id(1)}','${id(30)}','paid','second_payment',100,now())`);
 assert.equal((await preview())[0].details.purchased_learners, 1, 'repeat purchases count learner once');
 await remove(1);
+assert.equal((await query('select meeting_number from public.adci_zoom_cleanup'))[0].meeting_number, '123456789', 'successful deletion retains the exact owned Zoom meeting for retry');
+assert.equal((await query("select has_table_privilege('authenticated','public.adci_zoom_cleanup','delete') as allowed"))[0].allowed, false, 'client cannot erase cleanup work');
 assert.equal((await query(`select count(*)::int as n from public.adci_live_classes`))[0].n, 0);
 assert.equal((await query(`select count(*)::int as n from public.adci_orders`))[0].n, 2, 'orders retained');
 assert.equal((await query(`select count(*)::int as n from public.adci_enrolments`))[0].n, 1, 'enrolments retained');
 assert.equal((await query(`select active from public.adci_course_offers`))[0].active, false, 'removed standalone session cannot be sold');
 assert.equal((await query(`select status from public.adci_lessons`))[0].status, 'retired');
 await assert.rejects(() => db.query(`select public.adci_get_zoom_access('${id(12)}','${id(2)}')`), /unavailable/, 'deleted class denies fresh joins');
-console.log('PASS: purchase-aware deletion, MFA, stale confirmations, refunds, retained records and admission');
+console.log('PASS: purchase-aware deletion, cleanup capture, stale confirmations, refunds, retained records and admission');
 await db.close();

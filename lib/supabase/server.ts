@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createClient } from "@supabase/supabase-js";
+import { verifyActiveSession } from "./session";
 
 export function requireServerEnvironment(name: string) {
   const value = process.env[name];
@@ -30,5 +31,6 @@ export async function requireServerUser(request: Request) {
     auth: { persistSession: false, autoRefreshToken: false },
     global: { headers: { Authorization: `Bearer ${token}` } }
   });
+  await verifyActiveSession(userClient);
   return { user: data.user, userClient, service };
 }

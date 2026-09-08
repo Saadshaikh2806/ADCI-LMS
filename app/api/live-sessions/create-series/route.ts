@@ -112,7 +112,10 @@ export async function POST(request: Request) {
     if (error) throw error;
     return Response.json(data);
   } catch (error) {
-    await Promise.all(createdZoomMeetings.map(deleteZoomMeeting));
+    const cleanup = await Promise.allSettled(createdZoomMeetings.map(deleteZoomMeeting));
+    cleanup.forEach((result, index) => {
+      if (result.status === "rejected") console.error("Zoom creation rollback failed", createdZoomMeetings[index], result.reason);
+    });
     return Response.json({ error: errorMessage(error) }, { status: apiErrorStatus(error), headers: apiErrorHeaders(error) });
   }
 }

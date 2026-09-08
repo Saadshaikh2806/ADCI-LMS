@@ -3,6 +3,7 @@ import "server-only";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import { apiErrorHeaders, apiErrorStatus } from "../security/rate-limit";
+import { requireServerUser } from "./server";
 
 const RAZORPAY_API = "https://api.razorpay.com/v1";
 
@@ -30,20 +31,8 @@ export function getServiceSupabase() {
 }
 
 export async function requireAuthenticatedPaymentRequest(request: Request) {
-  const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "").trim();
-  if (!token) throw new Error("Authentication required");
-
   const environment = getPaymentEnvironment();
-  const service = getServiceSupabase();
-  const { data, error } = await service.auth.getUser(token);
-  if (error || !data.user) throw new Error("Your session has expired. Please sign in again.");
-
-  const userClient = createClient(environment.supabaseUrl, environment.publishableKey, {
-    auth: { persistSession: false, autoRefreshToken: false },
-    global: { headers: { Authorization: `Bearer ${token}` } }
-  });
-
-  return { user: data.user, userClient, service, environment };
+  return { ...await requireServerUser(request), environment };
 }
 
 function encodeBasicAuth(keyId: string, keySecret: string) {

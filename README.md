@@ -13,7 +13,7 @@ Local environment files are ignored by Git. Never commit the Supabase service-ro
 
 ## Database
 
-Use the Supabase CLI to apply the ordered SQL files in `supabase/migrations`. The current migration head is `202609060001_production_readiness.sql`; CI proves that the complete chain applies to an empty local project.
+Use the Supabase CLI to apply the ordered SQL files in `supabase/migrations`. The current migration head is `202609080002_verified_active_sessions.sql`; CI proves that the complete chain applies to an empty local project.
 
 ## Video storage
 

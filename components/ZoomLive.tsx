@@ -6,6 +6,7 @@ import { getSupabaseBrowserClient } from "../lib/supabase/client";
 
 const ACTIVE_ZOOM_KEY = "adci-active-zoom-live";
 const OPEN_ZOOM_EVENT = "adci-open-zoom-live";
+const ZOOM_HISTORY_KEY = "adciZoomLive";
 const LESSON_ID_PATTERN = /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i;
 
 type ZoomCredentials = {
@@ -32,6 +33,13 @@ export function openZoomLive(lessonId: string) {
   }
 }
 
+function rememberZoomScreen() {
+  if (!window.history.state?.[ZOOM_HISTORY_KEY]) {
+    // Keep the LMS screen underneath Zoom in history, including Next's state.
+    window.history.pushState({ ...window.history.state, [ZOOM_HISTORY_KEY]: true }, "", window.location.href);
+  }
+}
+
 export function PersistentZoomLive({ userId }: { userId: string }) {
   const [active, setActive] = useState<{ lessonId: string } | null>(null);
 
@@ -41,7 +49,8 @@ export function PersistentZoomLive({ userId }: { userId: string }) {
     if (query.get("zoomLeft") === "1") {
       window.sessionStorage.removeItem(ACTIVE_ZOOM_KEY);
       query.delete("zoomLeft");
-      window.history.replaceState({}, "", `${window.location.pathname}${query.size ? `?${query}` : ""}${window.location.hash}`);
+      const { [ZOOM_HISTORY_KEY]: _zoom, ...historyState } = window.history.state ?? {};
+      window.history.replaceState(historyState, "", `${window.location.pathname}${query.size ? `?${query}` : ""}${window.location.hash}`);
     } else {
       try {
         const saved = JSON.parse(window.sessionStorage.getItem(ACTIVE_ZOOM_KEY) || "null") as {
@@ -49,6 +58,7 @@ export function PersistentZoomLive({ userId }: { userId: string }) {
           lessonId?: string;
         } | null;
         if (saved?.userId === userId && saved.lessonId && LESSON_ID_PATTERN.test(saved.lessonId)) {
+          rememberZoomScreen();
           setActive({ lessonId: saved.lessonId });
         } else {
           window.sessionStorage.removeItem(ACTIVE_ZOOM_KEY);
@@ -61,15 +71,29 @@ export function PersistentZoomLive({ userId }: { userId: string }) {
     const open = (event: Event) => {
       const lessonId = (event as CustomEvent<string>).detail;
       if (!userId || !LESSON_ID_PATTERN.test(lessonId)) return;
+      rememberZoomScreen();
       window.sessionStorage.setItem(ACTIVE_ZOOM_KEY, JSON.stringify({ userId, lessonId }));
       setActive({ lessonId });
     };
     window.addEventListener(OPEN_ZOOM_EVENT, open);
-    return () => window.removeEventListener(OPEN_ZOOM_EVENT, open);
+    const onBack = () => {
+      if (window.history.state?.[ZOOM_HISTORY_KEY]) return;
+      window.sessionStorage.removeItem(ACTIVE_ZOOM_KEY);
+      setActive(null);
+    };
+    window.addEventListener("popstate", onBack);
+    return () => {
+      window.removeEventListener(OPEN_ZOOM_EVENT, open);
+      window.removeEventListener("popstate", onBack);
+    };
   }, [userId]);
 
   if (!active) return null;
   const close = () => {
+    if (window.history.state?.[ZOOM_HISTORY_KEY]) {
+      window.history.back();
+      return;
+    }
     window.sessionStorage.removeItem(ACTIVE_ZOOM_KEY);
     setActive(null);
   };
@@ -83,6 +107,22 @@ function ZoomLive({ lessonId, close }: {
   const [joining, setJoining] = useState(false);
   const [error, setError] = useState("");
   const started = useRef(false);
+  const mounted = useRef(true);
+  const leaveMeeting = useRef<(() => void) | null>(null);
+  const startupTimer = useRef<number | undefined>(undefined);
+
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      window.clearTimeout(startupTimer.current);
+      const root = document.getElementById("zmmtg-root");
+      if (root) root.style.display = "none";
+      // AuthGate unmounts this component when the account loses its session.
+      // The SDK owns a separate DOM root and must also be explicitly disconnected.
+      try { leaveMeeting.current?.(); } catch (error) { console.error("Zoom disconnect failed", error); }
+    };
+  }, []);
 
   const requestAccess = useCallback(async () => {
     const supabase = getSupabaseBrowserClient();
@@ -93,7 +133,8 @@ function ZoomLive({ lessonId, close }: {
     const response = await fetch("/api/live-sessions/zoom", {
       method: "POST",
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ lessonId })
+      body: JSON.stringify({ lessonId }),
+      signal: AbortSignal.timeout(30_000)
     });
     const result = await response.json() as ZoomCredentials & { error?: string };
     if (!response.ok) throw new Error(result.error || "Zoom Live could not be opened");
@@ -101,14 +142,14 @@ function ZoomLive({ lessonId, close }: {
   }, [lessonId]);
 
   const startMeeting = useCallback(async (credentials: ZoomCredentials) => {
-    if (started.current) return;
+    if (!mounted.current || started.current) return;
     started.current = true;
     setJoining(true);
     setError("");
     const root = document.getElementById("zmmtg-root");
     let settled = false;
     const finish = (message?: string) => {
-      if (settled) return;
+      if (settled || !mounted.current) return;
       settled = true;
       window.clearTimeout(timer);
       setJoining(false);
@@ -121,13 +162,18 @@ function ZoomLive({ lessonId, close }: {
       () => finish("Zoom did not respond. Check the browser console for the Zoom SDK error and try again."),
       45000
     );
+    startupTimer.current = timer;
     try {
       const { ZoomMtg } = await import("@zoom/meetingsdk");
+      if (!mounted.current || settled) return;
+      leaveMeeting.current = () => ZoomMtg.leaveMeeting({ confirm: false });
       ZoomMtg.preLoadWasm();
       ZoomMtg.prepareWebSDK();
       if (root) root.style.display = "block";
+      const leaveUrl = new URL(window.location.href);
+      leaveUrl.searchParams.set("zoomLeft", "1");
       ZoomMtg.init({
-        leaveUrl: `${window.location.origin}${window.location.pathname}?zoomLeft=1`,
+        leaveUrl: leaveUrl.href,
         patchJsMedia: true,
         leaveOnPageUnload: true,
         disableInvite: true,
@@ -143,6 +189,7 @@ function ZoomLive({ lessonId, close }: {
         defaultView: "gallery",
         meetingInfo: ["topic", "host", "participant"],
         success: () => {
+          if (!mounted.current || settled) return;
           // Zoom can now wait indefinitely for the learner on its preview screen.
           window.clearTimeout(timer);
           ZoomMtg.join({
@@ -179,7 +226,7 @@ function ZoomLive({ lessonId, close }: {
 
   return <div className="zoom-live-backdrop" role="dialog" aria-modal="true" aria-label="Zoom Live">
     <section className="zoom-live-gate">
-      <header><div><Video /><span><strong>Zoom Live</strong><small>Private paid live session</small></span></div><button aria-label="Close Zoom Live" disabled={joining} onClick={close}><X /></button></header>
+      <header><div><Video /><span><strong>Zoom Live</strong><small>Private paid live session</small></span></div><button aria-label="Close Zoom Live" onClick={close}><X /></button></header>
       {joining ? <div className="zoom-live-state"><LoaderCircle className="spin" /><strong>Starting Zoom Live…</strong><p>Verifying your session access securely.</p></div> : <>
         <div className="zoom-live-shield"><LockKeyhole /></div>
         <p className="eyebrow">ACCOUNT-BOUND ACCESS</p>

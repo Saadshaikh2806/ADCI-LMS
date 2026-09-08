@@ -5,6 +5,13 @@ import { requireServerEnvironment } from "../supabase/server";
 
 const ZOOM_API = "https://api.zoom.us/v2";
 
+export class ZoomApiError extends Error {
+  constructor(message: string, readonly status: number, readonly code?: number) {
+    super(message);
+    this.name = "ZoomApiError";
+  }
+}
+
 type ZoomMeeting = {
   id: number;
   password?: string;
@@ -56,8 +63,8 @@ async function zoomRequest<T>(path: string, init: RequestInit = {}) {
     signal: AbortSignal.timeout(20_000)
   });
   if (response.status === 204) return undefined as T;
-  const result = await response.json() as T & { message?: string };
-  if (!response.ok) throw new Error(result.message || "Zoom could not complete this request");
+  const result = await response.json().catch(() => ({})) as T & { message?: string; code?: number };
+  if (!response.ok) throw new ZoomApiError(result.message || "Zoom could not complete this request", response.status, result.code);
   return result;
 }
 
@@ -101,23 +108,22 @@ export async function createZoomMeeting(input: {
 export async function deleteZoomMeeting(meetingNumber: string) {
   try {
     await zoomRequest<void>(`/meetings/${encodeURIComponent(meetingNumber)}`, { method: "DELETE" });
-  } catch {
-    // Creation rollback is best effort; the original failure is more useful to the administrator.
+  } catch (error) {
+    if (!(error instanceof ZoomApiError && error.status === 404 && error.code === 3001)) throw error;
   }
 }
 
-// The whole platform hosts through one Zoom user, so that user can only run one
-// meeting at a time. Force-ending a stale session frees the host to start the
-// next one (SDK error 3000 otherwise). A meeting that is not running returns a
-// 400 that is safe to ignore.
+// Inspect state instead of treating every failed end request as "already ended".
 export async function endZoomMeeting(meetingNumber: string) {
   try {
+    const meeting = await zoomRequest<{ status?: string }>(`/meetings/${encodeURIComponent(meetingNumber)}`);
+    if (meeting.status === "waiting") return;
     await zoomRequest<void>(`/meetings/${encodeURIComponent(meetingNumber)}/status`, {
       method: "PUT",
       body: JSON.stringify({ action: "end" })
     });
-  } catch {
-    // Already ended / never started — nothing to do.
+  } catch (error) {
+    if (!(error instanceof ZoomApiError && error.status === 404 && error.code === 3001)) throw error;
   }
 }
 

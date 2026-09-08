@@ -1,6 +1,6 @@
 # ADCI LMS production release checklist
 
-The current schema ends at `202609060001_production_readiness.sql`. Release the application and database from the same reviewed commit; never paste only part of a migration into production.
+The current schema ends at `202609080002_verified_active_sessions.sql`. Release the application and database from the same reviewed commit; never paste only part of a migration into production.
 
 ## 1. Automated release gates
 
@@ -26,7 +26,19 @@ supabase db push --dry-run
 supabase db push
 ```
 
-Confirm the Supabase migration history ends at `202609060001`. Never rename an applied migration. Before pushing, verify a current database restore point as described in `OPERATIONS_RUNBOOK.md`.
+Confirm the Supabase migration history ends at `202609080002`. Never rename an applied migration. Before pushing, verify a current database restore point as described in `OPERATIONS_RUNBOOK.md`.
+
+### September 8 session and Zoom repair
+
+Deploy the new application and migrations together during a maintenance window. Apply every pending migration, including `202609060002_single_active_session.sql`, `202609080001_zoom_cleanup.sql`, and `202609080002_verified_active_sessions.sql`. The old browser code cannot claim the new verified session records. Reload open tabs after deployment; users may need to sign in again. Do not roll the application back to the old device-token implementation while the new session guard is enabled.
+
+The session migration installs `public.adci_check_request_session` as the PostgREST pre-request hook and adds restrictive session policies to existing ADCI tables and Storage objects. If the project has a custom pre-request hook outside this repository, compose its checks with this one before applying the migration. Verify the hook is configured and reloaded, rather than merely checking that its function exists. New protected tables must also receive the restrictive session policy.
+
+MFA enrollment remains optional. Accounts with a verified factor must complete MFA before claiming a session. Sign in with the same test account in two independent browser profiles; the second login must succeed, the first must lose Data API/Next API/Storage access, and the first browser must leave its embedded classroom when it notices revocation. Browser timers may be throttled in background tabs. Already-issued third-party credentials and signed media URLs retain their provider-defined lifetime; this is not DRM or a promise of instantaneous provider-side revocation.
+
+Verify Zoom deletion with an authorized administrator: stale purchase confirmation must leave the meeting untouched, ordinary deletion must remove it from the LMS and Zoom, and an unavailable Zoom API must leave a visible pending removal with a working retry. The cleanup script now processes only the durable `adci_zoom_cleanup` queue; it never deletes unrelated/untracked host meetings.
+
+Provider references: [Supabase session IDs](https://supabase.com/docs/guides/auth/sessions), [Data API pre-request checks and their Storage/Realtime limits](https://supabase.com/docs/guides/api/securing-your-api), and [Zoom meeting state/deletion APIs](https://developers.zoom.us/docs/api/meetings/).
 
 ## 3. Production configuration
 

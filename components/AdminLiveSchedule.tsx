@@ -40,6 +40,8 @@ export default function AdminLiveSchedule({ notify }: {
   notify: (message: string) => void;
 }) {
   const [schedule, setSchedule] = useState<AdciLiveSchedule | null>(null);
+  const [pendingZoom, setPendingZoom] = useState<Array<{ lesson_id: string; title: string; last_error: string | null }>>([]);
+  const [retryingZoom, setRetryingZoom] = useState<string | null>(null);
   const [days, setDays] = useState(30);
   const [filter, setFilter] = useState<"upcoming" | "all" | "scheduled" | "live" | "ended">("upcoming");
   const [now, setNow] = useState(Date.now());
@@ -73,6 +75,13 @@ export default function AdminLiveSchedule({ notify }: {
     setError("");
     try {
       setSchedule(await getAdciAdminLiveSchedule(days));
+      const client = getSupabaseBrowserClient();
+      if (client) {
+        const { data, error: cleanupError } = await client.from("adci_zoom_cleanup")
+          .select("lesson_id,title,last_error").order("created_at");
+        if (cleanupError) throw new Error(cleanupError.message);
+        setPendingZoom(data ?? []);
+      }
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : "Unable to load live schedule");
     } finally {
@@ -186,7 +195,7 @@ export default function AdminLiveSchedule({ notify }: {
     else window.open(liveClass.meeting_url, "_blank", "noopener,noreferrer");
   }
 
-  async function callZoomEndpoint(lessonId: string, alsoDelete: boolean) {
+  async function callZoomEndpoint(lessonId: string, alsoDelete: boolean, purchasedLearners?: number) {
     const supabase = getSupabaseBrowserClient();
     if (!supabase) throw new Error("Supabase is not configured");
     const { data } = await supabase.auth.getSession();
@@ -195,10 +204,25 @@ export default function AdminLiveSchedule({ notify }: {
     const response = await fetch("/api/live-sessions/zoom/end", {
       method: "POST",
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ lessonId, alsoDelete })
+      body: JSON.stringify({ lessonId, alsoDelete, purchasedLearners })
     });
-    const result = await response.json() as { error?: string };
+    const result = await response.json() as { error?: string; zoomRemoved?: boolean; warning?: string };
     if (!response.ok) throw new Error(result.error || "The Zoom meeting request failed");
+    return result;
+  }
+
+  async function retryZoomRemoval(lessonId: string) {
+    setRetryingZoom(lessonId);
+    try {
+      const result = await callZoomEndpoint(lessonId, true);
+      await refresh();
+      if (!result.zoomRemoved) setError(result.warning || "Zoom removal failed. You can retry.");
+      else notify("Zoom meeting removed.");
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : "Zoom removal failed");
+    } finally {
+      setRetryingZoom(null);
+    }
   }
 
   async function endZoomSession(liveClass: AdciScheduledLiveClass) {
@@ -219,22 +243,17 @@ export default function AdminLiveSchedule({ notify }: {
     let zoomRemoved = deleteClass.provider !== "zoom";
     try {
       if (deleteClass.provider === "zoom") {
-        // Remove the Zoom meeting first — the LMS delete drops the row that
-        // holds its number. A Zoom failure must not block the LMS delete.
-        try {
-          await callZoomEndpoint(deleteClass.lesson_id, true);
-          zoomRemoved = true;
-        } catch {
-          zoomRemoved = false;
-        }
+        const result = await callZoomEndpoint(deleteClass.lesson_id, true, deleteDetails.purchased_learners);
+        zoomRemoved = result.zoomRemoved === true;
+      } else {
+        await deleteAdciLiveSchedule(deleteClass.lesson_id, deleteDetails.purchased_learners);
       }
-      await deleteAdciLiveSchedule(deleteClass.lesson_id, deleteDetails.purchased_learners);
       setSchedule((current) => current ? { ...current, classes: current.classes.filter((item) => item.lesson_id !== deleteClass.lesson_id) } : current);
       setDeleteClass(null);
       notify(
         zoomRemoved
           ? "Live class deleted from the LMS and Zoom. Payment and attendance records retained."
-          : "Live class deleted from the LMS. Remove the meeting in Zoom manually — automatic removal failed."
+          : "Live class deleted from the LMS. Zoom removal is pending; use Retry Zoom removal below."
       );
       await refresh();
     } catch (failure) {
@@ -254,6 +273,15 @@ export default function AdminLiveSchedule({ notify }: {
       <div><select value={days} onChange={(event) => setDays(Number(event.target.value))}><option value="7">Next 7 days</option><option value="30">Next 30 days</option><option value="90">Next 90 days</option><option value="180">Next 6 months</option></select><button onClick={() => void refresh()}><RefreshCw className={loading ? "spin" : ""} /> Refresh</button><button onClick={() => openBookableSeries("agora")}><Plus /> Agora Live</button><button className="primary" onClick={() => openBookableSeries("zoom")}><Video /> Zoom Live</button></div>
     </div>
     {error && <div className="course-error">{error}</div>}
+    {pendingZoom.length > 0 && <section className="course-error" aria-label="Pending Zoom removals">
+      <strong>These classes are deleted from the LMS. Zoom removal is still pending.</strong>
+      {pendingZoom.map((item) => <div key={item.lesson_id}>
+        <p>{item.title}{item.last_error ? ` — ${item.last_error}` : ""}</p>
+        <button disabled={retryingZoom !== null} onClick={() => void retryZoomRemoval(item.lesson_id)}>
+          {retryingZoom === item.lesson_id ? "Removing…" : "Retry Zoom removal"}
+        </button>
+      </div>)}
+    </section>}
 
     <section className="live-admin-metrics">
       <article><div><CalendarDays /></div><span>SCHEDULED</span><strong>{liveSummary.scheduled}</strong><p>Agora and Zoom Live sessions</p></article>
@@ -294,7 +322,7 @@ export default function AdminLiveSchedule({ notify }: {
         <p><strong>{deleteDetails.purchased_learners} learner{deleteDetails.purchased_learners === 1 ? " has" : "s have"} purchased access to this class or its course (including refunded purchases).</strong></p>
         <p>This removes this session from the LMS and prevents new LMS joins. Other dates in the series are kept. Payment, invoice and attendance records are preserved.</p>
         {deleteDetails.purchased_learners > 0 && <div className="course-error">These learners will lose access to this class. Deleting it will not issue refunds. Arrange refunds or a replacement separately.</div>}
-        {deleteClass.provider === "zoom" && <p>The meeting is also ended and removed from the Zoom account. If that step fails you will be told to remove it in Zoom manually.</p>}
+        {deleteClass.provider === "zoom" && <p>After the LMS approves deletion, the Zoom meeting is ended and removed. If Zoom is unavailable, its removal stays listed here so you can retry.</p>}
         <label><input type="checkbox" checked={deleteAcknowledged} disabled={deleting} onChange={(event) => setDeleteAcknowledged(event.target.checked)} /> I understand and want to delete this class.</label>
       </>}
       {deleteError && <div className="course-error" role="alert">{deleteError}</div>}

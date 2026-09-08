@@ -14,7 +14,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --max-warnings=0",
     "test:logic": "node scripts/check_logic_consistency.mjs",
-    "test:zoom": "node scripts/check_zoom_registration.mjs",
+    "test:zoom": "node scripts/check_zoom_registration.mjs && node scripts/check_zoom_lifecycle.mjs",
     "test:session": "node scripts/check_session_guard.mjs",
     "test:database": "node scripts/test_zoom_access.mjs",
     "test:rate-limit": "node scripts/test_rate_limit.mjs",
