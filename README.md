@@ -36,3 +36,7 @@ Live sessions run on Zoom. Apply `202609080004_remove_agora_live.sql` to retire 
 Zoom Live uses the paid Zoom host account while keeping meeting links private. Create a Server-to-Server OAuth app and a Meeting SDK app in the Zoom App Marketplace, add meeting read/write and user token permissions, then configure the six `ZOOM_*` values shown in `.env.example`. The LMS creates approval-required meetings, checks the signed-in account's exact paid enrolment, and automatically approves only that buyer's unique Zoom registrant token without exposing a join link. Apply `202608210001_zoom_live_sessions.sql` before enabling the Zoom Live button.
 
 A class stays joinable while its Zoom meeting actually runs. Past the scheduled end it shows an **Extended** tag; when the host ends it for all (or `starts_at + 6h` passes) it expires and joins stop. `202609080005_live_class_runtime_state.sql` adds this. Detection is instant if you set `ZOOM_WEBHOOK_SECRET_TOKEN` and subscribe the Zoom app to *Meeting Started* / *Meeting Ended* (`/api/live-sessions/zoom/webhook`); otherwise the LMS reconciles Zoom state whenever a session is opened.
+
+## Learner groups and bulk access
+
+People → **Groups** builds named segments of learners. Branch and super admins create groups and manage membership; a super admin can then grant courses or live lectures to an entire group (or an ad-hoc selection on the People list) in one action. Grants are one-time — changing a group later never auto-grants or auto-revokes. Apply `202609090001_learner_groups.sql`.

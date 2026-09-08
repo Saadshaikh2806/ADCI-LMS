@@ -1090,3 +1090,123 @@ export async function setAdciCourseEnrolment(
   });
   if (error) throw error;
 }
+
+// --- Learner groups: named segments for one-shot bulk access grants ----------
+
+export type AdciLearnerGroup = {
+  id: string;
+  name: string;
+  description: string;
+  member_count: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type AdciLearnerGroupMember = {
+  learner_id: string;
+  full_name: string;
+  email: string;
+  added_at: string;
+};
+
+export type AdciLearnerGroupDetail = Omit<AdciLearnerGroup, "member_count"> & {
+  members: AdciLearnerGroupMember[];
+};
+
+export type AdciGrantableCourse = {
+  course_id: string;
+  title: string;
+  status: string;
+  kind: "course" | "live";
+  starts_at: string | null;
+};
+
+export type AdciBulkEnrolmentResult = { learners: number; courses: number; applied: number };
+
+function requireSupabase() {
+  const supabase = getSupabaseBrowserClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+  return supabase;
+}
+
+export async function listAdciLearnerGroups() {
+  const { data, error } = await requireSupabase().rpc("adci_admin_list_learner_groups");
+  if (error) throw error;
+  return (data ?? []) as AdciLearnerGroup[];
+}
+
+export async function getAdciLearnerGroup(groupId: string) {
+  const { data, error } = await requireSupabase().rpc("adci_admin_get_learner_group", { target_group_id: groupId });
+  if (error) throw error;
+  return data as AdciLearnerGroupDetail;
+}
+
+export async function createAdciLearnerGroup(name: string, description = "") {
+  const { data, error } = await requireSupabase().rpc("adci_admin_create_learner_group", {
+    group_name: name,
+    group_description: description
+  });
+  if (error) throw error;
+  return data as string;
+}
+
+export async function updateAdciLearnerGroup(groupId: string, name: string, description = "") {
+  const { error } = await requireSupabase().rpc("adci_admin_update_learner_group", {
+    target_group_id: groupId,
+    group_name: name,
+    group_description: description
+  });
+  if (error) throw error;
+}
+
+export async function archiveAdciLearnerGroup(groupId: string) {
+  const { error } = await requireSupabase().rpc("adci_admin_archive_learner_group", { target_group_id: groupId });
+  if (error) throw error;
+}
+
+export async function setAdciLearnerGroupMembers(groupId: string, memberIds: string[]) {
+  const { data, error } = await requireSupabase().rpc("adci_admin_set_learner_group_members", {
+    target_group_id: groupId,
+    member_ids: memberIds
+  });
+  if (error) throw error;
+  return data as { added: number; removed: number; total: number };
+}
+
+export async function listAdciGrantableCourses() {
+  const { data, error } = await requireSupabase().rpc("adci_admin_list_grantable_courses");
+  if (error) throw error;
+  return (data ?? []) as AdciGrantableCourse[];
+}
+
+export async function bulkSetAdciCourseEnrolment(
+  learnerIds: string[],
+  courseIds: string[],
+  status: NonNullable<AdciCourseEnrolment["enrolment_status"]>,
+  expiresAt: string | null
+) {
+  const { data, error } = await requireSupabase().rpc("adci_admin_bulk_set_course_enrolment", {
+    learner_ids: learnerIds,
+    target_course_ids: courseIds,
+    target_status: status,
+    target_access_expires_at: expiresAt
+  });
+  if (error) throw error;
+  return data as AdciBulkEnrolmentResult;
+}
+
+export async function assignCoursesToAdciLearnerGroup(
+  groupId: string,
+  courseIds: string[],
+  status: NonNullable<AdciCourseEnrolment["enrolment_status"]>,
+  expiresAt: string | null
+) {
+  const { data, error } = await requireSupabase().rpc("adci_admin_assign_courses_to_learner_group", {
+    target_group_id: groupId,
+    target_course_ids: courseIds,
+    target_status: status,
+    target_access_expires_at: expiresAt
+  });
+  if (error) throw error;
+  return data as AdciBulkEnrolmentResult;
+}
