@@ -110,6 +110,28 @@ function ZoomLive({ lessonId, close }: {
   const mounted = useRef(true);
   const leaveMeeting = useRef<(() => void) | null>(null);
   const startupTimer = useRef<number | undefined>(undefined);
+  const teardownRan = useRef(false);
+
+  // The Web Meeting SDK's Client View keeps the camera and microphone engaged
+  // behind its hidden #zmmtg-root until the page reloads. leaveMeeting() alone
+  // does not free them, so any exit path that started a meeting must navigate
+  // to the leave URL - exactly what Zoom's own Leave button does.
+  function endSessionAndReload() {
+    if (teardownRan.current) return;
+    teardownRan.current = true;
+    window.clearTimeout(startupTimer.current);
+    const root = document.getElementById("zmmtg-root");
+    if (root) root.style.display = "none";
+    try { leaveMeeting.current?.(); } catch (leaveError) { console.error("Zoom disconnect failed", leaveError); }
+    const leaveUrl = new URL(window.location.href);
+    leaveUrl.searchParams.set("zoomLeft", "1");
+    window.location.replace(leaveUrl.href);
+  }
+
+  function handleClose() {
+    if (started.current) endSessionAndReload();
+    else close();
+  }
 
   useEffect(() => {
     mounted.current = true;
@@ -118,9 +140,15 @@ function ZoomLive({ lessonId, close }: {
       window.clearTimeout(startupTimer.current);
       const root = document.getElementById("zmmtg-root");
       if (root) root.style.display = "none";
-      // AuthGate unmounts this component when the account loses its session.
-      // The SDK owns a separate DOM root and must also be explicitly disconnected.
-      try { leaveMeeting.current?.(); } catch (error) { console.error("Zoom disconnect failed", error); }
+      try { leaveMeeting.current?.(); } catch (leaveError) { console.error("Zoom disconnect failed", leaveError); }
+      // A meeting that reached the wire (browser back, AuthGate sign-out, route
+      // change) only releases the devices on a real reload.
+      if (started.current && !teardownRan.current) {
+        teardownRan.current = true;
+        const leaveUrl = new URL(window.location.href);
+        leaveUrl.searchParams.set("zoomLeft", "1");
+        window.location.replace(leaveUrl.href);
+      }
     };
   }, []);
 
@@ -226,7 +254,7 @@ function ZoomLive({ lessonId, close }: {
 
   return <div className="zoom-live-backdrop" role="dialog" aria-modal="true" aria-label="Zoom Live">
     <section className="zoom-live-gate">
-      <header><div><Video /><span><strong>Zoom Live</strong><small>Private paid live session</small></span></div><button aria-label="Close Zoom Live" onClick={close}><X /></button></header>
+      <header><div><Video /><span><strong>Zoom Live</strong><small>Private paid live session</small></span></div><button aria-label="Close Zoom Live" onClick={handleClose}><X /></button></header>
       {joining ? <div className="zoom-live-state"><LoaderCircle className="spin" /><strong>Starting Zoom Live…</strong><p>Verifying your session access securely.</p></div> : <>
         <div className="zoom-live-shield"><LockKeyhole /></div>
         <p className="eyebrow">ACCOUNT-BOUND ACCESS</p>
