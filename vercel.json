@@ -4,6 +4,10 @@
     {
       "path": "/api/notifications/dispatch",
       "schedule": "30 2 * * *"
+    },
+    {
+      "path": "/api/live-sessions/retire-ended",
+      "schedule": "15 3 * * *"
     }
   ]
 }

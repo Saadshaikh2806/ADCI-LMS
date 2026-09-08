@@ -1,6 +1,6 @@
 # ADCI LMS production release checklist
 
-The current schema ends at `202609090001_learner_groups.sql`. Release the application and database from the same reviewed commit; never paste only part of a migration into production.
+The current schema ends at `202609090002_retire_ended_live_courses.sql`. Release the application and database from the same reviewed commit; never paste only part of a migration into production.
 
 ## 1. Automated release gates
 
@@ -26,7 +26,7 @@ supabase db push --dry-run
 supabase db push
 ```
 
-Confirm the Supabase migration history ends at `202609090001`. Never rename an applied migration. Before pushing, verify a current database restore point as described in `OPERATIONS_RUNBOOK.md`.
+Confirm the Supabase migration history ends at `202609090002`. Never rename an applied migration. Before pushing, verify a current database restore point as described in `OPERATIONS_RUNBOOK.md`.
 
 ### September 8 session and Zoom repair
 
@@ -41,6 +41,10 @@ The session migration installs `public.adci_check_request_session` as the PostgR
 ### Learner groups
 
 `202609090001_learner_groups.sql` adds `adci_learner_groups` / `adci_learner_group_members` and the group RPCs. Group CRUD and membership are branch_admin + super_admin; bulk course/live-lecture grants stay super_admin only. Group assignments are one-time — they never auto-grant or auto-revoke on later membership changes. No new environment variables.
+
+### Ended live-lecture archival
+
+`202609090002_retire_ended_live_courses.sql` adds `adci_retire_ended_live_courses()` and a second Vercel Cron (`/api/live-sessions/retire-ended`, `15 3 * * *`, `CRON_SECRET`-guarded like the email dispatch job). It retires bookable live-lecture courses whose session has ended; the admin course-access RPCs also hide ended live courses immediately. `vercel.json` now declares two crons — confirm both appear in the Vercel project after deploy.
 
 MFA enrollment remains optional. Accounts with a verified factor must complete MFA before claiming a session. Sign in with the same test account in two independent browser profiles; the second login must succeed, the first must lose Data API/Next API/Storage access, and the first browser must leave its embedded classroom when it notices revocation. Browser timers may be throttled in background tabs. Already-issued third-party credentials and signed media URLs retain their provider-defined lifetime; this is not DRM or a promise of instantaneous provider-side revocation.
 

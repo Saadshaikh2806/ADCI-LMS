@@ -40,3 +40,5 @@ A class stays joinable while its Zoom meeting actually runs. Past the scheduled 
 ## Learner groups and bulk access
 
 People → **Groups** builds named segments of learners. Branch and super admins create groups and manage membership; a super admin can then grant courses or live lectures to an entire group (or an ad-hoc selection on the People list) in one action. Grants are one-time — changing a group later never auto-grants or auto-revokes. Apply `202609090001_learner_groups.sql`.
+
+A bookable live-lecture course is archived automatically once its session has ended: a nightly Vercel Cron (`/api/live-sessions/retire-ended`) retires it, and the admin course-access surfaces hide it the moment the class ends. The Live schedule has a **Tidy ended** button to run it on demand. Attendance and the past session stay visible in the Live schedule for 30 days. Apply `202609090002_retire_ended_live_courses.sql`.

@@ -203,6 +203,27 @@ export default function AdminLiveSchedule({ notify }: {
     else window.open(liveClass.meeting_url, "_blank", "noopener,noreferrer");
   }
 
+  async function archiveEnded() {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase) return;
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    if (!token) { setError("Sign in again to tidy ended classes"); return; }
+    setError("");
+    try {
+      const response = await fetch("/api/live-sessions/retire-ended", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const result = await response.json() as { retired?: number; error?: string };
+      if (!response.ok) throw new Error(result.error || "Could not archive ended classes");
+      notify(result.retired ? `${result.retired} ended live class${result.retired === 1 ? "" : "es"} archived` : "No ended live classes to archive");
+      await refresh();
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : "Could not archive ended classes");
+    }
+  }
+
   async function callZoomEndpoint(lessonId: string, alsoDelete: boolean, purchasedLearners?: number) {
     const supabase = getSupabaseBrowserClient();
     if (!supabase) throw new Error("Supabase is not configured");
@@ -278,7 +299,7 @@ export default function AdminLiveSchedule({ notify }: {
   return <div className="admin-content admin-live-workspace">
     <div className="admin-welcome admin-live-heading">
       <div><h2>Live schedule</h2><p>Create private LMS classrooms and monitor learner attendance.</p></div>
-      <div><select value={days} onChange={(event) => setDays(Number(event.target.value))}><option value="7">Next 7 days</option><option value="30">Next 30 days</option><option value="90">Next 90 days</option><option value="180">Next 6 months</option></select><button onClick={() => void refresh()}><RefreshCw className={loading ? "spin" : ""} /> Refresh</button><button className="primary" onClick={() => openBookableSeries()}><Video /> Zoom Live</button></div>
+      <div><select value={days} onChange={(event) => setDays(Number(event.target.value))}><option value="7">Next 7 days</option><option value="30">Next 30 days</option><option value="90">Next 90 days</option><option value="180">Next 6 months</option></select><button onClick={() => void refresh()}><RefreshCw className={loading ? "spin" : ""} /> Refresh</button><button onClick={() => void archiveEnded()} title="Archive bookable live-lecture courses whose session has ended"><Trash2 /> Tidy ended</button><button className="primary" onClick={() => openBookableSeries()}><Video /> Zoom Live</button></div>
     </div>
     {error && <div className="course-error">{error}</div>}
     {pendingZoom.length > 0 && <section className="course-error" aria-label="Pending Zoom removals">
