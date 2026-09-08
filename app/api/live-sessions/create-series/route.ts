@@ -1,6 +1,8 @@
 import { requireServerUser } from "../../../../lib/supabase/server";
 import { createZoomMeeting, createZoomPasscode, deleteZoomMeeting } from "../../../../lib/zoom/server";
 import { apiErrorHeaders, apiErrorStatus, enforceApiRateLimit } from "../../../../lib/security/rate-limit";
+import { buildLiveSeriesOccurrences, type LiveOccurrence } from "../../../../lib/live/occurrences";
+import { describeLiveClashes, type LiveClash } from "../../../../lib/live/clashes";
 
 export const runtime = "nodejs";
 
@@ -20,30 +22,6 @@ function errorMessage(error: unknown) {
   if (error instanceof Error) return error.message;
   if (typeof error === "object" && error && "message" in error && typeof error.message === "string") return error.message;
   return "Unable to create live sessions";
-}
-
-function indiaDateKey(date: Date) {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Kolkata",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit"
-  }).formatToParts(date);
-  const value = Object.fromEntries(parts.map((part) => [part.type, part.value]));
-  return `${value.year}-${value.month}-${value.day}`;
-}
-
-function buildStarts(first: Date, recurrence: SeriesRequest["recurrence"], repeatUntil?: string) {
-  if (recurrence !== "weekly") return [first];
-  if (!repeatUntil?.match(/^\d{4}-\d{2}-\d{2}$/)) throw new Error("Choose the final recurrence date");
-
-  const starts: Date[] = [];
-  for (let cursor = new Date(first); indiaDateKey(cursor) <= repeatUntil; cursor = new Date(cursor.getTime() + 7 * 86400000)) {
-    starts.push(cursor);
-    if (starts.length > 10) throw new Error("Create at most 10 weekly sessions at a time");
-  }
-  if (!starts.length) throw new Error("The final date must include the first session");
-  return starts;
 }
 
 export async function POST(request: Request) {
@@ -69,16 +47,26 @@ export async function POST(request: Request) {
     const { error: permissionError } = await userClient.rpc("adci_admin_get_live_schedule", { target_days: 7 });
     if (permissionError) throw permissionError;
 
-    const starts = buildStarts(firstStart, body.recurrence, body.repeatUntil);
-    let occurrences: Array<{
-      starts_at: string;
-      ends_at: string;
+    let occurrences: Array<LiveOccurrence & {
       meeting_number?: string;
       meeting_passcode?: string;
-    }> = starts.map((start) => ({
-      starts_at: start.toISOString(),
-      ends_at: new Date(start.getTime() + durationMinutes * 60000).toISOString()
-    }));
+    }> = buildLiveSeriesOccurrences({
+      startsAt: firstStart,
+      durationMinutes,
+      recurrence: body.recurrence,
+      repeatUntil: body.repeatUntil
+    });
+
+    // Only one live class can run at a time on the shared Zoom host, so reject
+    // an overlapping series before any Zoom meeting is created. The
+    // adci_live_classes trigger is still the authority; this only spares us the
+    // create-then-roll-back round trip and gives a clearer message.
+    const { data: clashes, error: clashError } = await userClient.rpc("adci_live_class_clashes", {
+      check_occurrences: occurrences,
+      exclude_lesson_id: null
+    });
+    if (clashError) throw clashError;
+    if (Array.isArray(clashes) && clashes.length) throw new Error(describeLiveClashes(clashes as LiveClash[]));
 
     const zoomOccurrences: typeof occurrences = [];
     for (const occurrence of occurrences) {

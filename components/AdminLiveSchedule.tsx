@@ -9,6 +9,7 @@ import {
   RefreshCw,
   ShieldCheck,
   Trash2,
+  TriangleAlert,
   UsersRound,
   Video,
   VideoOff,
@@ -21,10 +22,13 @@ import {
   getAdciLiveDeleteDetails,
   getAdciAdminLiveSchedule,
   getAdciLiveAttendance,
+  getAdciLiveClassClashes,
   type AdciLiveAttendee,
   type AdciLiveSchedule,
   type AdciScheduledLiveClass
 } from "../lib/supabase/admin";
+import { buildLiveSeriesOccurrences, type LiveOccurrence } from "../lib/live/occurrences";
+import { describeLiveClashes, formatLiveSlot, type LiveClash } from "../lib/live/clashes";
 import { getSupabaseBrowserClient } from "../lib/supabase/client";
 import { openZoomLive } from "./ZoomLive";
 
@@ -55,6 +59,9 @@ export default function AdminLiveSchedule({ notify }: {
   const [attendees, setAttendees] = useState<AdciLiveAttendee[]>([]);
   const [attendanceLoading, setAttendanceLoading] = useState(false);
   const [bookableOpen, setBookableOpen] = useState(false);
+  const [clashes, setClashes] = useState<LiveClash[]>([]);
+  const [clashChecking, setClashChecking] = useState(false);
+  const [clashError, setClashError] = useState("");
   const [bookable, setBookable] = useState({
     title: "Online Career Counselling",
     description: "Live online career counselling with an ADCI expert.",
@@ -126,6 +133,24 @@ export default function AdminLiveSchedule({ notify }: {
           : filter === liveClass.status)),
     [allClasses, filter]
   );
+  // Classes scheduled before this guard existed can still overlap each other.
+  // Flag them in the list so they can be moved before the day arrives.
+  const clashingLessonIds = useMemo(() => {
+    const active = allClasses.filter((item) => item.status !== "ended");
+    const ids = new Set<string>();
+    for (let i = 0; i < active.length; i += 1) {
+      for (let j = i + 1; j < active.length; j += 1) {
+        const a = active[i];
+        const b = active[j];
+        if (new Date(a.starts_at) < new Date(b.ends_at) && new Date(a.ends_at) > new Date(b.starts_at)) {
+          ids.add(a.lesson_id);
+          ids.add(b.lesson_id);
+        }
+      }
+    }
+    return ids;
+  }, [allClasses]);
+
   const liveSummary = useMemo(
     () => ({
       scheduled: allClasses.filter((liveClass) => liveClass.status === "scheduled").length,
@@ -134,6 +159,41 @@ export default function AdminLiveSchedule({ notify }: {
     }),
     [allClasses]
   );
+
+  // The slots this form would occupy; null while the inputs are incomplete.
+  const proposedOccurrences = useMemo<LiveOccurrence[] | null>(() => {
+    if (!bookableOpen) return null;
+    const start = new Date(bookable.startsAt);
+    const durationMinutes = Number(bookable.duration);
+    if (!Number.isFinite(start.getTime()) || !Number.isFinite(durationMinutes) || durationMinutes < 15) return null;
+    try {
+      return buildLiveSeriesOccurrences({
+        startsAt: start,
+        durationMinutes,
+        recurrence: bookable.recurrence,
+        repeatUntil: bookable.repeatUntil
+      });
+    } catch {
+      return null;
+    }
+  }, [bookableOpen, bookable.startsAt, bookable.duration, bookable.recurrence, bookable.repeatUntil]);
+
+  const occurrenceKey = proposedOccurrences ? JSON.stringify(proposedOccurrences) : "";
+
+  // Warn about a clash while the admin is still editing, so they never get as
+  // far as creating Zoom meetings for a slot the shared host cannot run.
+  useEffect(() => {
+    if (!occurrenceKey) { setClashes([]); setClashError(""); setClashChecking(false); return; }
+    let cancelled = false;
+    setClashChecking(true);
+    const timer = window.setTimeout(() => {
+      void getAdciLiveClassClashes(JSON.parse(occurrenceKey) as LiveOccurrence[])
+        .then((found) => { if (!cancelled) { setClashes(found); setClashError(""); } })
+        .catch((failure) => { if (!cancelled) { setClashes([]); setClashError(failure instanceof Error ? failure.message : "Unable to check the live timetable"); } })
+        .finally(() => { if (!cancelled) setClashChecking(false); });
+    }, 400);
+    return () => { cancelled = true; window.clearTimeout(timer); };
+  }, [occurrenceKey]);
 
   function openBookableSeries() {
     const start = new Date();
@@ -148,6 +208,8 @@ export default function AdminLiveSchedule({ notify }: {
       repeatUntil: localDateTime(finalDate.toISOString()).slice(0, 10)
     }));
     setBookableOpen(true);
+    setClashes([]);
+    setClashError("");
     setError("");
   }
 
@@ -156,6 +218,7 @@ export default function AdminLiveSchedule({ notify }: {
     const start = new Date(bookable.startsAt);
     if (!Number.isFinite(start.getTime())) return setError("Choose a valid start time.");
     if (bookable.recurrence === "weekly" && !bookable.repeatUntil) return setError("Choose the final recurrence date.");
+    if (clashes.length) return setError(describeLiveClashes(clashes));
     setSaving(true);
     setError("");
     try {
@@ -330,7 +393,7 @@ export default function AdminLiveSchedule({ notify }: {
           return <article key={liveClass.lesson_id} className={liveClass.status}>
             <div className="live-date"><strong>{start.toLocaleDateString("en-IN", { day: "2-digit" })}</strong><span>{start.toLocaleDateString("en-IN", { month: "short" }).toUpperCase()}</span></div>
             <div className="live-provider"><Video /><span>{liveClass.provider === "zoom" ? "Zoom Live" : "Live stream"}</span></div>
-            <div className="live-admin-copy"><div><em>{liveClass.status}</em><span>{start.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}–{new Date(liveClass.ends_at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}</span></div><h3>{liveClass.lesson_title}</h3><p>{liveClass.course_title} · {liveClass.module_title} · {liveClass.instructor_name}</p></div>
+            <div className="live-admin-copy"><div><em>{liveClass.status}</em><span>{start.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}–{new Date(liveClass.ends_at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}</span></div><h3>{liveClass.lesson_title}</h3><p>{liveClass.course_title} · {liveClass.module_title} · {liveClass.instructor_name}</p>{clashingLessonIds.has(liveClass.lesson_id) && <span className="live-clash-badge"><TriangleAlert /> Overlaps another live class — only one can run at a time</span>}</div>
             <button className="attendance-button" title="Open authorised buyer list" onClick={() => void openAttendance(liveClass)}><UsersRound /><span><strong>{liveClass.attendance_count}</strong><small>{liveClass.total_joins} joins</small></span></button>
             <div className="live-admin-actions">
               {liveClass.offer_id && <button title="Copy purchase link" onClick={() => void copyPurchaseLink(liveClass.offer_id as string)}><Copy /></button>}
@@ -372,8 +435,24 @@ export default function AdminLiveSchedule({ notify }: {
         <label><span>Price (INR)</span><input required min="1" step=".01" type="number" value={bookable.price} onChange={(event) => setBookable({ ...bookable, price: event.target.value })} /></label>
         <label><span>GST rate (%)</span><input required min="0" max="100" step=".01" type="number" value={bookable.gstRate} onChange={(event) => setBookable({ ...bookable, gstRate: event.target.value })} /></label>
       </div>
+      {clashes.length > 0 && <div className="live-clash-warning" role="alert">
+        <TriangleAlert />
+        <div>
+          <strong>This time clashes with {clashes.length} scheduled class{clashes.length === 1 ? "" : "es"}</strong>
+          <small>Only one live class can run at a time, so pick a slot that does not overlap these.</small>
+          <ul>{clashes.slice(0, 5).map((clash, index) => <li key={`${clash.lesson_id ?? "series"}-${index}`}>
+            <b>{formatLiveSlot(clash.proposed_starts_at, clash.proposed_ends_at)}</b> overlaps {clash.lesson_title} ({formatLiveSlot(clash.starts_at, clash.ends_at)})
+          </li>)}</ul>
+          {clashes.length > 5 && <small>…and {clashes.length - 5} more.</small>}
+        </div>
+      </div>}
+      {clashes.length === 0 && !clashChecking && !clashError && proposedOccurrences && <div className="content-editor-note live-clash-clear">
+        <Check /><span><strong>Slot is free</strong><small>{proposedOccurrences.length === 1 ? "This time does not" : `These ${proposedOccurrences.length} times do not`} overlap any scheduled live class.</small></span>
+      </div>}
+      {clashChecking && <p className="live-clash-checking"><LoaderCircle className="spin" /> Checking the live timetable…</p>}
+      {clashError && <div className="course-error">{clashError}</div>}
       {error && <div className="course-error">{error}</div>}
-      <div className="course-dialog-actions"><button type="button" onClick={() => setBookableOpen(false)}>Cancel</button><button className="primary" disabled={saving}>{saving ? <LoaderCircle className="spin" /> : <Check />} Create and publish</button></div>
+      <div className="course-dialog-actions"><button type="button" onClick={() => setBookableOpen(false)}>Cancel</button><button className="primary" disabled={saving || clashChecking || clashes.length > 0}>{saving ? <LoaderCircle className="spin" /> : <Check />} Create and publish</button></div>
     </form></div>}
 
     {attendanceClass && <div className="course-dialog-backdrop"><section className="attendance-dialog">

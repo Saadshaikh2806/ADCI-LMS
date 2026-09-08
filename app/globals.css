@@ -3220,3 +3220,51 @@ html[data-theme="dark"] .learner-onboarding {
 .pull-refresh-indicator > span.spinning svg { animation:pull-refresh-spin .8s linear infinite; }
 
 @keyframes pull-refresh-spin { to { transform:rotate(360deg); } }
+
+/* Live-schedule clash warning inside the Zoom Live creation dialog. */
+.live-clash-warning {
+  margin-top:14px;
+  padding:12px 13px;
+  display:flex;
+  align-items:flex-start;
+  gap:10px;
+  border:1px solid #e3b8ae;
+  border-radius:9px;
+  color:var(--red-text);
+  background:var(--red-soft);
+}
+
+.live-clash-warning > svg { width:18px; flex:none; margin-top:1px; }
+.live-clash-warning strong { display:block; font-size:13px; }
+.live-clash-warning small { display:block; margin-top:3px; color:var(--text-secondary); font-size:11.5px; line-height:1.5; }
+.live-clash-warning ul { margin:8px 0 0; padding-left:16px; font-size:11.5px; line-height:1.6; }
+.live-clash-warning li b { font-weight:800; }
+
+.live-clash-clear { margin-top:14px; }
+
+.live-clash-checking {
+  margin-top:12px;
+  display:flex;
+  align-items:center;
+  gap:7px;
+  color:var(--muted);
+  font-size:12px;
+}
+
+.live-clash-checking svg { width:15px; }
+
+.live-clash-badge {
+  margin-top:6px;
+  padding:3px 8px;
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  border:1px solid #e3b8ae;
+  border-radius:999px;
+  color:var(--red-text);
+  background:var(--red-soft);
+  font-size:11px;
+  font-weight:800;
+}
+
+.live-clash-badge svg { width:13px; }

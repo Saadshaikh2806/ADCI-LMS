@@ -1,3 +1,5 @@
+import type { LiveOccurrence } from "../live/occurrences";
+import type { LiveClash } from "../live/clashes";
 import { getSupabaseBrowserClient } from "./client";
 
 const adminRoles = new Set([
@@ -998,6 +1000,20 @@ export async function createAdciBookableLiveSeries(input: {
   const result = await response.json() as { classes_created?: number; error?: string };
   if (!response.ok) throw new Error(result.error || "Unable to create live sessions");
   return result as { series_id: string; classes_created: number };
+}
+
+// Only one live class can run at a time on the shared Zoom host. This reports
+// the clashes a proposed series would cause so the dialog can warn before the
+// admin commits (the adci_live_classes trigger enforces it either way).
+export async function getAdciLiveClassClashes(occurrences: LiveOccurrence[], excludeLessonId: string | null = null) {
+  const supabase = getSupabaseBrowserClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+  const { data, error } = await supabase.rpc("adci_live_class_clashes", {
+    check_occurrences: occurrences,
+    exclude_lesson_id: excludeLessonId
+  });
+  if (error) throw new Error(error.message || "Unable to check the live timetable");
+  return (data ?? []) as LiveClash[];
 }
 
 export type AdciUnscheduledLiveLesson = {
