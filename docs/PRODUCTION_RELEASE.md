@@ -1,6 +1,6 @@
 # ADCI LMS production release checklist
 
-The current schema ends at `202609090002_retire_ended_live_courses.sql`. Release the application and database from the same reviewed commit; never paste only part of a migration into production.
+The current schema ends at `202609090003_archive_stranded_live_courses.sql`. Release the application and database from the same reviewed commit; never paste only part of a migration into production.
 
 ## 1. Automated release gates
 
@@ -26,7 +26,7 @@ supabase db push --dry-run
 supabase db push
 ```
 
-Confirm the Supabase migration history ends at `202609090002`. Never rename an applied migration. Before pushing, verify a current database restore point as described in `OPERATIONS_RUNBOOK.md`.
+Confirm the Supabase migration history ends at `202609090003`. Never rename an applied migration. Before pushing, verify a current database restore point as described in `OPERATIONS_RUNBOOK.md`.
 
 ### September 8 session and Zoom repair
 
@@ -45,6 +45,8 @@ The session migration installs `public.adci_check_request_session` as the PostgR
 ### Ended live-lecture archival
 
 `202609090002_retire_ended_live_courses.sql` adds `adci_retire_ended_live_courses()` and a second Vercel Cron (`/api/live-sessions/retire-ended`, `15 3 * * *`, `CRON_SECRET`-guarded like the email dispatch job). It retires bookable live-lecture courses whose session has ended; the admin course-access RPCs also hide ended live courses immediately. `vercel.json` now declares two crons — confirm both appear in the Vercel project after deploy.
+
+`202609090003_archive_stranded_live_courses.sql` closes the remaining hole: a bookable live-lecture course whose lessons were removed entirely left an empty shell that the earlier filters skipped, because they required the course to still hold a live lesson. Matching now keys off the bookable-series slug (`<title>-YYYY-MM-DD-<8 hex>`, only ever produced by `adci_create_bookable_live_series`) as well, so empty shells are archived by the sweep and hidden from the course-access surfaces. Genuine courses never carry that slug shape.
 
 MFA enrollment remains optional. Accounts with a verified factor must complete MFA before claiming a session. Sign in with the same test account in two independent browser profiles; the second login must succeed, the first must lose Data API/Next API/Storage access, and the first browser must leave its embedded classroom when it notices revocation. Browser timers may be throttled in background tabs. Already-issued third-party credentials and signed media URLs retain their provider-defined lifetime; this is not DRM or a promise of instantaneous provider-side revocation.
 
