@@ -14,6 +14,7 @@ type LiveClass = {
   instructor_name: string;
   starts_at: string;
   ends_at: string;
+  status?: "scheduled" | "live" | "extended" | "ended";
   can_join: boolean;
   has_attended: boolean;
 };
@@ -77,11 +78,13 @@ export default function LiveClassSchedule({ notify }: { notify: (message: string
 
   return <><div className="timeline">{classes.slice(0, 4).map((liveClass) => {
     const start = new Date(liveClass.starts_at);
-    const ended = new Date(liveClass.ends_at).getTime() < Date.now();
+    const ended = liveClass.status
+      ? liveClass.status === "ended"
+      : new Date(liveClass.ends_at).getTime() < Date.now();
     return <article className="event" key={liveClass.lesson_id}>
       <div className="event-time"><strong>{start.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true }).replace(/\s?[AP]M/i, "")}</strong><span>{start.toLocaleTimeString("en-IN", { hour: "2-digit", hour12: true }).slice(-2)}</span></div>
       <div className={`event-dot ${liveClass.can_join ? "is-live" : ""}`}><Video size={14} /></div>
-      <div className="event-copy"><div><span>{providerNames[liveClass.provider]}</span>{liveClass.can_join && <em>LIVE</em>}</div><h4>{liveClass.lesson_title}</h4><p>{liveClass.instructor_name} · {liveClass.course_title}</p></div>
+      <div className="event-copy"><div><span>{providerNames[liveClass.provider]}</span>{liveClass.can_join && <em>{liveClass.status === "extended" ? "EXTENDED" : "LIVE"}</em>}</div><h4>{liveClass.lesson_title}</h4><p>{liveClass.instructor_name} · {liveClass.course_title}</p></div>
       <button disabled={!liveClass.can_join || joining === liveClass.lesson_id || ended} onClick={() => void join(liveClass)}>{joining === liveClass.lesson_id ? "Opening…" : ended ? (liveClass.has_attended ? "Attended" : "Ended") : liveClass.can_join ? "Join class" : start.toLocaleDateString("en-IN", { day: "2-digit", month: "short" })}</button>
     </article>;
   })}</div></>;

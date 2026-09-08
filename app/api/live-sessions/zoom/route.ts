@@ -19,6 +19,9 @@ type ZoomAccess = {
   organization_id: string;
   starts_at: string;
   ends_at: string;
+  live_started_at: string | null;
+  live_ended_at: string | null;
+  phase: "scheduled" | "live" | "extended" | "ended";
   can_join: boolean;
 };
 
@@ -35,13 +38,41 @@ export async function POST(request: Request) {
     const body = await request.json() as { lessonId?: string };
     if (!body.lessonId?.match(/^[0-9a-f-]{36}$/i)) throw new Error("Choose a valid Zoom Live session");
 
-    const { data, error } = await service.rpc("adci_get_zoom_access", {
-      target_lesson_id: body.lessonId,
-      target_user_id: user.id
-    });
-    if (error) throw error;
-    const access = data as ZoomAccess;
-    if (!access.can_join) throw new Error("Zoom Live opens 15 minutes before the session");
+    const readAccess = async () => {
+      const { data, error } = await service.rpc("adci_get_zoom_access", {
+        target_lesson_id: body.lessonId,
+        target_user_id: user.id
+      });
+      if (error) throw error;
+      return data as ZoomAccess;
+    };
+    let access = await readAccess();
+
+    // Reconcile the LMS phase against Zoom's real state so a class that runs
+    // past its scheduled end stays joinable ("extended") and one that has
+    // ended for all expires here even if a webhook was missed.
+    const hostLiveMeeting = await getZoomHostLiveMeeting();
+    const thisMeetingLive = hostLiveMeeting?.id === String(access.meeting_number);
+    const pastScheduledEnd = Date.now() > new Date(access.ends_at).getTime();
+    if (thisMeetingLive && !access.live_started_at) {
+      await service.rpc("adci_set_live_runtime_state", {
+        target_meeting_number: String(access.meeting_number), mark_started: true, mark_ended: false
+      });
+      access = await readAccess();
+    } else if (!thisMeetingLive && pastScheduledEnd && access.live_started_at && !access.live_ended_at) {
+      await service.rpc("adci_set_live_runtime_state", {
+        target_meeting_number: String(access.meeting_number), mark_started: false, mark_ended: true
+      });
+      access = await readAccess();
+    }
+
+    if (!access.can_join) {
+      throw new Error(
+        access.phase === "ended"
+          ? "This Zoom Live session has ended."
+          : "Zoom Live opens 15 minutes before the session."
+      );
+    }
 
     let registrantToken: string | undefined;
     let zak: string | undefined;
@@ -55,7 +86,7 @@ export async function POST(request: Request) {
       // The whole platform hosts through one Zoom user, which can run one meeting
       // at a time. If a different class is already live, name it rather than
       // letting the SDK fail later with error 3000.
-      const liveMeeting = await getZoomHostLiveMeeting();
+      const liveMeeting = hostLiveMeeting;
       if (liveMeeting && liveMeeting.id !== String(access.meeting_number)) {
         let liveName = liveMeeting.topic;
         const { data: liveClass } = await service

@@ -9,11 +9,14 @@ export type LearningAsset = {
   storage_provider?: "supabase" | "r2";
 };
 
+export type LiveClassStatus = "scheduled" | "live" | "extended" | "ended";
+
 export type LearningLiveClass = {
   provider: "zoom" | "youtube_live";
   instructor_name: string;
   starts_at: string;
   ends_at: string;
+  status?: LiveClassStatus;
   can_join: boolean;
   has_attended: boolean;
 };
@@ -28,6 +31,7 @@ export type LearnerLiveClass = {
   instructor_name: string;
   starts_at: string;
   ends_at: string;
+  status?: LiveClassStatus;
   can_join: boolean;
   has_attended: boolean;
   joined_at: string | null;

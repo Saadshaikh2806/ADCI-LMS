@@ -102,20 +102,34 @@ export default function AdminLiveSchedule({ notify }: {
     return () => { cancelled = true; };
   }, [deleteClass]);
 
+  // Mirror adci_live_class_phase so the row stays accurate between refreshes.
+  const derivePhase = (item: AdciScheduledLiveClass, at: number): AdciScheduledLiveClass["status"] => {
+    if (item.live_ended_at) return "ended";
+    const start = new Date(item.starts_at).getTime();
+    const end = new Date(item.ends_at).getTime();
+    if (at >= start + 6 * 3600000) return "ended";
+    if (at < start - 15 * 60000) return "scheduled";
+    if (at <= end) return "live";
+    return item.live_started_at ? "extended" : "ended";
+  };
   const allClasses = useMemo(() => (schedule?.classes ?? []).map((item) => ({
     ...item,
-    status: (now > new Date(item.ends_at).getTime() ? "ended" :
-      now >= new Date(item.starts_at).getTime() - 15 * 60000 ? "live" : "scheduled") as AdciScheduledLiveClass["status"]
+    status: derivePhase(item, now)
   })), [schedule, now]);
+  const isLiveOrExtended = (status: AdciScheduledLiveClass["status"]) => status === "live" || status === "extended";
   const visibleClasses = useMemo(
     () => allClasses.filter((liveClass) => filter === "all" ||
-      (filter === "upcoming" ? liveClass.status !== "ended" : filter === liveClass.status)),
+      (filter === "upcoming"
+        ? liveClass.status !== "ended"
+        : filter === "live"
+          ? isLiveOrExtended(liveClass.status)
+          : filter === liveClass.status)),
     [allClasses, filter]
   );
   const liveSummary = useMemo(
     () => ({
       scheduled: allClasses.filter((liveClass) => liveClass.status === "scheduled").length,
-      liveNow: allClasses.filter((liveClass) => liveClass.status === "live").length,
+      liveNow: allClasses.filter((liveClass) => isLiveOrExtended(liveClass.status)).length,
       attendance: allClasses.reduce((total, liveClass) => total + liveClass.attendance_count, 0)
     }),
     [allClasses]
@@ -299,7 +313,7 @@ export default function AdminLiveSchedule({ notify }: {
             <button className="attendance-button" title="Open authorised buyer list" onClick={() => void openAttendance(liveClass)}><UsersRound /><span><strong>{liveClass.attendance_count}</strong><small>{liveClass.total_joins} joins</small></span></button>
             <div className="live-admin-actions">
               {liveClass.offer_id && <button title="Copy purchase link" onClick={() => void copyPurchaseLink(liveClass.offer_id as string)}><Copy /></button>}
-              <button title={liveClass.status !== "live" ? "Classroom opens 15 minutes before the session" : "Open classroom"} disabled={liveClass.status !== "live"} onClick={() => openScheduledClass(liveClass)}><Video /></button>
+              <button title={isLiveOrExtended(liveClass.status) ? "Open classroom" : "Classroom opens 15 minutes before the session"} disabled={!isLiveOrExtended(liveClass.status)} onClick={() => openScheduledClass(liveClass)}><Video /></button>
               {liveClass.provider === "zoom" && <button title="End the Zoom meeting now (clears a stuck session)" aria-label={`End Zoom meeting for ${liveClass.lesson_title}`} onClick={() => void endZoomSession(liveClass)}><VideoOff /></button>}
               <button className="delete" title="Delete class" aria-label={`Delete ${liveClass.lesson_title}`} onClick={() => setDeleteClass(liveClass)}><Trash2 /></button>
             </div>

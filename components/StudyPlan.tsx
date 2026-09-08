@@ -234,7 +234,7 @@ export default function StudyPlan({
             <div className="agenda-copy"><span>{studyEvent.event_type === "personal" ? "PERSONAL STUDY" : studyEvent.event_type === "live" ? "LIVE CLASS" : "ASSESSMENT"}</span><h3>{studyEvent.title}</h3><p>{studyEvent.subtitle || (studyEvent.event_type === "personal" ? "Your study task" : "")}</p></div>
             <div className="agenda-actions">
               {studyEvent.event_type === "personal" ? <><button onClick={() => void toggleTask(studyEvent)} title={studyEvent.status === "completed" ? "Mark pending" : "Mark complete"}><Check /></button><button className="delete" onClick={() => void deleteTask(studyEvent)} title="Delete task"><Trash2 /></button></>
-              : studyEvent.event_type === "live" ? <button className="event-action" disabled={studyEvent.status !== "live"} onClick={() => void joinLiveClass(studyEvent)}><CirclePlay /> {studyEvent.status === "live" ? "Join" : studyEvent.status === "ended" ? "Ended" : "Scheduled"}</button>
+              : studyEvent.event_type === "live" ? <button className="event-action" disabled={studyEvent.status !== "live" && studyEvent.status !== "extended"} onClick={() => void joinLiveClass(studyEvent)}><CirclePlay /> {studyEvent.status === "live" ? "Join" : studyEvent.status === "extended" ? "Join (extended)" : studyEvent.status === "ended" ? "Ended" : "Scheduled"}</button>
               : <button className="event-action" onClick={() => openAssessments(studyEvent.id)}><ClipboardCheck /> Open</button>}
             </div>
           </article>)}

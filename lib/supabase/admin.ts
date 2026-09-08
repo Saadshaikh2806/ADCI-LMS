@@ -915,6 +915,8 @@ export type AdciLiveClass = {
   instructor_name: string;
   starts_at: string;
   ends_at: string;
+  live_started_at?: string | null;
+  live_ended_at?: string | null;
 };
 
 export async function getAdciLiveClass(lessonId: string) {
@@ -963,7 +965,7 @@ export type AdciScheduledLiveClass = AdciLiveClass & {
   course_title: string;
   course_status: string;
   offer_id: string | null;
-  status: "live" | "scheduled" | "ended";
+  status: "live" | "scheduled" | "ended" | "extended";
   attendance_count: number;
   total_joins: number;
 };

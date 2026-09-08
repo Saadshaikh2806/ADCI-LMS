@@ -40,6 +40,10 @@ export async function POST(request: Request) {
 
     if (!body.alsoDelete) {
       await endZoomMeeting(access.meeting_number);
+      // The class expires in the LMS the moment the host ends it for all.
+      await service.rpc("adci_set_live_runtime_state", {
+        target_meeting_number: access.meeting_number, mark_started: false, mark_ended: true
+      });
       return Response.json({ ok: true }, { headers: apiErrorHeaders(null) });
     }
 

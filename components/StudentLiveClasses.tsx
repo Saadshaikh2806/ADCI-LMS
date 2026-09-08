@@ -32,12 +32,16 @@ function localDateKey(value: string) {
 }
 
 function classState(item: LearnerLiveClass, now: number) {
+  if (item.status === "extended") return "extended";
+  if (item.status === "ended") return item.has_attended ? "attended" : "missed";
   const starts = new Date(item.starts_at).getTime();
   const ends = new Date(item.ends_at).getTime();
   if (now >= starts - 15 * 60 * 1000 && now <= ends) return "live";
   if (starts > now) return "upcoming";
   return item.has_attended ? "attended" : "missed";
 }
+
+const joinableState = (state: string) => state === "live" || state === "extended";
 
 export default function StudentLiveClasses({
   close,
@@ -78,17 +82,18 @@ export default function StudentLiveClasses({
   const courses = useMemo(() => Array.from(new Map(classes.map((item) => [item.course_id, item.course_title])).entries()), [classes]);
   const pastClasses = classes.filter((item) => new Date(item.ends_at).getTime() < now);
   const attendedCount = pastClasses.filter((item) => item.has_attended).length;
-  const upcomingCount = classes.filter((item) => new Date(item.ends_at).getTime() >= now).length;
-  const liveCount = classes.filter((item) => classState(item, now) === "live").length;
-  const nextClass = classes.find((item) => new Date(item.ends_at).getTime() >= now) ?? null;
+  const stillOpen = (item: LearnerLiveClass) => new Date(item.ends_at).getTime() >= now || item.status === "extended";
+  const upcomingCount = classes.filter(stillOpen).length;
+  const liveCount = classes.filter((item) => joinableState(classState(item, now))).length;
+  const nextClass = classes.find(stillOpen) ?? null;
   const attendanceRate = pastClasses.length ? Math.round(attendedCount / pastClasses.length * 100) : 0;
 
   const visible = useMemo(() => classes.filter((item) => {
     const state = classState(item, now);
     if (courseId !== "all" && item.course_id !== courseId) return false;
     if (date && localDateKey(item.starts_at) !== date) return false;
-    if (filter === "upcoming" && !["upcoming", "live"].includes(state)) return false;
-    if (filter === "live" && state !== "live") return false;
+    if (filter === "upcoming" && !["upcoming", "live", "extended"].includes(state)) return false;
+    if (filter === "live" && !joinableState(state)) return false;
     if (filter === "past" && !["attended", "missed"].includes(state)) return false;
     if (filter === "attended" && !item.has_attended) return false;
     return true;
@@ -145,11 +150,15 @@ export default function StudentLiveClasses({
         <article><div><Users /></div><span>Attendance rate</span><strong>{attendanceRate}%</strong><p>Based on recorded joins</p></article>
       </section>
 
-      {nextClass && <section className={`next-live-class ${classState(nextClass, now) === "live" ? "is-live" : ""}`}>
-        <div className="next-live-date"><span>{new Date(nextClass.starts_at).toLocaleDateString("en-IN", { month: "short" }).toUpperCase()}</span><strong>{new Date(nextClass.starts_at).getDate()}</strong></div>
-        <div><p className="eyebrow">{classState(nextClass, now) === "live" ? "LIVE NOW" : "NEXT CLASS"}</p><h2>{nextClass.lesson_title}</h2><span>{nextClass.course_title} - {nextClass.module_title}</span><small><Clock3 /> {new Date(nextClass.starts_at).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })} · {providerNames[nextClass.provider]} · {nextClass.instructor_name}</small></div>
-        <button disabled={classState(nextClass, now) !== "live" || joining === nextClass.lesson_id} onClick={() => classState(nextClass, now) === "live" && void join(nextClass)}>{joining === nextClass.lesson_id ? <LoaderCircle className="spin" /> : classState(nextClass, now) === "live" ? <ExternalLink /> : <Clock3 />} {joining === nextClass.lesson_id ? "Opening…" : classState(nextClass, now) === "live" ? "Join class" : "Opens 15 minutes before"}</button>
-      </section>}
+      {nextClass && (() => {
+        const nextStateValue = classState(nextClass, now);
+        const nextJoinable = joinableState(nextStateValue);
+        return <section className={`next-live-class ${nextJoinable ? "is-live" : ""}`}>
+          <div className="next-live-date"><span>{new Date(nextClass.starts_at).toLocaleDateString("en-IN", { month: "short" }).toUpperCase()}</span><strong>{new Date(nextClass.starts_at).getDate()}</strong></div>
+          <div><p className="eyebrow">{nextStateValue === "extended" ? "EXTENDED" : nextStateValue === "live" ? "LIVE NOW" : "NEXT CLASS"}</p><h2>{nextClass.lesson_title}</h2><span>{nextClass.course_title} - {nextClass.module_title}</span><small><Clock3 /> {new Date(nextClass.starts_at).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })} · {providerNames[nextClass.provider]} · {nextClass.instructor_name}</small></div>
+          <button disabled={!nextJoinable || joining === nextClass.lesson_id} onClick={() => nextJoinable && void join(nextClass)}>{joining === nextClass.lesson_id ? <LoaderCircle className="spin" /> : nextJoinable ? <ExternalLink /> : <Clock3 />} {joining === nextClass.lesson_id ? "Opening…" : nextJoinable ? "Join class" : "Opens 15 minutes before"}</button>
+        </section>;
+      })()}
 
       <section className="live-learning-schedule">
         <div className="live-learning-toolbar">
@@ -171,7 +180,7 @@ export default function StudentLiveClasses({
               <span className="live-class-provider"><Video />{providerNames[item.provider]}</span>
               <div className="live-class-copy"><div><em>{state === "live" ? "LIVE" : state.toUpperCase()}</em><span>{item.module_title}</span></div><h3>{item.lesson_title}</h3><p>{item.course_title} · {item.instructor_name}</p></div>
               <div className="live-class-attendance">{item.has_attended ? <><Check /><span><strong>Attendance recorded</strong><small>Joined {item.join_count} time{item.join_count === 1 ? "" : "s"}</small></span></> : <><Clock3 /><span><strong>{state === "missed" ? "Not attended" : "Not started"}</strong><small>{state === "missed" ? "No join recorded" : "Attendance records on join"}</small></span></>}</div>
-              <div className="live-class-actions"><button onClick={() => openLesson(item.course_id, item.lesson_id)}>Open lesson <ChevronRight /></button><button className="primary" disabled={state !== "live" || joining === item.lesson_id} onClick={() => state === "live" && void join(item)}>{joining === item.lesson_id ? <LoaderCircle className="spin" /> : <ExternalLink />} {joining === item.lesson_id ? "Opening" : "Join"}</button></div>
+              <div className="live-class-actions"><button onClick={() => openLesson(item.course_id, item.lesson_id)}>Open lesson <ChevronRight /></button><button className="primary" disabled={!joinableState(state) || joining === item.lesson_id} onClick={() => joinableState(state) && void join(item)}>{joining === item.lesson_id ? <LoaderCircle className="spin" /> : <ExternalLink />} {joining === item.lesson_id ? "Opening" : "Join"}</button></div>
             </article>;
           })}
         </section>)}</div>}
