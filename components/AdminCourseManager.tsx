@@ -259,7 +259,10 @@ export default function AdminCourseManager({ notify }: { notify: (message: strin
     label: string,
     lessons: AdciLesson[]
   ) {
-    if (!editor || !window.confirm(`Delete ${label}? This cannot be undone.`)) return;
+    const quizWarning = lessons.some((lesson) => lesson.lesson_type === "quiz")
+      ? " Learner attempts on its quizzes are removed as well."
+      : "";
+    if (!editor || !window.confirm(`Delete ${label}? This cannot be undone.${quizWarning}`)) return;
     setSaving(true);
     setError("");
     try {
