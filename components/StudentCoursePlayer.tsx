@@ -16,7 +16,7 @@ import {
   ShieldCheck,
   Video
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   getLearningCourse,
   getProtectedLessonUrl,
@@ -69,6 +69,8 @@ export default function StudentCoursePlayer({
   const [quizAssessmentId, setQuizAssessmentId] = useState("");
   const [watermark, setWatermark] = useState("AUTHORISED LEARNER");
   const [error, setError] = useState("");
+  const mediaRecovery = useRef({ at: 0, pending: false, fetching: false, position: 0, playing: false });
+  const assetIssuedAt = useRef(0);
 
   useEffect(() => {
     void getSupabaseBrowserClient()?.auth.getUser().then(({ data }) => {
@@ -110,6 +112,7 @@ export default function StudentCoursePlayer({
 
   useEffect(() => {
     let active = true;
+    mediaRecovery.current = { at: 0, pending: false, fetching: false, position: 0, playing: false };
     setAssetUrl("");
     setError("");
     if (!selectedLesson?.asset) {
@@ -119,7 +122,10 @@ export default function StudentCoursePlayer({
     setAssetLoading(true);
     getProtectedLessonUrl(selectedLesson.id, selectedLesson.asset)
       .then((url) => {
-        if (active) setAssetUrl(url);
+        if (active) {
+          assetIssuedAt.current = Date.now();
+          setAssetUrl(url);
+        }
       })
       .catch((loadError) => {
         if (active) setError(loadError instanceof Error ? loadError.message : "Unable to open protected file");
@@ -129,6 +135,58 @@ export default function StudentCoursePlayer({
       });
     return () => { active = false; };
   }, [selectedLesson?.id, selectedLesson?.asset]);
+
+  async function recoverMedia(media: HTMLMediaElement) {
+    if (!selectedLesson?.asset || mediaRecovery.current.fetching) return;
+    if (mediaRecovery.current.pending) {
+      mediaRecovery.current.pending = false;
+      setError("This recording could not be played. Reopen the lesson to try again.");
+      return;
+    }
+    if (Date.now() - mediaRecovery.current.at < 60000) {
+      setError("This recording could not be played. Reopen the lesson to try again.");
+      return;
+    }
+    const recovery = { at: Date.now(), pending: true, fetching: true, position: media.currentTime, playing: mediaRecovery.current.playing };
+    mediaRecovery.current = recovery;
+    const failedUrl = assetUrl;
+    try {
+      const url = await getProtectedLessonUrl(selectedLesson.id, selectedLesson.asset);
+      if (mediaRecovery.current !== recovery) return;
+      assetIssuedAt.current = Date.now();
+      recovery.fetching = false;
+      setError("");
+      setAssetUrl(current => current === failedUrl ? url : current);
+      // A fresh signature can be identical within the same second; force a reload then.
+      if (url === failedUrl) media.load();
+    } catch (loadError) {
+      if (mediaRecovery.current !== recovery) return;
+      recovery.pending = false;
+      recovery.fetching = false;
+      setError(loadError instanceof Error ? loadError.message : "Unable to reopen this recording");
+    }
+  }
+
+  function restoreMedia(media: HTMLMediaElement) {
+    const recovery = mediaRecovery.current;
+    const position = recovery.pending ? recovery.position : selectedLesson?.position_seconds ?? 0;
+    if (position > 0) media.currentTime = Math.min(position, media.duration || position);
+    if (recovery.pending && recovery.playing) void media.play().catch(() => {
+      setError("The recording is ready. Press play to continue.");
+    });
+    recovery.pending = false;
+  }
+
+  function renewExpiredMedia(media: HTMLMediaElement) {
+    // Renew before an unbuffered seek/resume needs a request with an expired R2 link.
+    if (Date.now() - assetIssuedAt.current >= 14 * 60 * 1000) void recoverMedia(media);
+  }
+
+  function pauseMedia(media: HTMLMediaElement) {
+    if (media.error || mediaRecovery.current.pending) return;
+    mediaRecovery.current.playing = false;
+    void saveMediaProgress(media);
+  }
 
   function updateLessonProgress(lessonId: string, completed: boolean, progressPercent = 100, positionSeconds = 0) {
     setCourse((currentCourse) => currentCourse ? {
@@ -236,10 +294,12 @@ export default function StudentCoursePlayer({
               disableRemotePlayback
               preload="metadata"
               src={assetUrl}
-              onLoadedMetadata={(event) => {
-                if (selectedLesson.position_seconds > 0) event.currentTarget.currentTime = selectedLesson.position_seconds;
-              }}
-              onPause={(event) => void saveMediaProgress(event.currentTarget)}
+              onLoadedMetadata={(event) => restoreMedia(event.currentTarget)}
+              onPlay={(event) => { mediaRecovery.current.playing = true; renewExpiredMedia(event.currentTarget); }}
+              onSeeking={(event) => renewExpiredMedia(event.currentTarget)}
+              onStalled={(event) => renewExpiredMedia(event.currentTarget)}
+              onError={(event) => void recoverMedia(event.currentTarget)}
+              onPause={(event) => pauseMedia(event.currentTarget)}
               onEnded={(event) => void saveMediaProgress(event.currentTarget, true)}
             />
             : selectedLesson.lesson_type === "audio" && assetUrl ? <div className="audio-player-card"><div><FileAudio /><span><small>ADCI AUDIO LESSON</small><strong>{selectedLesson.title}</strong></span></div><audio
@@ -247,16 +307,19 @@ export default function StudentCoursePlayer({
               controlsList="nodownload"
               preload="metadata"
               src={assetUrl}
-              onLoadedMetadata={(event) => {
-                if (selectedLesson.position_seconds > 0) event.currentTarget.currentTime = selectedLesson.position_seconds;
-              }}
-              onPause={(event) => void saveMediaProgress(event.currentTarget)}
+              onLoadedMetadata={(event) => restoreMedia(event.currentTarget)}
+              onPlay={(event) => { mediaRecovery.current.playing = true; renewExpiredMedia(event.currentTarget); }}
+              onSeeking={(event) => renewExpiredMedia(event.currentTarget)}
+              onStalled={(event) => renewExpiredMedia(event.currentTarget)}
+              onError={(event) => void recoverMedia(event.currentTarget)}
+              onPause={(event) => pauseMedia(event.currentTarget)}
               onEnded={(event) => void saveMediaProgress(event.currentTarget, true)}
             /></div>
             : selectedLesson.lesson_type === "pdf" && assetUrl ? <div className="pdf-reader"><iframe title={selectedLesson.title} src={`${assetUrl}#toolbar=0&navpanes=0`} /><span><FileText size={17} /> Protected PDF viewer</span></div>
             : selectedLesson.lesson_type === "html" ? <article className="article-reader"><p className="eyebrow">ADCI STUDY ARTICLE</p><h2>{selectedLesson.title}</h2><div>{selectedLesson.article_body || "This article has not been written yet."}</div></article>
             : selectedLesson.lesson_type === "live" ? <div className="live-lesson-card"><div className="live-lesson-icon"><Radio /></div><p className="eyebrow">{selectedLesson.live_class?.status === "extended" ? "LIVE · EXTENDED" : "LIVE LEARNING"}</p><h2>{selectedLesson.title}</h2>{selectedLesson.live_class ? <><p>{liveProviderNames[selectedLesson.live_class.provider]} with <strong>{selectedLesson.live_class.instructor_name}</strong></p><div className="live-lesson-time"><Clock3 /><span><strong>{new Date(selectedLesson.live_class.starts_at).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}</strong><small>{selectedLesson.live_class.status === "extended" ? "Running past the scheduled end — still open" : `Ends ${new Date(selectedLesson.live_class.ends_at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}`}</small></span></div><button className="primary" disabled={!selectedLesson.live_class.can_join || joining} onClick={() => void joinLiveClass()}><Video /> {joining ? "Opening…" : selectedLesson.live_class.can_join ? "Join live class" : "Join opens 15 minutes before class"}</button></> : <p>Schedule and meeting details have not been added yet.</p>}</div>
             : selectedLesson.lesson_type === "quiz" ? <div className="quiz-lesson-card"><div><CirclePlay /></div><p className="eyebrow">INTERACTIVE ASSESSMENT</p><h2>{selectedLesson.quiz?.title || selectedLesson.title}</h2><p>Start the timed quiz, save each answer securely and receive your score immediately after submission.</p><button className="primary" disabled={!selectedLesson.quiz} onClick={() => selectedLesson.quiz && setQuizAssessmentId(selectedLesson.quiz.assessment_id)}><Play fill="currentColor" /> {selectedLesson.quiz ? "Start quiz" : "Quiz is not published yet"}</button></div>
+            : selectedLesson.asset ? <div className="lesson-content-state missing"><LockKeyhole /><h2>Content could not be opened</h2><p>Please reopen the lesson to try again. If the problem continues, contact your instructor.</p></div>
             : <div className="lesson-content-state missing"><LockKeyhole /><h2>Content is being prepared</h2><p>The lesson exists, but its protected file has not been uploaded yet.</p></div>}
           </div>
 

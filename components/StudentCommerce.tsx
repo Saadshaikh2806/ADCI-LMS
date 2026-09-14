@@ -78,7 +78,10 @@ async function loadCheckout() {
     script.src = "https://checkout.razorpay.com/v1/checkout.js";
     script.async = true;
     script.onload = () => resolve();
-    script.onerror = () => reject(new Error("Unable to load secure checkout"));
+    script.onerror = () => {
+      script.remove();
+      reject(new Error("Unable to load secure checkout"));
+    };
     document.head.appendChild(script);
   });
 }

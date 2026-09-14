@@ -1,6 +1,8 @@
 # ADCI LMS production release checklist
 
-The current schema ends at `202609090003_archive_stranded_live_courses.sql`. Release the application and database from the same reviewed commit; never paste only part of a migration into production.
+For the September 14 repairs and owner-applied hosting settings, see [Website fixes](WEBSITE_FIXES_2026-09-14.md).
+
+The current schema ends at `202609140003_durable_lesson_file_cleanup.sql`. Release the application and database from the same reviewed commit; never paste only part of a migration into production.
 
 ## 1. Automated release gates
 
@@ -26,7 +28,7 @@ supabase db push --dry-run
 supabase db push
 ```
 
-Confirm the Supabase migration history ends at `202609090003`. Never rename an applied migration. Before pushing, verify a current database restore point as described in `OPERATIONS_RUNBOOK.md`.
+Confirm the Supabase migration history ends at `202609140003`. Never rename an applied migration. Before pushing, verify a current database restore point as described in `OPERATIONS_RUNBOOK.md`.
 
 ### September 8 session and Zoom repair
 
@@ -36,7 +38,7 @@ The session migration installs `public.adci_check_request_session` as the PostgR
 
 ### Live sessions are Zoom-only
 
-`202609080004_remove_agora_live.sql` deletes the in-LMS Agora classroom and retires any Agora bookable sessions. `202609080005_live_class_runtime_state.sql` adds `live_started_at` / `live_ended_at` to `adci_live_classes` so a class stays joinable while its Zoom meeting actually runs (shown as **Extended** past the scheduled end) and expires when the meeting ends for all or `starts_at + 6h` passes. To make that state update instantly, set `ZOOM_WEBHOOK_SECRET_TOKEN`, add the same secret to the Zoom Marketplace app, and subscribe it to *Meeting Started* and *Meeting Ended* pointing at `/api/live-sessions/zoom/webhook`; without it the LMS reconciles Zoom state whenever a session is opened.
+`202609080004_remove_agora_live.sql` deletes the in-LMS Agora classroom and retires any Agora bookable sessions. `202609080005_live_class_runtime_state.sql` adds `live_started_at` / `live_ended_at` to `adci_live_classes` so a class stays joinable while its Zoom meeting actually runs (shown as **Extended** past the scheduled end) and expires when the meeting ends for all or the later of the scheduled end and `starts_at + 6h` passes. To make that state update instantly, set `ZOOM_WEBHOOK_SECRET_TOKEN`, add the same secret to the Zoom Marketplace app, and subscribe it to *Meeting Started* and *Meeting Ended* pointing at `/api/live-sessions/zoom/webhook`; without it the LMS reconciles Zoom state whenever a session is opened.
 
 ### Learner groups
 
@@ -94,3 +96,7 @@ Use separate learner, instructor, finance/support and super-administrator accoun
 Enable Supabase backups/PITR, R2 versioning, a Vercel log drain and external monitoring before promotion. `/api/health` must return HTTP 200 with both checks `ok`. Promote the tested immutable Vercel deployment, place one live Razorpay purchase/refund with an authorised account, verify email delivery, and observe the dashboards for at least 30 minutes.
 
 Record the release commit, migration head, Vercel deployment, test evidence, restore point, approver and rollback target. Follow `OPERATIONS_RUNBOOK.md` for incidents and rollback.
+
+### Recorded lesson playback repair
+
+Apply `202609140001_restore_lesson_storage_provider.sql` to restore the storage provider in both lesson-asset and legacy-video payloads. The live-runtime view update dropped that field, sending R2 files to Supabase Storage and causing Object not found errors. This migration preserves live runtime state and course access checks. Reload the course after applying it.

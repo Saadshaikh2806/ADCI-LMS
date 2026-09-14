@@ -687,48 +687,18 @@ export async function uploadProtectedLessonAsset(
   return objectPath;
 }
 
-export async function deleteAdciAcademicEntity(
-  kind: "course" | "module" | "lesson",
-  id: string,
-  lessons: AdciLesson[]
-) {
+export async function deleteAdciAcademicEntity(kind: "course" | "module" | "lesson", id: string) {
   const supabase = getSupabaseBrowserClient();
   if (!supabase) throw new Error("Supabase is not configured");
-
-  const r2Objects = lessons.flatMap((lesson) => [
-    ...(lesson.adci_lesson_assets ?? [])
-      .filter((asset) => asset.storage_provider === "r2")
-      .map((asset) => ({ lessonId: lesson.id, objectPath: asset.object_path })),
-    ...(lesson.adci_video_assets ?? [])
-      .filter((asset) => asset.storage_provider === "r2")
-      .map((asset) => ({ lessonId: lesson.id, objectPath: asset.object_path }))
-  ]);
-  const lessonAssets = lessons.flatMap((lesson) =>
-    (lesson.adci_lesson_assets ?? [])
-      .filter((asset) => asset.storage_provider !== "r2")
-      .map((asset) => asset.object_path)
-  );
-  const legacyVideos = lessons.flatMap((lesson) =>
-    (lesson.adci_video_assets ?? [])
-      .filter((asset) => asset.storage_provider !== "r2")
-      .map((asset) => asset.object_path)
-  );
-
-  await deleteFilesFromR2(r2Objects);
-  if (lessonAssets.length) {
-    const { error } = await supabase.storage.from("adci-lesson-assets").remove(lessonAssets);
-    if (error) throw error;
-  }
-  if (legacyVideos.length) {
-    const { error } = await supabase.storage.from("adci-course-videos").remove(legacyVideos);
-    if (error) throw error;
-  }
-
-  const { error } = await supabase.rpc("adci_delete_academic_entity", {
-    entity_kind: kind,
-    target_id: id
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error("Authentication required");
+  const response = await fetch("/api/storage/delete-academic-entity", {
+    method: "POST",
+    headers: { "content-type": "application/json", authorization: `Bearer ${session.access_token}` },
+    body: JSON.stringify({ kind, id })
   });
-  if (error) throw error;
+  const result = await response.json() as { error?: string };
+  if (!response.ok) throw new Error(result.error || "Unable to delete curriculum");
 }
 
 export type AdciQuizEditor = {

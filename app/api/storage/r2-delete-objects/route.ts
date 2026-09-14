@@ -54,33 +54,8 @@ export async function POST(request: Request) {
     if (lessonAssetError) throw lessonAssetError;
     if (videoAssetError) throw videoAssetError;
 
-    const boundPaths = new Set([...(lessonAssets ?? []), ...(videoAssets ?? [])].map((asset) => asset.object_path));
-    const boundLessonIds = [...new Set(uniqueObjects.filter((item) => boundPaths.has(item.objectPath)).map((item) => item.lessonId))];
-
-    // Removing an object already attached to curriculum is destructive and must
-    // match the same elevated roles used by adci_delete_academic_entity.
-    if (boundLessonIds.length > 0) {
-      const { data: lessonRows, error: lessonError } = await service.from("adci_lessons").select("id,module_id").in("id", boundLessonIds);
-      if (lessonError) throw lessonError;
-      const moduleIds = [...new Set((lessonRows ?? []).map((lesson) => lesson.module_id))];
-      const { data: moduleRows, error: moduleError } = await service.from("adci_modules").select("id,course_id").in("id", moduleIds);
-      if (moduleError) throw moduleError;
-      const courseIds = [...new Set((moduleRows ?? []).map((module) => module.course_id))];
-      const { data: courseRows, error: courseError } = await service.from("adci_courses").select("id,organization_id").in("id", courseIds);
-      if (courseError) throw courseError;
-      const organizationIds = [...new Set((courseRows ?? []).map((course) => course.organization_id))];
-      const { data: memberships, error: membershipError } = await service
-        .from("adci_memberships")
-        .select("organization_id")
-        .eq("user_id", user.id)
-        .eq("active", true)
-        .in("organization_id", organizationIds)
-        .in("role", ["academic_lead", "branch_admin", "super_admin"]);
-      if (membershipError) throw membershipError;
-      const authorizedOrganizations = new Set((memberships ?? []).map((membership) => membership.organization_id));
-      if (organizationIds.some((organizationId) => !authorizedOrganizations.has(organizationId))) {
-        return errorResponse(new Error("Academic lead permission is required to delete protected curriculum files"), 403);
-      }
+    if (lessonAssets?.length || videoAssets?.length) {
+      return errorResponse(new Error("Delete attached files through the curriculum editor"), 403);
     }
 
     const deletion = await getR2Client().send(new DeleteObjectsCommand({

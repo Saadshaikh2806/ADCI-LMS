@@ -24,6 +24,9 @@ export default function AuthGate({ children }: { children: ReactNode }) {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [recovering, setRecovering] = useState(() => typeof window !== "undefined"
+    && new URLSearchParams(window.location.search).has("reset-password"));
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [mfaFactorId, setMfaFactorId] = useState("");
@@ -54,6 +57,10 @@ export default function AuthGate({ children }: { children: ReactNode }) {
       if (!candidate) {
         if (active) {
           setSession(null);
+          if (new URLSearchParams(window.location.search).has("reset-password")) {
+            setMode("recovery");
+            setMessage("Open a valid recovery link from your email, or request a new one below.");
+          }
           setLoading(false);
         }
         return;
@@ -126,9 +133,18 @@ export default function AuthGate({ children }: { children: ReactNode }) {
       }
     }
 
-    authClient.auth.getSession().then(({ data }) => void validateSession(data.session));
+    authClient.auth.getSession().then(({ data, error }) => {
+      if (error && active) setMessage(error.message);
+      void validateSession(data.session);
+    });
 
-    const { data } = authClient.auth.onAuthStateChange((_event, nextSession) => {
+    const { data } = authClient.auth.onAuthStateChange((event, nextSession) => {
+      if (event === "PASSWORD_RECOVERY") {
+        setRecovering(true);
+        const url = new URL(window.location.href);
+        url.searchParams.set("reset-password", "1");
+        window.history.replaceState(window.history.state, "", url);
+      }
       // Defer network validation so it does not block Supabase's auth callback.
       setTimeout(() => void validateSession(nextSession), 0);
     });
@@ -181,9 +197,21 @@ export default function AuthGate({ children }: { children: ReactNode }) {
     setMessage("");
 
     try {
-      if (mode === "recovery") {
+      if (recovering && session) {
+        if (password.length < 8) throw new Error("Use at least 8 characters for your new password.");
+        if (password !== confirmPassword) throw new Error("The passwords do not match.");
+        const { error } = await supabase.auth.updateUser({ password });
+        if (error) throw error;
+        setPassword("");
+        setConfirmPassword("");
+        setMessage("Your password has been updated.");
+        const url = new URL(window.location.href);
+        url.searchParams.delete("reset-password");
+        window.history.replaceState(window.history.state, "", url);
+        setRecovering(false);
+      } else if (mode === "recovery") {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: window.location.origin
+          redirectTo: `${window.location.origin}/?reset-password=1`
         });
         if (error) throw error;
         setMessage("Recovery instructions have been sent to your email.");
@@ -265,7 +293,20 @@ export default function AuthGate({ children }: { children: ReactNode }) {
     />;
   }
 
-  if (session) return <AuthSessionContext.Provider value={session}>{children}</AuthSessionContext.Provider>;
+  if (session && recovering) return <main className="auth-shell" style={{ gridTemplateColumns: "1fr" }}>
+    <section className="auth-form-panel"><form className="auth-form" onSubmit={submit}>
+      <p className="eyebrow">ACCOUNT RECOVERY</p><h1>Choose a new password</h1>
+      <label><span>New password</span><div><LockKeyhole size={17} /><input required minLength={8} type="password" autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} /></div></label>
+      <label><span>Confirm new password</span><div><LockKeyhole size={17} /><input required minLength={8} type="password" autoComplete="new-password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} /></div></label>
+      {message && <div className="auth-notice" role="status">{message}</div>}
+      <button className="auth-submit" disabled={submitting}>{submitting ? "Updating password…" : "Update password"}</button>
+    </form></section>
+  </main>;
+
+  if (session) return <AuthSessionContext.Provider value={session}>
+    {message === "Your password has been updated." && <div className="auth-notice" role="status">{message}</div>}
+    {children}
+  </AuthSessionContext.Provider>;
 
   return (
     <main className="auth-shell">

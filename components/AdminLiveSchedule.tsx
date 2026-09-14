@@ -110,15 +110,15 @@ export default function AdminLiveSchedule({ notify }: {
   }, [deleteClass]);
 
   // Mirror adci_live_class_phase so the row stays accurate between refreshes.
-  const derivePhase = (item: AdciScheduledLiveClass, at: number): AdciScheduledLiveClass["status"] => {
+  function derivePhase(item: AdciScheduledLiveClass, at: number): AdciScheduledLiveClass["status"] {
     if (item.live_ended_at) return "ended";
     const start = new Date(item.starts_at).getTime();
     const end = new Date(item.ends_at).getTime();
-    if (at >= start + 6 * 3600000) return "ended";
+    if (at >= Math.max(end, start + 6 * 3600000)) return "ended";
     if (at < start - 15 * 60000) return "scheduled";
     if (at <= end) return "live";
     return item.live_started_at ? "extended" : "ended";
-  };
+  }
   const allClasses = useMemo(() => (schedule?.classes ?? []).map((item) => ({
     ...item,
     status: derivePhase(item, now)

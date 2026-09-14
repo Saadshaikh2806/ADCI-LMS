@@ -1,5 +1,16 @@
 import { expect, test } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
+import { readFileSync } from "node:fs";
+
+test("invoice and certificate print rules reveal only the selected document", async ({ page }) => {
+  for (const kind of ["invoice-dialog", "certificate-print-stage"]) {
+    await page.setContent(`<nav>Dashboard</nav><section class="${kind}"><h2>Printable document</h2></section>`);
+    await page.addStyleTag({ content: readFileSync("app/globals.css", "utf8") });
+    await page.emulateMedia({ media: "print" });
+    await expect(page.getByRole("heading", { name: "Printable document" })).toBeVisible();
+    await expect(page.getByText("Dashboard")).not.toBeVisible();
+  }
+});
 
 test("login shell renders without browser errors", async ({ page }) => {
   const errors: string[] = [];

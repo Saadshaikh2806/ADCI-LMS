@@ -1,4 +1,5 @@
 import { dispatchPendingEmails } from "../../../../lib/email/delivery";
+import { cleanupDeletedLessonFiles } from "../../../../lib/r2/cleanup";
 import {
   getServerServiceSupabase,
   requireServerUser
@@ -21,7 +22,11 @@ export async function GET(request: Request) {
     return errorResponse(new Error("Unauthorized"), 401);
   }
   try {
-    return Response.json(await dispatchPendingEmails(getServerServiceSupabase()));
+    const service = getServerServiceSupabase();
+    const [emails, fileCleanup] = await Promise.all([
+      dispatchPendingEmails(service), cleanupDeletedLessonFiles(service)
+    ]);
+    return Response.json({ ...emails, fileCleanup });
   } catch (error) {
     return errorResponse(error, 500);
   }

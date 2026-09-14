@@ -71,6 +71,8 @@ export default function StudentQuizRunner({
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
   const pendingSaves = useRef<Set<Promise<void>>>(new Set());
+  const saveQueue = useRef<Promise<void>>(Promise.resolve());
+  const savedAnswers = useRef<Record<number, number>>({});
   const submittingRef = useRef(false);
   const autoSubmittedRef = useRef(false);
   const integrityViolationRef = useRef(false);
@@ -101,6 +103,7 @@ export default function StudentQuizRunner({
       setDeadline(restoredDeadline);
       setSeconds(restoredSeconds);
       setAnswers(restoredAnswers);
+      savedAnswers.current = { ...restoredAnswers };
       setFlagged(restoredFlags);
       const firstUnanswered = selectedQuiz.questions.findIndex((_, index) => restoredAnswers[index] === undefined);
       setCurrent(firstUnanswered >= 0 ? firstUnanswered : 0);
@@ -177,7 +180,11 @@ export default function StudentQuizRunner({
     void submit(true);
   }, [attemptId, deadline, result, seconds]);
 
-  function trackSave(operation: Promise<void>) {
+  function trackSave(save: () => Promise<void>) {
+    const operation = saveQueue.current.then(save).catch(() => {
+      setError("Your answer could not be saved. Please select it again before submitting.");
+    });
+    saveQueue.current = operation;
     pendingSaves.current.add(operation);
     setSavingCount((value) => value + 1);
     void operation.finally(() => {
@@ -229,6 +236,7 @@ export default function StudentQuizRunner({
     setDeadline(attempt.server_deadline_at);
     setSeconds(Math.max(0, Math.ceil((new Date(attempt.server_deadline_at).getTime() - Date.now()) / 1000)));
     setAnswers({});
+    savedAnswers.current = {};
     setFlagged([]);
     setCurrent(0);
     const stateLoaded = await loadAttemptState(quiz);
@@ -246,30 +254,32 @@ export default function StudentQuizRunner({
   async function answer(index: number) {
     if (!quiz || !attemptId || submittingRef.current || seconds <= 0) return;
     const questionIndex = current;
-    const previous = answers[questionIndex];
     setAnswers((value) => ({ ...value, [questionIndex]: index }));
     setError("");
     const supabase = getSupabaseBrowserClient();
     if (!supabase) return;
 
-    const operation = (async () => {
+    trackSave(async () => {
       const { error: saveError } = await supabase.rpc("adci_save_quiz_answer", {
         target_attempt_id: attemptId,
         target_question_id: quiz.questions[questionIndex].id,
         answer_index: index,
         review_flag: flagged.includes(questionIndex)
       });
-      if (!saveError) return;
+      if (!saveError) {
+        savedAnswers.current[questionIndex] = index;
+        return;
+      }
       setAnswers((value) => {
         if (value[questionIndex] !== index) return value;
         const restored = { ...value };
+        const previous = savedAnswers.current[questionIndex];
         if (previous === undefined) delete restored[questionIndex];
         else restored[questionIndex] = previous;
         return restored;
       });
       setError(`Question ${questionIndex + 1} was not saved: ${saveError.message}`);
-    })();
-    trackSave(operation);
+    });
   }
 
   async function toggleFlag() {
@@ -282,7 +292,7 @@ export default function StudentQuizRunner({
     const supabase = getSupabaseBrowserClient();
     if (!supabase) return;
 
-    const operation = (async () => {
+    trackSave(async () => {
       const { error: saveError } = await supabase.rpc("adci_save_quiz_flag", {
         target_attempt_id: attemptId,
         target_question_id: quiz.questions[questionIndex].id,
@@ -293,8 +303,7 @@ export default function StudentQuizRunner({
         ? Array.from(new Set([...items, questionIndex]))
         : items.filter((item) => item !== questionIndex));
       setError(`Review flag was not saved: ${saveError.message}`);
-    })();
-    trackSave(operation);
+    });
   }
 
   async function submit(automatic = false) {

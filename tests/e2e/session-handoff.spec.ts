@@ -4,11 +4,12 @@ const userId = "00000000-0000-0000-0000-000000000001";
 
 // Exercise the real AuthGate/Supabase client with isolated provider responses.
 // The actual SQL ownership/permission rules run in test:session, not in this mock.
-async function mockAccount(context: BrowserContext, sessionId: string, state: { owner: string; unavailable?: boolean }) {
+async function mockAccount(context: BrowserContext, sessionId: string, state: { owner: string; unavailable?: boolean; mfa?: boolean }) {
   const user = {
     id: userId, aud: "authenticated", role: "authenticated", email: "learner@example.test",
     email_confirmed_at: "2026-01-01T00:00:00Z", created_at: "2026-01-01T00:00:00Z",
-    app_metadata: { provider: "email", providers: ["email"] }, user_metadata: { full_name: "Test Learner" }, factors: []
+    app_metadata: { provider: "email", providers: ["email"] }, user_metadata: { full_name: "Test Learner" },
+    factors: state.mfa ? [{ id: "00000000-0000-4000-8000-000000000002", factor_type: "totp", status: "verified", created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z" }] : []
   };
   const jwt = [
     { alg: "HS256", typ: "JWT" },
@@ -42,7 +43,50 @@ async function mockAccount(context: BrowserContext, sessionId: string, state: { 
     if (url.hostname === "127.0.0.1" || url.hostname === "localhost") return route.continue();
     return route.abort();
   });
+  return { user, jwt };
 }
+
+test("recovery links open a password form, survive reload, and update only after confirmation", async ({ context, page }) => {
+  const { user, jwt } = await mockAccount(context, "recovery-session", { owner: "" });
+  const updates: string[] = [];
+  await context.route("**/auth/v1/user", async route => {
+    if (route.request().method() === "PUT") updates.push(route.request().postDataJSON().password);
+    await route.fulfill({ contentType: "application/json", body: JSON.stringify(user) });
+  });
+  await page.goto(`/#access_token=${jwt}&refresh_token=recovery-session&token_type=bearer&expires_in=3600&type=recovery`);
+  await expect(page.getByRole("heading", { name: "Choose a new password" })).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "Choose a new password" })).toBeVisible();
+  await page.getByLabel("New password", { exact: true }).fill("a-new-password");
+  await page.getByLabel("Confirm new password").fill("does-not-match");
+  await page.getByRole("button", { name: "Update password" }).click();
+  await expect(page.getByText("The passwords do not match.")).toBeVisible();
+  expect(updates).toEqual([]);
+  await page.getByLabel("Confirm new password").fill("a-new-password");
+  await page.getByRole("button", { name: "Update password" }).click();
+  await expect(page.getByRole("heading", { name: "Choose a new password" })).not.toBeVisible();
+  await expect(page.getByText("Your password has been updated.")).toBeVisible();
+  expect(updates).toEqual(["a-new-password"]);
+  expect(page.url()).not.toContain("reset-password");
+});
+
+test("an expired recovery link offers a fresh link instead of a password form", async ({ context, page }) => {
+  await mockAccount(context, "recovery-session", { owner: "" });
+  await page.goto("/?reset-password=1#error=access_denied&error_code=otp_expired&error_description=Link%20expired");
+  await expect(page.getByRole("heading", { name: "Reset your password" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Send recovery link" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Choose a new password" })).not.toBeVisible();
+});
+
+test("password recovery still requires an enrolled authenticator", async ({ context, page }) => {
+  const state = { owner: "", mfa: true };
+  const { jwt } = await mockAccount(context, "recovery-mfa", state);
+  await page.goto(`/#access_token=${jwt}&refresh_token=recovery-mfa&token_type=bearer&expires_in=3600&type=recovery`);
+  await expect(page.getByRole("heading", { name: "Complete your sign-in" })).toBeVisible();
+  await expect(page.getByLabel("Authenticator code")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Choose a new password" })).not.toBeVisible();
+  expect(state.owner).toBe("");
+});
 
 test("a second browser login signs the first browser out on its next ownership check", async ({ browser }) => {
   const first = await browser.newContext();

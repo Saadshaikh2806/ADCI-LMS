@@ -1983,11 +1983,11 @@ html[data-theme="dark"] .certificate-preview-shell { background:#263236!importan
 }
 
 @media print {
-  @page { size:A4 landscape; margin:0; }
+  @page adci-certificate { size:A4 landscape; margin:0; }
   body { background:white !important; }
-  body * { visibility:hidden !important; }
+  :where(body:has(.certificate-print-stage)) * { visibility:hidden !important; }
   .certificate-print-stage,.certificate-print-stage * { visibility:visible !important; }
-  .certificate-print-stage { width:297mm !important; height:210mm !important; padding:0 !important; position:fixed !important; inset:0 !important; overflow:hidden !important; background:white !important; print-color-adjust:exact; -webkit-print-color-adjust:exact; }
+  .certificate-print-stage { page:adci-certificate; width:297mm !important; height:210mm !important; padding:0 !important; position:fixed !important; inset:0 !important; overflow:hidden !important; background:white !important; print-color-adjust:exact; -webkit-print-color-adjust:exact; }
   .certificate-paper { width:297mm !important; height:210mm !important; padding:8mm !important; box-shadow:none !important; }
   .certificate-border { padding:12mm 20mm !important; }
   .certificate-kicker { margin:9mm 0 3mm !important; font-size:15pt !important; }
@@ -2211,7 +2211,7 @@ html[data-theme="dark"] .certificate-preview-shell { background:#263236!importan
 .commerce-offer-dialog { width:min(680px,100%); }.offer-active { padding:12px; display:flex !important; align-items:center; gap:9px !important; border:1px solid var(--line-soft); border-radius:9px; background:var(--surface-soft); }.offer-active input { width:17px; height:17px; }.offer-active strong,.offer-active small { display:block; }.offer-active strong { font-size:12px; }.offer-active small { margin-top:3px; color:var(--muted); font-size:11px; }.offer-save { margin-top:17px; }
 
 @media print {
-  body * { visibility:hidden; }
+  :where(body:has(.invoice-dialog)) * { visibility:hidden; }
   .invoice-dialog,.invoice-dialog * { visibility:visible; }
   .invoice-dialog { width:100%; max-height:none; position:absolute; inset:0; box-shadow:none; }
   .invoice-dialog > header button,.invoice-dialog footer { display:none; }

@@ -266,7 +266,7 @@ export default function AdminCourseManager({ notify }: { notify: (message: strin
     setSaving(true);
     setError("");
     try {
-      await deleteAdciAcademicEntity(kind, id, lessons);
+      await deleteAdciAcademicEntity(kind, id);
       if (kind === "course") {
         setEditor(null);
         await refresh();
