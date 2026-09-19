@@ -24,7 +24,13 @@ const exampleVariables = new Set(
     return match ? [match[1]] : [];
   })
 );
-const source = execFileSync("rg", ["-n", "-g", "*.ts", "-g", "*.tsx", "process\\.env\\.|requireServerEnvironment\\(|requiredEnvironment\\(", "app", "lib"], { cwd: root, encoding: "utf8" });
+const source = ["app", "lib"]
+  .flatMap((directory) =>
+    readdirSync(new URL(`../${directory}`, import.meta.url), { recursive: true })
+      .filter((name) => /\.tsx?$/.test(name))
+      .map((name) => read(`${directory}/${name.replaceAll("\\", "/")}`))
+  )
+  .join("\n");
 const usedVariables = new Set([...source.matchAll(/(?:process\.env\.|(?:requireServerEnvironment|requiredEnvironment)\(")([A-Z][A-Z0-9_]*)/g)].map((match) => match[1]));
 for (const variable of usedVariables) {
   if (variable === "NODE_ENV" || variable === "CI" || variable.startsWith("VERCEL_")) continue;
