@@ -38,15 +38,15 @@
     "tus-js-client": "4.3.1"
   },
   "devDependencies": {
-    "@axe-core/playwright": "^4.13.0",
-    "@electric-sql/pglite": "^0.5.8",
-    "@playwright/test": "^1.63.0",
-    "@types/node": "^22.10.2",
+    "@axe-core/playwright": "^4.14.0",
+    "@electric-sql/pglite": "^0.5.11",
+    "@playwright/test": "^1.64.1",
+    "@types/node": "^26.6.5",
     "@types/nodemailer": "^8.0.1",
-    "@types/react": "^19.0.3",
+    "@types/react": "^19.3.0",
     "@types/react-dom": "^19.0.2",
-    "eslint": "^9.39.1",
-    "eslint-config-next": "16.3.4",
-    "typescript": "^5.7.2"
+    "eslint": "^10.13.0",
+    "eslint-config-next": "16.4.2",
+    "typescript": "^7.0.2"
   }
 }
